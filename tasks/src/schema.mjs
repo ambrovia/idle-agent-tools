@@ -16,7 +16,6 @@ const MIGRATIONS = [
     title text not null check (char_length(title) between 1 and ${CAPS.title}),
     goal text not null default '' check (char_length(goal) <= ${CAPS.goal}),
     acceptance_criteria text check (char_length(acceptance_criteria) <= ${CAPS.acceptance}),
-    checks jsonb not null default '[]',
     scope text[] not null default '{}',
     needs text[] not null default '{}',
     decision_refs text[] not null default '{}',

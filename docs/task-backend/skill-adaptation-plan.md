@@ -8,6 +8,8 @@ Stage A skill and persona edits are done (20 September 2026): the new `idle` ski
 
 Moved out of stage A, to be done together with shipping the backend inside the plugin (backend step 6), because all of it is one question — how `tasks/` reaches an installed plugin: `hooks/inject.mjs` reading the record instead of `.pipeline/work/`, deleting `scripts/pipeline-snapshot.mjs` and its test, the three installers and the package file list that carry it. Until then the hook finds no work folder and stays silent, and the skills' own fallback applies: the arbiter puts the brief in the spawn prompt. `README` follows once one real stream has run.
 
+Changed again by Q&A Part 20: `work-planning` is deleted — anyone drops a task, and `refine` carries the is-it-worth-doing test; there is no stream, only tasks and trees; the planner no longer runs checks — the system does, at submit, from the machine's configured commands; arbiter and planner are one role and one persona, so no new arbiter persona is needed in stage B. Rows below that say otherwise are superseded.
+
 Two things the edits settled that the table below did not say: `plan` has two halves only — `## What we need` and `## How it works`; the old "how we work on this" is the tree itself. And in stage A the arbiter re-runs a submitted task's checks itself; keepalive takes that over in stage B.
 
 ## The five rules of the rewrite

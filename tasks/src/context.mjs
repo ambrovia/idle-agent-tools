@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { basename, dirname, resolve } from 'node:path';
 import { userInfo } from 'node:os';
 
-// The repository's name, so every clone and worktree lands on the same streams.
+// The repository's name, so every clone and worktree lands on the same tasks.
 export function project() {
   if (process.env.IDLE_PROJECT) return process.env.IDLE_PROJECT;
   const git = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8' });

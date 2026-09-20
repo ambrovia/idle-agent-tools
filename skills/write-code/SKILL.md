@@ -35,13 +35,13 @@ gate. Add tests only for approved behavior where they can catch a meaningful reg
 tests, edit outside the task's scope, perform adjacent cleanup, add speculative capability, or redesign around a plan contradiction.
 Raise a blocker with evidence when new scope or a changed structural decision is required.
 
-Submit only when the goal is reached and shown to be — the task's checks green, including
-`{{verify}}`, and the change working through its real consuming path where the goal names one —
+Submit only when the goal is reached and shown to be — `{{verify}}` green, and the change working through its real consuming path where the goal names one —
 change-caused regressions are fixed, and the diff contains no unrelated work and no task id. Report
-pre-existing failures separately. Your word that checks pass is re-run by someone else.
+pre-existing failures separately. When you submit, the system runs the project's checks itself; a failure
+reopens the task with the output, whatever you reported.
 
 Record a decision you had to make where the plan was silent. Write feedback on the task for anything
-learned by doing that whoever plans the stream should know: the goal is wrong, the approach will not
+learned by doing that whoever plans the tree should know: the goal is wrong, the approach will not
 work, a decision conflicts. End in exactly one way: submit; propose children when the task is bigger
 than it looked, and release it; or block with the reason. `/idle` says how.
 

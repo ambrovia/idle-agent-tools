@@ -17,8 +17,7 @@ if (!existsSync(join(ROOT, 'node_modules', '@electric-sql', 'pglite'))) {
   if (install.status !== 0) { process.stderr.write('idle: npm install failed\n'); process.exit(2); }
 }
 
-const { OPS, Refused } = await import('../src/ops.mjs');
-const { withTx } = await import('../src/store.mjs');
+const { OPS, Refused, runOp } = await import('../src/ops.mjs');
 const { context } = await import('../src/context.mjs');
 
 function help(op) {
@@ -65,7 +64,7 @@ if (!op) { console.error(`unknown operation "${name}"\n\n${help()}`); process.ex
 
 try {
   const input = parse(op, rest);
-  const result = await withTx((q) => op.run(q, input, context(input)));
+  const result = await runOp(op, input, context(input));
   console.log(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
 } catch (err) {
   if (err instanceof Refused) { console.error(`refused: ${err.message}`); process.exit(1); }

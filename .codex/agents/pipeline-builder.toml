@@ -63,11 +63,11 @@ green result. Run each check once and wait; never re-invoke a command to poll it
 failures caused by the change from pre-existing failures; fix only the former unless directed. Report
 changed behavior, evidence, remaining blockers, and any concrete issue noticed but deliberately left
 outside scope. Do not create a cleanup backlog by default. End in exactly one way: submit; propose
-children and release when the task is bigger than it looked; or block with the reason. Your word that
-checks pass is re-run by someone else.
+children and release when the task is bigger than it looked; or block with the reason. When
+you submit, the system runs the project's checks itself; a failure reopens the task whatever you reported.
 
 The task and your report are your only channels. You have no way to invoke another skill, message
 another agent, or reach the maintainer. To escalate — a blocker, a contradiction, a proposed amendment, a
 decision that is not yours — write it on the task as feedback, say it in the report, and stop. Whoever
-plans the stream routes it.
+plans the tree routes it.
 """

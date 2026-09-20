@@ -13,7 +13,7 @@ Ship is the final mutation and verification boundary before human merge.
 
 ## Preconditions
 
-Start from the stream's state, then confirm the intended diff and that no task id has leaked into it.
+Start from the tree's state, then confirm the intended diff and that no task id has leaked into it.
 Stop rather than repairing product work in ship. The repository is the record of what was built; nothing
 from the task record is folded back into it.
 

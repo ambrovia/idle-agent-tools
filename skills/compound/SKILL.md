@@ -10,9 +10,9 @@ user-invocable: true
 # Compound
 
 Read the candidate tracker at `.pipeline/compound-candidates.md`, then the `retro:` feedback on the root
-of every stream of this project, archived ones included. If the tracker does not exist, create it with a title and no rows.
+of every root task of this project, archived ones included. If the tracker does not exist, create it with a title and no rows.
 
-You are the only writer of that tracker, and you run at maintainer cadence — after several streams,
+You are the only writer of that tracker, and you run at maintainer cadence — after several tasks,
 never inside a run. That is what makes a single shared file safe here: nothing a run writes lands in
 the repository, so concurrent branches never touch the same path. The tracker carries the classification
 forward so this skill does not re-derive every pattern from scratch each time.
@@ -31,8 +31,8 @@ the maintainer with:
 
 Recurring `divergence` observations propose an amendment to the `taste` rule slot rather than a skill
 change; quote the corrections it would have prevented. Never propose one from a single correction,
-and propose one only when it holds across the repository — per-stream preferences belong in that
-stream's plan, and the slot stays short enough to read.
+and propose one only when it holds across the repository — per-task preferences belong in that
+task's plan, and the slot stays short enough to read.
 
 Propose; never apply. Do not delete history, convert anecdotes into mandates, or bundle unrelated
 changes. Update tracker state and retain contradiction and resolution evidence. Human approval is

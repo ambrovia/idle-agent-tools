@@ -11,7 +11,7 @@ user-invocable: false
 Work out with the maintainer how the thing actually works — what happens, in what order, and why
 that way rather than another. Like `/refine`, this is a conversation you conduct yourself.
 
-Its output is the how-it-works half of the stream's plan: an explanation someone could read once and
+Its output is the how-it-works half of the task's plan: an explanation someone could read once and
 understand.
 
 Plain words only. If a sentence could not be said out loud to someone who knows the domain but not
@@ -38,7 +38,7 @@ talked down. If what comes back is not good, the problem is usually the plan or 
 them — fix that and try again rather than accepting a bad answer.
 
 **Their taste is only what they tell you here.** As in `/refine`: when the approach question is
-unanswered for this stream, ask. Never import it from another stream or another conversation.
+unanswered for this task, ask. Never import it from another task or another conversation.
 `{{rules.taste}}` holds a handful of repository-wide facts; assume the answer you need is not in
 there.
 
@@ -47,7 +47,7 @@ agreement as permission to start building.
 
 ## What to write
 
-Into the stream's **plan**, under `## How it works`, in plain language. Write only that half; `/refine`
+Into the task's **plan**, under `## How it works`, in plain language. Write only that half; `/refine`
 owns `## What we need`. The whole plan is budgeted at 50–100 lines. Explain the path through the
 program, not everything true about it. Add the questions that mattered, and their answers, to the
 **interview**.
@@ -63,7 +63,7 @@ scope and complexity make them necessary.
 ## Boundaries
 
 Do not write code, tests, or contracts. Do not expand scope — an approach that requires new outcomes
-is a proposed amendment for the maintainer, or a proposed stream.
+is a proposed amendment for the maintainer, or a new task of its own.
 
 ## Target
 

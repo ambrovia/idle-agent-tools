@@ -11,7 +11,7 @@ user-invocable: false
 Turn the plan into work a builder can start from: **proposed tasks**, each a more detailed goal, and
 **decisions** for every choice that must not be re-made downstream. The plan owns what is wanted and how
 the program works; approved design constrains the surface. Architecture must not create scope, and it
-never creates work itself — whoever plans the stream accepts, edits or declines what you propose.
+never creates work itself — whoever plans the tree accepts, edits or declines what you propose.
 
 **Run only where the definitions are genuinely necessary** — where scope and complexity mean a builder
 cannot proceed without contracts, types, schemas, or an explicit dependency order. Most items do not

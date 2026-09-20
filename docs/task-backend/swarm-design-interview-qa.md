@@ -328,18 +328,33 @@ A (T, stated): There is already another hyperidle application. Let's just call i
 
 ---
 
+## Part 20 — Just tasks; the system verifies; one planner; two layers
+
+*20 September 2026, after the first pass of skill adaptation.*
+
+A (T, stated): Is it possible to just drop tasks in our backend? Not every task is always properly structured. Generally I don't like this stream concept. In the beginning everything is a simple root task, and that can evolve into a nested tree of tasks. No need for a stream concept. The core idea here is that work planning isn't necessary as a skill anymore. Anyone can drop a new task anytime, and refine and plan can structure this. I want work planning deleted. Refine already includes a part where we define how a task should be worked on.
+
+A (T, stated): Also the arbiter should not run the verification stuff; that is exactly the wrong design. The system should be able to take a set of configured shell commands, and when a task needs verification those are run, and the system, without an agent, can reset the state of the task if the verification fails.
+
+A (T, stated): Also we probably need to merge arbiter and planner, since that is the same concept, just separate agent names. And as such also define the smallest part needed by pure idle CLI, and what idle CLI + agent skills pipeline is.
+
+A (assistant, built): `work-planning` deleted; its value test moved into `refine`. "Stream" removed everywhere — there are tasks, and a root task may grow a tree. Checks are shell commands configured per project on the machine (`~/.idle/config.json`), never a field on a task; submitting a task makes the system run them where the work is and move the task on, or back to open with the output — no manual verify move exists. "Arbiter" is gone: the planner is the one agent that plans every level, and the same persona proposes when it is spawned for a single planning task. The two layers are defined in the plan, §1.
+
+---
+
 ## Distilled stances (for priming a fresh session)
 
 - Not a harness; a framework for orchestration around harnesses. Simplicity; something in hours.
 - Passive first; active only when needed; an agent with a shell can launch sessions itself.
-- Work is the substrate. Tasks reference tasks → DAG. Stream = root task. Claim = fields. Plan and interview Q&A = fields on the root.
+- Work is the substrate. Tasks reference tasks → DAG. Claim = fields. Plan and interview Q&A = fields. There is no stream concept: anyone drops a task at any time, however unstructured; it starts as a single root task and refine and planning may grow it into a tree. No work-planning skill.
 - Decisions: searchable entities, made by anyone, reviewable, supersedable.
 - As few operations as possible: one edit per entity that creates or updates, and the task has a state. Working name: the `idle` CLI (`hyperidle` is taken by another application).
 - The backend stores tasks and decisions, exactly as the concept defines them, and nothing extra. No notes, no observations — `lore` is our version of notes.
 - Observations: own entity, char-capped, free-but-keyed subject, worker write / slow curation, archival first-class — deferred; inline comments work today.
 - Git, PRs, worktrees, containers, policies: not ours; cannot assume they exist; opaque references only. Worktrees are for work; orchestration never goes through a commit.
 - Interview beats a written plan. Steering only through the arbiter. Persisted steering is a curated Q&A, not a transcript. Workers never read it; they get the condensed plan plus their task and decisions in scope.
-- Arbiter: one per stream, human-started, strongest model, plans every level, no sub-planners; restarted regularly; persistence is Q&A, plan, documents.
+- Planner (once called arbiter — same concept, one name): one per tree, human-started, strongest model, plans every level, no sub-planners; restarted regularly; persistence is Q&A, plan, documents.
+- Verification is the system's job, never an agent's: configured shell commands run when a task is submitted, and a failure resets the task with the output.
 - Routines are harness-native scheduled runs with a setup prompt and skills; keep-alive and hygiene; minutes of latency is fine.
 - Verification is uniform: the checks that exist are re-run mechanically (workers claim to verify and don't), a fresh reviewer judges every task — cross-family when more than one harness is connected — and a consumer view runs once at root completion.
 - A task is a goal, not a list of ACs. Done means the goal in its full description is reached. Nested tasks are ever more detailed goals. ACs stay as a word but are weakened: signs that the goal is reached, never the contract. Verification commands come from the environment's setup; we re-run them and own nothing about them.

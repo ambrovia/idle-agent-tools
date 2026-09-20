@@ -1,5 +1,7 @@
 // Views — markdown for a cold reader. The brief is what a worker starts from;
-// the state is what the arbiter and the human read before the next move.
+// the state is what the planner and the human read before the next move.
+
+import { checksFor } from './store.mjs';
 
 const LIVE = `status = 'claimed' and claim_expires > now()`;
 const firstLine = (text, max = 200) => { const line = (text || '').split('\n')[0]; return line.length > max ? `${line.slice(0, max)}…` : line; };
@@ -38,7 +40,7 @@ export async function brief(q, task) {
     section('What this is for', bullets(ancestors, (t) => `**${t.title}** — ${firstLine(t.goal)}`)),
     section('Signs the goal is reached', task.acceptance_criteria),
     section('Why it came back', task.verdict),
-    section('Checks', bullets(task.checks, (c) => `\`${c}\``)),
+    section('Checks — the system runs these when you submit', bullets(checksFor(task.project), (c) => `\`${c}\``)),
     section('Scope', bullets(task.scope, (s) => `\`${s}\``)),
     section(`Plan${planned && planned.id !== task.id ? ` (from ${planned.id})` : ''}`, planned?.plan),
     section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement}${d.rationale ? ` — ${firstLine(d.rationale)}` : ''}`)),
@@ -65,7 +67,7 @@ export async function state(q, root) {
     ...rows.filter((t) => t.status === 'proposed').map((t) => `${t.id} proposed: **${t.title}** — accept (open) or decline (archived)`),
     ...rows.filter((t) => t.status === 'blocked').map((t) => `${t.id} blocked: **${t.title}**`),
     ...rows.filter((t) => t.status === 'open' && t.verdict).map((t) => `${t.id} came back: **${t.title}** — ${firstLine(t.verdict.trim().split('\n').pop())}`),
-    ...rows.filter((t) => t.status === 'submitted').map((t) => `${t.id} submitted, checks to re-run: ${t.checks.map((c) => `\`${c}\``).join(', ')}`),
+    ...rows.filter((t) => t.status === 'submitted').map((t) => `${t.id} submitted, but its checks never finished — submit it again to re-run them: **${t.title}**`),
     ...rows.filter((t) => t.status === 'verified').map((t) => `${t.id} verified, waiting for review: **${t.title}**`),
     ...rows.filter((t) => t.status === 'open' && kids(t).length && kids(t).every((c) => !open(c)))
       .map((t) => `${t.id} every child is done — is the goal reached? **${t.title}**`),

@@ -19,6 +19,12 @@ export function config() {
   return cfg;
 }
 
+// The shell commands that verify a project's work — configured on this machine,
+// never taken from a task: { "checks": { "<project>": ["npm run verify"] } }.
+export function checksFor(project) {
+  return config().checks?.[project] ?? [];
+}
+
 export function mode() {
   return config().database ? 'shared' : 'local';
 }

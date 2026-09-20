@@ -4,8 +4,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { createInterface } from 'node:readline';
-import { OPS, Refused } from './ops.mjs';
-import { withTx } from './store.mjs';
+import { OPS, Refused, runOp } from './ops.mjs';
 import { context } from './context.mjs';
 
 const TYPES = {
@@ -39,7 +38,7 @@ export function serve() {
     const op = tools.find((t) => t.name === name) && OPS.find((o) => o.name === name);
     if (!op) return text(`unknown operation "${name}"`, true);
     try {
-      const result = await withTx((q) => op.run(q, input, context(input, `${client}/${session}`)));
+      const result = await runOp(op, input, context(input, `${client}/${session}`));
       return text(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
     } catch (err) {
       if (err instanceof Refused) return text(`refused: ${err.message}`, true);

@@ -15,10 +15,10 @@ Configuration lives in `pipeline.config.yml` at the repository root — `verify`
 `testing`, `architecture`, `design-system`, `frontend`, `visual`, `aesthetics`, `security`, `docs`), each
 pointing at a markdown file of binding project guidance. Start from `pipeline.config.example.yml`.
 
-The record of work needs no setup in the repository: it lives in the user's home (`/idle`). The pipeline
-expects its review setting on — `"review": true` in `~/.idle/config.json` — so a verified task waits
-for a reviewer who did not do the work; offer to set it, and a shared database only when the maintainer
-brings one.
+The record of work needs no setup in the repository: it lives in the user's home (`/idle`). Offer to set,
+in `~/.idle/config.json`: this project's `checks` to `{{verify}}`, so the system verifies every submitted
+task itself; `"review": true`, so a verified task waits for a reviewer who did not do the work; and a
+shared database only when the maintainer brings one.
 
 Write approved rule files to `.pipeline/rules/<slot>.md` and point the slot at that path. Rule files are maintainer-authored and committed; a
 pipeline run may not edit them.

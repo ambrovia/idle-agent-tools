@@ -10,8 +10,9 @@ import test from 'node:test';
 
 const bin = resolve(new URL('..', import.meta.url).pathname, 'tasks/bin/idle.mjs');
 
-function sandbox() {
+function sandbox(config) {
   const env = { ...process.env, IDLE_HOME: mkdtempSync(join(tmpdir(), 'idle-')), IDLE_PROJECT: `test-${Date.now()}` };
+  if (config) writeFileSync(join(env.IDLE_HOME, 'config.json'), JSON.stringify(config(env.IDLE_PROJECT)));
   delete env.IDLE_DATABASE_URL;
   if (process.env.IDLE_TEST_DATABASE_URL) env.IDLE_DATABASE_URL = process.env.IDLE_TEST_DATABASE_URL;
   const run = (...args) => {
@@ -23,26 +24,30 @@ function sandbox() {
   return { env, run, task, create: (title, ...args) => task('--title', title, ...args).json.id };
 }
 
-test('a stream travels from open to done', () => {
-  const { run, task, create } = sandbox();
-  const root = create('Task backend for agentic work', '--goal', 'Agents coordinate through one record of work');
-  const store = create('Storage adapter', '--parent', root, '--scope', 'tasks/src', '--check', 'npm test');
-  const cli = create('Command line', '--parent', root, '--needs', store);
+test('a dropped task grows into a tree and travels to done', () => {
+  // The project's checks are configured on the machine; the system runs them at submit.
+  const { env, run, task, create } = sandbox((project) => ({ checks: { [project]: ['test -f checks-pass'] } }));
+  const root = create('Task backend for agentic work'); // a title is enough
+  assert.equal(run('show', root).json.task.goal, '');
+  task('--id', root, '--goal', 'Agents coordinate through one record of work');
+  const where = ['--meta', JSON.stringify({ worktree: env.IDLE_HOME })];
+  const store = create('Storage adapter', '--parent', root, '--scope', 'tasks/src', ...where);
+  const cli = create('Command line', '--parent', root, '--needs', store, ...where);
 
   assert.deepEqual(run('list', '--ready').json.map((t) => t.id), [store], 'only the task with nothing pending is ready');
 
   assert.equal(task('--id', store, '--status', 'claimed', '--by', 'alice').json.status, 'claimed');
-  assert.equal(task('--id', store, '--status', 'submitted', '--by', 'alice').json.status, 'submitted', 'a task with checks waits for them');
-  assert.equal(task('--id', store, '--status', 'open', '--verdict', 'npm test: 2 failing').json.status, 'open');
-  assert.match(run('show', store).json.task.verdict, /2 failing/, 'the next worker sees why it came back');
+  const failed = task('--id', store, '--status', 'submitted', '--by', 'alice').json;
+  assert.equal(failed.status, 'open', 'the system ran the checks and sent it back itself');
+  assert.match(failed.verdict, /checks failed — `test -f checks-pass` exited 1/, 'the next worker sees why');
 
+  writeFileSync(join(env.IDLE_HOME, 'checks-pass'), '');
   task('--id', store, '--status', 'claimed', '--by', 'bob');
-  task('--id', store, '--status', 'submitted', '--by', 'bob');
-  assert.equal(task('--id', store, '--status', 'verified').json.status, 'done', 'review is off: verified is done');
+  assert.equal(task('--id', store, '--status', 'submitted', '--by', 'bob').json.status, 'done', 'green, and review is off');
 
   assert.deepEqual(run('list', '--ready').json.map((t) => t.id), [cli], 'finishing a task readies what needed it');
   task('--id', cli, '--status', 'claimed', '--by', 'alice');
-  assert.equal(task('--id', cli, '--status', 'submitted', '--by', 'alice').json.status, 'done', 'no checks, nothing to wait for');
+  assert.equal(task('--id', cli, '--status', 'submitted', '--by', 'alice').json.status, 'done');
 
   assert.equal(task('--id', root, '--status', 'done').json.status, 'done');
   assert.equal(task('--id', cli, '--status', 'open', '--verdict', 'help text is missing', '--by', 'human').json.status, 'open');
@@ -51,7 +56,7 @@ test('a stream travels from open to done', () => {
 
 test('refusals', () => {
   const { task, create } = sandbox();
-  const root = create('Refusal stream');
+  const root = create('Refusals');
   const a = create('Rework the login form', '--parent', root, '--scope', 'src/auth');
   const b = create('Session expiry', '--parent', root, '--scope', 'src/auth/session.ts');
 
@@ -65,6 +70,7 @@ test('refusals', () => {
   assert.match(task('--id', b, '--status', 'claimed', '--by', 'bob').err, /overlaps/, 'scope overlap');
   assert.match(task('--id', a, '--status', 'submitted', '--by', 'bob').err, /not claimed by bob/);
   assert.match(task('--id', a, '--status', 'done').err, /cannot move/, 'a worker cannot skip to done');
+  assert.match(task('--id', a, '--status', 'verified').err, /cannot move/, 'nobody verifies by hand');
   assert.match(task('--id', a, '--feedback', 'x'.repeat(1500)).err, /too long/);
   assert.match(task('--id', a, '--status', 'blocked').err, /needs --feedback/);
   assert.equal(task('--id', root, '--status', 'done').code, 1, 'children unfinished');
@@ -75,7 +81,7 @@ test('refusals', () => {
 
 test('decisions are searched before they are recorded, and can be superseded', () => {
   const { run, create } = sandbox();
-  const root = create('Decision stream');
+  const root = create('Decisions');
   const first = run('decision', '--task', root, '--statement', 'PGlite locally, any Postgres when shared', '--rationale', 'one dialect').json;
   assert.equal(first.status, 'active');
   assert.equal(run('decision', '--task', root, '--statement', 'PGlite locally and any Postgres when shared').json.created, false);
@@ -87,7 +93,7 @@ test('decisions are searched before they are recorded, and can be superseded', (
 
 test('many processes race for one claim: one winner, no hang', async () => {
   const { env, run, create } = sandbox();
-  const root = create('Race stream');
+  const root = create('Race');
   const contested = create('The contested task', '--parent', root);
   const codes = await Promise.all(['w1', 'w2', 'w3', 'w4', 'w5'].map((by) => new Promise((done) => {
     spawn(process.execPath, [bin, 'task', '--id', contested, '--status', 'claimed', '--by', by], { env, stdio: 'ignore' }).on('exit', done);
@@ -116,12 +122,11 @@ test('the brief carries what the task is for; the state shows what needs attenti
 });
 
 test('with review on, whoever did the work cannot pass it', () => {
-  const { env, task, create } = sandbox();
-  writeFileSync(join(env.IDLE_HOME, 'config.json'), JSON.stringify({ review: true }));
-  const root = create('Reviewed stream');
+  const { task, create } = sandbox(() => ({ review: true }));
+  const root = create('Review policy');
   const work = create('Reviewed work', '--parent', root);
   task('--id', work, '--status', 'claimed', '--by', 'alice');
-  assert.equal(task('--id', work, '--status', 'submitted', '--by', 'alice').json.status, 'verified', 'no checks, so it waits for review');
+  assert.equal(task('--id', work, '--status', 'submitted', '--by', 'alice').json.status, 'verified', 'no checks configured, so it waits for review');
   assert.match(task('--id', work, '--status', 'done', '--by', 'alice').err, /cannot pass its review/);
   assert.equal(task('--id', work, '--status', 'done', '--by', 'bob').json.status, 'done');
 });
@@ -150,7 +155,7 @@ test('the same operations over MCP', async () => {
   const { tools } = (await ask('tools/list')).result;
   assert.deepEqual(tools.map((t) => t.name), ['task', 'decision', 'show', 'list']);
 
-  const made = await ask('tools/call', { name: 'task', arguments: { title: 'A stream opened over MCP' } });
+  const made = await ask('tools/call', { name: 'task', arguments: { title: 'A task dropped over MCP' } });
   const id = JSON.parse(made.result.content[0].text).id;
   const refused = await ask('tools/call', { name: 'task', arguments: { id, status: 'done' } });
   assert.equal(refused.result.isError, true);

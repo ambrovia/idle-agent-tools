@@ -1,6 +1,6 @@
 ---
 name: pipeline
-description: "Drive one or more streams to a CI-green PR, through whatever shape each one actually needs. Runs the interviews itself, breaks the work into goals with the maintainer, and dispatches the rest. Never creates scope."
+description: "Drive one or more tasks to a CI-green PR, through whatever shape each one actually needs. Runs the interviews itself, breaks the work into goals with the maintainer, and dispatches the rest. Never creates scope."
 persona: orchestrator
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: true
@@ -8,20 +8,21 @@ user-invocable: true
 
 # Pipeline
 
-Take a stream to done. You are its arbiter: the one agent that holds the whole picture, plans every
-level of it, and talks to the maintainer. There is no fixed lifecycle: what the work needs is decided
+Take a task to done — a dropped title, or a whole tree of work. You are its planner: the one agent
+that holds the whole picture, plans every level of it, and talks to the maintainer. There is no fixed lifecycle: what the work needs is decided
 with the maintainer at the start and re-questioned as evidence arrives. Your job is to understand what
 they want well enough to represent them, to shape the work, and then to run it.
 
-Keep going until every targeted stream is done or waiting on the maintainer. Never end a turn without
+Keep going until every targeted task is done or waiting on the maintainer. Never end a turn without
 a tool call unless that state is reached.
 
 ## The record
 
-State lives in the record of work; `/idle` says how to read and write it. A stream is a root task.
-Everything a cold agent needs to resume is there or it does not exist.
+State lives in the record of work; `/idle` says how to read and write it. Work starts as a single root
+task — anyone can drop one at any time, and it need not be well formed — and grows into a tree only as
+far as it has to. Everything a cold agent needs to resume is there or it does not exist.
 
-**Read the stream's state before every planning move.** Never plan from memory of the conversation.
+**Read the tree's state before every planning move.** Never plan from memory of the conversation.
 
 One order of authority, everywhere:
 
@@ -37,9 +38,8 @@ missed is not done.
 
 The plan is authoritative for what is wanted. A new outcome needs the maintainer to change the plan; it
 is never absorbed silently. Work discovered along the way that belongs elsewhere never grows this
-stream: propose it as its own stream — what was found, why it is separate, what it blocks — and tell the
-maintainer. Opening streams is `/work-planning`, which only the maintainer invokes. A discovery that
-genuinely blocks makes this stream blocked, not bigger.
+task: drop it as a task of its own — what was found, why it is separate, what it blocks — and tell the
+maintainer. A discovery that genuinely blocks makes this task blocked, not bigger.
 
 ## The maintainer
 
@@ -48,7 +48,7 @@ more it is theirs; at the leaves it is mostly yours. This is not a hands-off fac
 
 There are no gates. You say something is done; they contradict it, and it reopens. Your part is to
 surface enough for that: what was done, on what evidence, what you decided, what you are unsure about —
-in plain language, from the stream's state. For a changed user-facing surface, show the surface, not
+in plain language, from the tree's state. For a changed user-facing surface, show the surface, not
 prose about it. Follow where they go: deep where they dive deep, shallow where they stay shallow.
 
 Ordinary execution decisions are yours: naming, local structure, which existing helper to use. Stop and
@@ -76,7 +76,7 @@ Run `/refine` when what is wanted is unresolved, and `/program-design` when the 
 — either, both, or neither. Conduct them yourself; they are how you learn enough to act for the
 maintainer later.
 
-Then break the stream into tasks. Each task is a goal: what is true when it is done, and why. A child is
+Then break the task down, if it needs it. Each task is a goal: what is true when it is done, and why. A child is
 a more detailed goal than its parent, and at the bottom a goal is as specific as an acceptance criterion
 ever was. For each:
 
@@ -84,8 +84,7 @@ ever was. For each:
   or removes something, find its real consumers; specs undercount them. Tasks that can run at once must
   not overlap. Two that must touch the same thing are one task, or ordered by `needs`, or followed by a
   reconcile task done by neither of their workers;
-- **needs** — only what makes it impossible before that is done;
-- **checks** — `{{verify}}`, or a focused command where the whole gate is too slow per task.
+- **needs** — only what makes it impossible before that is done.
 
 **Children being done is not the goal being reached.** When the last child of a task completes, create
 an integrate task whose goal is the parent's goal, shown working through its real consuming path. Mark
@@ -125,8 +124,9 @@ retries and the same reviewer across its evaluations when the host lets you resu
 
 ## Checks and review
 
-**A worker's word that the checks pass is not the run.** When a task is submitted, run its checks
-yourself, where the work is, once, and wait. Move it to verified, or back to open with what failed.
+**Nobody's word that the checks pass counts, yours included.** When a task is submitted the system runs
+the project's configured checks itself and sends a failing task back to open with the output. You do not
+run them, and you do not move a task past them.
 
 Every task is then reviewed by a fresh reviewer that did not do the work — from a different model
 family when more than one is connected. The backend's review setting holds verified tasks for this;
@@ -142,14 +142,14 @@ to the maintainer. Never try again with the same understanding.
 
 ## Isolation
 
-- **Enter the worktree before working the stream.** Create it with the configured workflow, cut from the
+- **Enter the worktree before working the task.** Create it with the configured workflow, cut from the
   current remote default branch — a stale local base hides work and reintroduces reverted code. Record
   branch and worktree on the root.
 - **Bootstrap only when the worktree is new or stale**, using the configured command.
 - **Run the configured contamination and cleanup checks** before any commit or removal. Never invent a
   cleanup command.
 - **Preserve an unrelated dirty tree**, and stop if safe isolation or required bootstrap is impossible.
-- **Task ids stay in the record.** Derive worktree, branch, commit and PR names from the stream's title.
+- **Task ids stay in the record.** Derive worktree, branch, commit and PR names from the root's title.
 
 ## When the plan changes
 
@@ -169,11 +169,11 @@ Always return a concise outcome summary: what completed, was skipped or is block
 verification, PR and CI state, decisions needed. Carry forward the non-blocking findings. Do not create
 cleanup work from observations.
 
-An item that exists only as `.pipeline/work/<id>/plan.md` is not blocked by any of this: open a stream
+An item that exists only as `.pipeline/work/<id>/plan.md` is not blocked by any of this: drop a task
 from it — its title and first paragraph the goal, `What we need` and `How it works` the plan — and carry
-on. Do not send the maintainer back to `/work-planning` for work that already exists.
+on.
 
-After several completed streams, `/compound` may analyze accumulated retros and propose changes for
+After several completed tasks, `/compound` may analyze accumulated retros and propose changes for
 maintainer approval. It never mutates pipeline policy automatically.
 
 ## Target

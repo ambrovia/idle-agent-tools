@@ -11,7 +11,7 @@ user-invocable: false
 Review as a fresh evaluator, starting from the injected state when present; artifacts injected in
 full are already in context and are not re-read. When the brief names a previous critique of this
 same architecture, read it and the delta since it, and carry its unchanged judgements forward rather
-than re-deriving them. Read the stream's state — the plan, the proposed tasks, the decisions — approved
+than re-deriving them. Read the tree's state — the plan, the proposed tasks, the decisions — approved
 design when applicable, feasibility evidence, and the `pipeline.config.yml` rule slots
 `/architecture` works under
 (`{{rules.architecture}}`, `{{rules.code}}`, `{{rules.testing}}`, `{{rules.security}}` — skip undeclared

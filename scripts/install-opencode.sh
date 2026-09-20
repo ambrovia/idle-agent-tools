@@ -85,8 +85,8 @@ $BEGIN
 
 agent-pipeline is active. Work in structured phases, not freeform.
 
-- Large or non-trivial changes: start with the work-planning skill to define the
-  work package, then run it through the pipeline skill. Don't freelance big changes.
+- Large or non-trivial changes: drop a task with the idle skill, then run it through the
+  pipeline skill, which refines and plans it with the user. Don't freelance big changes.
 - Conceptual questions (what a thing IS or should be): use the concept skill, and
   resolve them interactively with the user — don't settle load-bearing meaning alone.
 - Structured work uses three dedicated agents; you are the orchestrator, delegate

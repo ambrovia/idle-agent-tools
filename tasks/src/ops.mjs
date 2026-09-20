@@ -4,7 +4,9 @@
 // ctx: { by, project }. A Refused error is an expected "no", not a crash.
 
 import { randomBytes } from 'node:crypto';
-import { config, home, mode } from './store.mjs';
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { checksFor, config, home, mode, withTx } from './store.mjs';
 import { CAPS, version } from './schema.mjs';
 import { brief, state, tree } from './views.mjs';
 
@@ -26,7 +28,7 @@ async function load(q, taskId) {
   return task ?? refuse(`no task ${taskId}`);
 }
 
-// feedback (worker → arbiter) and verdict (why it came back) are fields that grow by one capped line.
+// feedback (worker → planner) and verdict (why it came back) are fields that grow by one capped line.
 async function append(q, task, field, body, by) {
   if (body.length > CAPS.entry) refuse(`too long: ${body.length} characters, the cap is ${CAPS.entry}`);
   await q(`update tasks set ${field} = ${field} || $2, updated_at = now() where id = $1`, [task, `- ${by}: ${body}\n`]);
@@ -42,11 +44,11 @@ export function overlaps(a, b) {
   return x === y || x.startsWith(`${y}/`) || y.startsWith(`${x}/`);
 }
 
-// Nothing left to wait for → move on. No checks: straight to verified.
+// Nothing left to wait for → move on. No checks configured: straight to verified.
 // Verified with review off: done.
 async function settle(q, taskId) {
   let task = await load(q, taskId);
-  if (task.status === 'submitted' && task.checks.length === 0) {
+  if (task.status === 'submitted' && checksFor(task.project).length === 0) {
     await setStatus(q, taskId, 'verified');
     task = await load(q, taskId);
   }
@@ -69,7 +71,7 @@ async function similarTasks(q, title, root, project) {
 const lease = (input) => Number(input.ttl ?? 30);
 
 async function claim(q, task, input, ctx) {
-  // Serialises claims within a stream, on any Postgres.
+  // Serialises claims within one tree, on any Postgres.
   await q(`select pg_advisory_xact_lock(hashtext($1))`, [task.root]);
   const [ready] = await q(`select t.id from tasks t where t.id = $1 and ${READY}`, [task.id]);
   if (!ready) refuse(`${task.id} is not ready (status ${task.status})`);
@@ -94,7 +96,7 @@ async function move(q, task, to, input, ctx) {
     return claim(q, task, input, ctx);
   }
   if (to === 'archived') {
-    // A stream is archived with everything under it.
+    // A root is archived with everything under it.
     return q(`update tasks set status = 'archived', updated_at = now() where id = $1 or (root = $1 and $2)`, [task.id, task.parent === null]);
   }
   switch (`${from} → ${to}`) {
@@ -111,8 +113,8 @@ async function move(q, task, to, input, ctx) {
     case 'claimed → submitted':
       if (!mine) refuse(`${task.id} is not claimed by ${ctx.by}`);
       return setStatus(q, task.id, 'submitted', ', claim_expires = null');
-    case 'submitted → verified':
-      return setStatus(q, task.id, 'verified');
+    case 'submitted → submitted': // checks never finished; run them again
+      return null;
     case 'verified → done':
       if (config().review && task.claimed_by === ctx.by) refuse('whoever did the work cannot pass its review');
       return setStatus(q, task.id, 'done');
@@ -122,7 +124,6 @@ async function move(q, task, to, input, ctx) {
       if (children.some((c) => !['done', 'archived'].includes(c.status))) refuse(`${task.id} still has unfinished children`);
       return setStatus(q, task.id, 'done');
     }
-    case 'submitted → open':
     case 'verified → open':
     case 'done → open':
       why('verdict', 'say why it is not done');
@@ -133,7 +134,7 @@ async function move(q, task, to, input, ctx) {
 }
 
 const FIELDS = { title: 'title', goal: 'goal', ac: 'acceptance_criteria', plan: 'plan', interview: 'interview', scenario: 'consumer_scenario', scope: 'scope', needs: 'needs' };
-const JSON_FIELDS = { check: 'checks', meta: 'metadata' };
+const JSON_FIELDS = { meta: 'metadata' };
 
 async function createTask(q, input, ctx) {
   if (!input.title) refuse('a new task needs --title (or pass --id to update one)');
@@ -155,18 +156,17 @@ async function createTask(q, input, ctx) {
 export const OPS = [
   {
     name: 'task',
-    summary: 'Create or update a task. No --id: create (searches first, returns similar live tasks instead unless --confirm). With --id: change fields, move it with --status, add --feedback or --verdict.',
+    summary: 'Create or update a task. A title is enough — drop it now, structure it later. No --id: create (searches first, returns similar live tasks instead unless --confirm). With --id: change fields, move it with --status, add --feedback or --verdict.',
     flags: {
       id: { type: 'string', desc: 'the task to update; omit to create' },
       title: { type: 'string' },
       goal: { type: 'string', desc: 'what is true when this is done, and why it matters — the contract' },
       ac: { type: 'string', desc: 'acceptance criteria: signs the goal is reached, never a substitute for it' },
-      parent: { type: 'string', desc: 'parent task id, on create; omit to open a new stream (a root task)' },
-      status: { type: 'string', desc: 'proposed | open | claimed | submitted | verified | done | blocked | archived. claimed = claim or renew your lease; open = release, accept, unblock, reject or reopen; a worker goes no further than submitted' },
+      parent: { type: 'string', desc: 'parent task id, on create; omit to drop a new root task' },
+      status: { type: 'string', desc: 'proposed | open | claimed | submitted | done | blocked | archived. claimed = claim or renew your lease; submitted = you say the goal is reached: the system runs the project\'s configured checks and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review or reopen' },
       ttl: { type: 'string', desc: 'lease in minutes when claiming (default 30)' },
-      feedback: { type: 'string', desc: 'append for the arbiter: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
-      verdict: { type: 'string', desc: 'append why it is not done: a failed check, blocking findings, the reason for reopening. Required when moving back to open' },
-      check: { type: 'list', desc: 'verification command; repeatable' },
+      feedback: { type: 'string', desc: 'append for whoever plans the tree: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
+      verdict: { type: 'string', desc: 'append why it is not done: blocking findings, the reason for reopening. Required when moving back to open' },
       scope: { type: 'list', desc: 'path, module or system this task touches; repeatable. Overlapping scopes cannot be claimed at once' },
       needs: { type: 'list', desc: 'task id that must be done first; repeatable' },
       plan: { type: 'string', desc: 'the condensed, worker-facing plan' },
@@ -194,7 +194,7 @@ export const OPS = [
       for (const field of ['feedback', 'verdict']) if (input[field]) await append(q, taskId, field, input[field], ctx.by);
       if (input.id && input.status) {
         const task = await load(q, taskId);
-        if (task.status !== input.status || input.status === 'claimed') await move(q, task, input.status, input, ctx);
+        if (task.status !== input.status || ['claimed', 'submitted'].includes(input.status)) await move(q, task, input.status, input, ctx);
       }
       return settle(q, taskId);
     },
@@ -243,11 +243,11 @@ export const OPS = [
   },
   {
     name: 'show',
-    summary: 'One task or one decision. --brief: what a worker starts from. --state: the whole stream, for the arbiter and the human.',
+    summary: 'One task or one decision. --brief: what a worker starts from. --state: the whole tree it belongs to, for whoever plans it and for the human.',
     args: ['id'],
     flags: {
       brief: { type: 'bool', desc: 'the task as a brief: goal, what it is for, plan, decisions in force, why it came back' },
-      state: { type: 'bool', desc: 'the stream this task belongs to: what needs attention, feedback, tree, ready, claims, recently done' },
+      state: { type: 'bool', desc: 'the tree this task belongs to: what needs attention, feedback, tree, ready, claims, recently done' },
     },
     run: async (q, { id: shown, ...input }) => {
       if (shown.startsWith('D-')) return (await q(`select * from decisions where id = $1`, [shown]))[0] ?? refuse(`no decision ${shown}`);
@@ -264,13 +264,13 @@ export const OPS = [
   },
   {
     name: 'list',
-    summary: 'The streams of this project. --root: that stream as a tree. --ready: what can be claimed now. --decisions: the decisions of a stream.',
+    summary: 'The root tasks of this project. --root: one of them as a tree. --ready: what can be claimed now. --decisions: the decisions made in a tree.',
     flags: {
-      root: { type: 'string', desc: 'a stream (any task id in it will do)' },
+      root: { type: 'string', desc: 'a root task (any task id in its tree will do)' },
       ready: { type: 'bool', desc: 'open, everything it needs is done, no children of its own' },
       decisions: { type: 'bool', desc: 'with --root: its decisions, newest first' },
       since: { type: 'string', desc: 'with --decisions: ISO time' },
-      all: { type: 'bool', desc: 'every project, archived streams too' },
+      all: { type: 'bool', desc: 'every project, archived roots too' },
     },
     run: async (q, input, ctx) => {
       const root = input.root ? (await load(q, input.root)).root : null;
@@ -299,3 +299,36 @@ export const OPS = [
     }),
   },
 ];
+
+const CHECK_TIMEOUT_MS = Number(process.env.IDLE_CHECK_TIMEOUT_MS) || 15 * 60_000;
+
+// The configured commands, run where the work is. → null when green, else what failed.
+function runChecks(task) {
+  const cwd = task.metadata?.worktree && existsSync(task.metadata.worktree) ? task.metadata.worktree : process.cwd();
+  for (const command of checksFor(task.project)) {
+    const run = spawnSync(command, { shell: true, cwd, encoding: 'utf8', timeout: CHECK_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
+    if (run.status === 0) continue;
+    const tail = `${run.stdout ?? ''}${run.stderr ?? ''}`.trim().split('\n').slice(-12).join('\n').slice(-600);
+    return `\`${command}\` ${run.error ? `did not run (${run.error.code ?? run.error.message})` : `exited ${run.status}`}\n${tail}`;
+  }
+  return null;
+}
+
+// One call = one transaction. A task left in `submitted` is then verified by the
+// system itself, outside any transaction, and moved on or sent back — no agent's word.
+export async function runOp(op, input, ctx) {
+  const result = await withTx((q) => op.run(q, input, ctx));
+  if (op.name !== 'task' || result?.status !== 'submitted') return result;
+  const failed = runChecks(result);
+  return withTx(async (q) => {
+    const task = await load(q, result.id);
+    if (task.status !== 'submitted') return task;
+    if (failed) {
+      await append(q, task.id, 'verdict', `checks failed — ${failed}`, 'idle');
+      await setStatus(q, task.id, 'open', ', claimed_by = null');
+      return load(q, task.id);
+    }
+    await setStatus(q, task.id, 'verified');
+    return settle(q, task.id);
+  });
+}
