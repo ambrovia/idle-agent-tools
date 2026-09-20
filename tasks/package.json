@@ -1,0 +1,14 @@
+{
+  "name": "idle",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Task-and-decision backend for agentic work. PGlite locally, any Postgres when shared.",
+  "type": "module",
+  "bin": { "idle": "./bin/idle.mjs" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "pg": "^8.13.0"
+  },
+  "license": "Apache-2.0"
+}
