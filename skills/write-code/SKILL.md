@@ -1,6 +1,6 @@
 ---
 name: write-code
-description: "Implement an agreed item or its assigned technical leaf with the smallest clear solution that satisfies its evidence and contracts. Use after the plan is agreed and verification targets are known."
+description: "Implement a claimed task with the smallest clear solution that reaches its goal. Use after the plan is agreed and the task is yours."
 persona: pipeline-builder
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
@@ -8,10 +8,14 @@ user-invocable: false
 
 # Write code
 
-Read the assigned plan, approved design/architecture, AC-to-evidence map, the applicable
+Start from the task's brief — its goal, what it is for, the plan, decisions in force, and why it came
+back if it did. Claim the task before the first edit. Then read approved design when present, the applicable
 `pipeline.config.yml` rule slots (`{{rules.code}}`, `{{rules.architecture}}`, `{{rules.design-system}}`,
 `{{rules.frontend}}`, `{{rules.security}}` — skip undeclared slots), and relevant existing code.
-Implement only the approved outcome and blocking retry findings.
+
+The goal is the contract. Acceptance criteria are signs of it and checks are a floor; satisfying both
+while missing the goal is not done. Implement the goal and, on a task that came back, what it came
+back for — nothing else.
 
 Use the simplest repository-native solution. Reuse existing abstractions; add one only when the current
 change needs it. Preserve compatibility, migrations, security boundaries, UI behavior, and ownership
@@ -28,13 +32,18 @@ once and wait for it; never re-invoke a command to poll its status. Mechanical c
 at skill load or with a retry brief are evidence — act on them rather than re-running them. Each is
 stamped with the tree it ran on: a skill-load result is the starting baseline, never the completion
 gate. Add tests only for approved behavior where they can catch a meaningful regression. Do not weaken
-tests, edit outside owned
-paths, perform adjacent cleanup, add speculative capability, or redesign around a plan contradiction.
+tests, edit outside the task's scope, perform adjacent cleanup, add speculative capability, or redesign around a plan contradiction.
 Raise a blocker with evidence when new scope or a changed structural decision is required.
 
-Finish only when required evidence is green — including `{{verify}}` and the end-to-end evidence named in
-`architecture.md` — change-caused regressions are fixed, and the diff contains no unrelated work or item-ID
-leakage. Report pre-existing failures separately.
+Submit only when the goal is reached and shown to be — the task's checks green, including
+`{{verify}}`, and the change working through its real consuming path where the goal names one —
+change-caused regressions are fixed, and the diff contains no unrelated work and no task id. Report
+pre-existing failures separately. Your word that checks pass is re-run by someone else.
+
+Record a decision you had to make where the plan was silent. Write feedback on the task for anything
+learned by doing that whoever plans the stream should know: the goal is wrong, the approach will not
+work, a decision conflicts. End in exactly one way: submit; propose children when the task is bigger
+than it looked, and release it; or block with the reason. `/idle` says how.
 
 ## Target
 

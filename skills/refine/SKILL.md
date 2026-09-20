@@ -1,6 +1,6 @@
 ---
 name: refine
-description: "Interview the maintainer about what they need, and write it into the plan in their words. Use when an item's value, boundary, or a load-bearing noun is not already settled. Skip when the seed is already clear enough to build from."
+description: "Interview the maintainer about what they need, and write it into the stream in their words. Use when the value, boundary, or a load-bearing noun is not already settled. Skip when the seed is already clear enough to build from."
 persona: orchestrator
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
@@ -12,7 +12,8 @@ Find out what the maintainer actually wants, and record it well enough that you 
 later when they are not in the room. This is a conversation, not a handoff — you conduct it yourself
 and you do not spawn an agent to have it for you.
 
-Its output is the `## What we need` section of the item's plan, in the maintainer's own language.
+Its output is the stream's goal and the what-we-need half of its plan, in the maintainer's own
+language, with the curated interview behind them.
 
 ## When it runs
 
@@ -20,8 +21,12 @@ Ambiguity decides. Run when the goal, the boundary, the beneficiary, or a load-b
 unresolved. Skip when the seed already answers those; a bugfix in an established context needs no
 interview.
 
-Read the seed in `.pipeline/work/<id>/plan.md`, the track's strategic frame in the project
-documentation under `{{paths.docs}}`, and enough current behavior to ask informed questions.
+Read the stream's state, the strategic frame in the project documentation under `{{paths.docs}}`, and
+enough current behavior to ask informed questions.
+
+The root is always interviewed when it needs it. A deeper task is interviewed again only where the
+root's plan and interview, or what the maintainer has taught you about how they work, say they want a
+say at that level. The higher in the tree, the more it is theirs.
 
 ## How to interview
 
@@ -33,36 +38,42 @@ question, go find out — dispatch a subagent to read widely and report back rat
 maintainer's attention or your own context on it. Only ask what genuinely requires their judgement.
 
 **Their taste is only what they tell you here.** When you need to know how they want something and
-this item's plan does not say, ask. Do not infer it from another item's plan, another conversation,
+this stream's plan does not say, ask. Do not infer it from another stream's plan, another conversation,
 or a standing rule written for a different question — an answer carried in from elsewhere is your own
 taste wearing a citation.
 
 `{{rules.taste}}` is a short list of hard facts that hold across the whole repository — ten or twenty
 of them, not a reference work. Follow it, and expect it to answer almost nothing: nearly all of what
-you need is specific to this item and comes from this conversation.
+you need is specific to this stream and comes from this conversation.
 
 **Stop at confirmation.** End the interview by reflecting back what you understood and getting
 agreement. Do not treat agreement as permission to start building.
 
 ## What to write
 
-Into the `## What we need` section of `.pipeline/work/<id>/plan.md`, in plain language the maintainer
-would recognise as their own. Write only that section; `/program-design` owns `## How it works`.
+In plain language the maintainer would recognise as their own:
 
-- what they need and why it matters, and who it is for;
-- what success looks like, concretely enough to tell later whether it happened;
-- the boundary — what is explicitly not in this item;
-- any load-bearing noun: what it means here, and which readings were rejected;
-- their answers on how things should be done, wherever they gave one.
+- **goal** — what they need, who it is for, and what is true when it is done, concretely enough to tell
+  later whether it happened. This is the contract every task under it is read against;
+- **plan**, under `## What we need` — the boundary, what is explicitly not in this stream; any
+  load-bearing noun, what it means here and which readings were rejected; their answers on how things
+  should be done, wherever they gave one. `/program-design` owns `## How it works`;
+- **how it is used** — on the root: how someone outside would use the result, written now, before
+  anything is built;
+- **interview** — the questions that mattered and their answers, close to their wording. Curated, not
+  a transcript: leave out what the conversation wandered through.
 
-The whole plan is budgeted at 50–100 lines, and this section carries much of it. Stop when the
-maintainer would recognise their own intent, not when the topic is exhausted.
+Write acceptance criteria only where they sharpen the goal. They are signs of it, never a substitute;
+agents that work to a list miss what the list was for.
+
+The whole plan is budgeted at 50–100 lines. Stop when the maintainer would recognise their own intent,
+not when the topic is exhausted.
 
 ## Boundaries
 
 Record a newly discovered outcome as a **proposed amendment** and let the maintainer decide; do not
-absorb it into scope. Write genuinely separate work down as a proposed item for them to register;
-you do not create items.
+absorb it into scope. Genuinely separate work is a proposed stream for them to accept; you do not open
+streams.
 
 Do not design the UI, choose an architecture, or write tests or code here.
 

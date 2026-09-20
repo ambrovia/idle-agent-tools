@@ -1,9 +1,9 @@
 ---
 name: ship
-description: "Turn completed work into a clean CI-green merge-ready PR. Consolidates the item folder when one exists, verifies, commits, updates the PR, and waits for CI; does not merge. Review and approval gates belong to the pipeline skill."
+description: "Turn completed work into a clean CI-green merge-ready PR. Verifies, commits, updates the PR, and waits for CI; does not merge. Review belongs to the pipeline skill."
 persona: pipeline-builder
 applies-to: [frontend, backend, application, framework, infra]
-argument-hint: "[item-id or branch description]"
+argument-hint: "[task id or branch description]"
 user-invocable: false
 ---
 
@@ -13,52 +13,27 @@ Ship is the final mutation and verification boundary before human merge.
 
 ## Preconditions
 
-Start from the injected state, then confirm the intended diff and, when an item exists, that no item
-identifier leaks outside `.pipeline/**`. Stop rather than repairing product work in ship.
+Start from the stream's state, then confirm the intended diff and that no task id has leaked into it.
+Stop rather than repairing product work in ship. The repository is the record of what was built; nothing
+from the task record is folded back into it.
 
 ## Sequence
 
-1. When an item ran, **consolidate `.pipeline/work/<id>/` down to `plan.md` and `retro.jsonl`** —
-   what was agreed, and what was learned. Nothing else survives the merge.
-
-   Consolidation is editorial, not archival. Before deleting anything, fold what outlives the run
-   into `plan.md`: decisions that still explain why the code looks the way it does, accepted
-   limitations, deferrals, residual risks. Leave out everything that only mattered while the work
-   was in flight — round-by-round findings, check output, task trees, superseded designs.
-
-   The plan keeps its shape and its budget. If what must be kept will not fit in a readable plan, it
-   was never plan material: write it as `@lore` beside the code it constrains. Never paste an
-   as-built architecture in wholesale, and never change what the maintainer agreed — consolidating
-   is not rewriting.
-
-   Delete the plan's `## Confusions` and `## Proposed items` sections once `/retro` has recorded the
-   first and the maintainer has seen the second.
-
-   Then remove the rest: `design/`, `architecture.md`, `feasibility.md`, `probes/`, `receipts/`,
-   `integration.json`, `review.md`, `checks-latest.log`, `progress.json`, and any round or critique
-   artifact left over from the run.
-
-   The retro stays exactly where it was written. Never merge it into a shared log — one file per
-   item is what keeps concurrent branches from colliding, and `/compound` reads across the work
-   folders.
-
-   A deferral recorded only in a deleted artifact is a deferral nobody will ever act on.
-2. Ensure the retro (when an item ran) and every intended change are present. Stage deliberately —
+1. Ensure every intended change is present. Stage deliberately —
    inspect the worktree, commit intended changes with domain-based messages, revert unintended ones, and
-   never stage the whole tree blindly. Never put an item ID in branch, commit, or PR metadata.
-3. Bring `progress.json` up to date and commit it before final verification.
-4. Reconcile the target branch using the project's non-destructive VCS workflow. Never force-push shared
+   never stage the whole tree blindly. Never put a task id in branch, commit, or PR metadata.
+2. Reconcile the target branch using the project's non-destructive VCS workflow. Never force-push shared
    history. On semantic conflict, return to implementation/review rather than improvising a fix here.
-5. Run `{{verify}}` from a clean committed tree and wait for it to finish — an interrupted, backgrounded,
+3. Run `{{verify}}` from a clean committed tree and wait for it to finish — an interrupted, backgrounded,
    or hook-bypassed run is not a green gate. Distinguish change-caused from pre-existing failures;
    required verification must pass under project policy.
-6. If `{{vcs}}` is `none`, ship ends here — the work is committed and verified, with no PR or CI.
+4. If `{{vcs}}` is `none`, ship ends here — the work is committed and verified, with no PR or CI.
    Otherwise push and open or update a non-draft PR using `{{vcs}}`. Summarize outcome, evidence, and
-   known non-blocking limitations without internal item identifiers.
-7. Wait for required CI. If CI fails, diagnose from the failing check's log, hand the failure back to
+   known non-blocking limitations without task ids.
+5. Wait for required CI. If CI fails, diagnose from the failing check's log, hand the failure back to
    whoever owns it — the builder for code, the maintainer for anything the plan got wrong — and
-   re-enter ship with a changed strategy; any mutation repeats verification from step 5. After three
-   failed attempts, stop and report the item blocked with the failing check and what you tried.
+   re-enter ship with a changed strategy; any mutation repeats verification from step 3. After three
+   failed attempts, stop and block the task with the failing check and what you tried.
 
 Stop at a CI-green merge-ready PR. A human decides whether to merge. Tag or release only when
 explicitly requested and configured.

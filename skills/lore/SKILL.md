@@ -38,8 +38,8 @@ Obtain user approval before modifying code.
 List current lore by kind — constraint, workaround, hazard, trade-off — and location, including contradictions, stale entries, and any that have
 grown past a line or two. Terse entries; no conversational framing. Do not edit — report.
 
-Missing lore blocks an item only when a non-obvious invariant would otherwise be lost as its working
-material is deleted at ship.
+Missing lore blocks a task only when a non-obvious invariant would otherwise live nowhere but the task
+record. A decision that still explains why the code looks the way it does belongs beside that code.
 
 When capturing or revising an entry, cut anything that has grown into a paragraph back to the
 constraint.

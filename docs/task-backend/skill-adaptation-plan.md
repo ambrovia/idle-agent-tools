@@ -2,6 +2,14 @@
 
 *19 September 2026. How the existing skills, personas and hooks change to work on the backend. Companion to `backend-program-plan.md`; evidence in `repo-mapping.md`. This plans the edits; it does not make them. Edits follow the house style: terse, instructional, in each file's own voice.*
 
+## Status
+
+Stage A skill and persona edits are done (20 September 2026): the new `idle` skill, `work-planning`, `refine`, `program-design`, `pipeline`, `write-code`, `write-tests`, `write-docs`, `review`, `architecture`, `architecture-critique`, `design`, `ship`, `retro`, `compound`, `lore`, `setup`, the three personas and their generated copies, and the session-start message.
+
+Moved out of stage A, to be done together with shipping the backend inside the plugin (backend step 6), because all of it is one question — how `tasks/` reaches an installed plugin: `hooks/inject.mjs` reading the record instead of `.pipeline/work/`, deleting `scripts/pipeline-snapshot.mjs` and its test, the three installers and the package file list that carry it. Until then the hook finds no work folder and stays silent, and the skills' own fallback applies: the arbiter puts the brief in the spawn prompt. `README` follows once one real stream has run.
+
+Two things the edits settled that the table below did not say: `plan` has two halves only — `## What we need` and `## How it works`; the old "how we work on this" is the tree itself. And in stage A the arbiter re-runs a submitted task's checks itself; keepalive takes that over in stage B.
+
 ## The five rules of the rewrite
 
 1. **One skill knows the backend.** A new skill (working name `idle`) is the only place that says how to call it — operations, the lifecycle, what each role may do, the launch recipes, the keepalive prompt. It is workflow-neutral and is all an outside user needs. Every other skill names the *act* — "record the decision", "write feedback", "submit with evidence" — and never a command or a file path.
