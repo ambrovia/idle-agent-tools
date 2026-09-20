@@ -44,18 +44,22 @@ function alive(pid) {
 // both "win" the same claim. The lock is what makes local mode correct.
 async function acquire(lock) {
   const owner = join(lock, 'pid');
-  for (let waited = 0; ; waited += 25) {
+  let orphaned = 0; // how long the lock has existed without a readable pid
+  for (;;) {
     try {
       mkdirSync(lock);
       writeFileSync(owner, String(process.pid));
       return;
     } catch (err) {
       if (err.code !== 'EEXIST') throw err;
-      const pid = existsSync(owner) ? Number(readFileSync(owner, 'utf8')) : 0;
-      // Steal from a dead owner; a lock with no pid yet gets a second to write one.
-      if ((pid && !alive(pid)) || (!pid && waited > 1000)) rmSync(lock, { recursive: true, force: true });
-      else await sleep(25);
     }
+    // The owner may release between any two of these calls; a missing file is not an error.
+    let pid = 0;
+    try { pid = Number(readFileSync(owner, 'utf8')) || 0; } catch { /* not written yet, or just released */ }
+    orphaned = pid ? 0 : orphaned + 25;
+    // Steal from a dead owner, or from a lock that never got a pid (its maker died in between).
+    if ((pid && !alive(pid)) || orphaned > 2000) rmSync(lock, { recursive: true, force: true });
+    else await sleep(25);
   }
 }
 

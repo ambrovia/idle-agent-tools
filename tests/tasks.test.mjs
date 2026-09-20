@@ -66,7 +66,8 @@ test('refusals', () => {
 
   assert.equal(task('--id', root, '--status', 'claimed', '--by', 'alice').code, 1, 'a parent is not claimable');
   task('--id', a, '--status', 'claimed', '--by', 'alice');
-  assert.match(task('--id', a, '--status', 'claimed', '--by', 'bob').err, /not ready/, 'held');
+  assert.match(task('--id', a, '--status', 'claimed', '--by', 'bob').err, /claimed by alice/, 'held');
+  assert.equal(task('--title', 'Rework the signup form', '--parent', root).json.status, 'open', 'a sibling with a similar name is not a duplicate');
   assert.match(task('--id', b, '--status', 'claimed', '--by', 'bob').err, /overlaps/, 'scope overlap');
   assert.match(task('--id', a, '--status', 'submitted', '--by', 'bob').err, /not claimed by bob/);
   assert.match(task('--id', a, '--status', 'done').err, /cannot move/, 'a worker cannot skip to done');

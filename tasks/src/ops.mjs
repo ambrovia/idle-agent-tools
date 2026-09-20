@@ -17,6 +17,10 @@ const ALPHABET = 'abcdefghjkmnpqrstvwxyz23456789';
 // Random, never counters: sequential ids collide as soon as two machines create at once.
 const id = (prefix) => `${prefix}-${[...randomBytes(6)].map((b) => ALPHABET[b % ALPHABET.length]).join('')}`;
 
+// Near-duplicates only. Measured: a typo or reworded title scores 0.7–0.95, siblings that
+// merely share a prefix ("Newsletter signup form" / "… API endpoint") about 0.5.
+const SIMILAR = 0.65;
+
 const LIVE = `status = 'claimed' and claim_expires > now()`;
 const READY = `
   (t.status = 'open' or (t.status = 'claimed' and t.claim_expires <= now()))
@@ -61,8 +65,7 @@ async function similarTasks(q, title, root, project) {
     `select id, title, status from tasks
      where status not in ('done', 'archived')
        and (($2::text is not null and root = $2) or ($2::text is null and project = $3 and parent is null))
-       and (similarity(title, $1) > 0.45
-            or to_tsvector('english', title || ' ' || goal) @@ plainto_tsquery('english', $1))
+       and similarity(title, $1) > ${SIMILAR}
      order by similarity(title, $1) desc limit 5`,
     [title, root, project],
   );
@@ -74,7 +77,14 @@ async function claim(q, task, input, ctx) {
   // Serialises claims within one tree, on any Postgres.
   await q(`select pg_advisory_xact_lock(hashtext($1))`, [task.root]);
   const [ready] = await q(`select t.id from tasks t where t.id = $1 and ${READY}`, [task.id]);
-  if (!ready) refuse(`${task.id} is not ready (status ${task.status})`);
+  if (!ready) {
+    const waiting = await q(`select id from tasks where id = any($1) and status <> 'done'`, [task.needs]);
+    const [child] = await q(`select id from tasks where parent = $1 limit 1`, [task.id]);
+    const why = waiting.length ? `it needs ${waiting.map((w) => w.id).join(', ')} done first`
+      : child ? 'it has children — claim one of them'
+        : task.status === 'claimed' ? `it is claimed by ${task.claimed_by}` : `it is ${task.status}`;
+    refuse(`${task.id} is not ready: ${why}`);
+  }
   const others = await q(`select id, scope, claimed_by from tasks where root = $1 and id <> $2 and ${LIVE}`, [task.root, task.id]);
   for (const other of others) {
     const clash = task.scope.find((a) => other.scope.some((b) => overlaps(a, b)));
@@ -163,7 +173,7 @@ export const OPS = [
       goal: { type: 'string', desc: 'what is true when this is done, and why it matters — the contract' },
       ac: { type: 'string', desc: 'acceptance criteria: signs the goal is reached, never a substitute for it' },
       parent: { type: 'string', desc: 'parent task id, on create; omit to drop a new root task' },
-      status: { type: 'string', desc: 'proposed | open | claimed | submitted | done | blocked | archived. claimed = claim or renew your lease; submitted = you say the goal is reached: the system runs the project\'s configured checks and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review or reopen' },
+      status: { type: 'string', desc: 'proposed | open | claimed | submitted | done | blocked | archived. A new task is open; create it as proposed when it is work you found rather than were given, for someone else to accept (open) or decline (archived). claimed = claim or renew your lease; submitted = you say the goal is reached: the system then runs the project\'s configured checks (show --brief lists them) and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review or reopen' },
       ttl: { type: 'string', desc: 'lease in minutes when claiming (default 30)' },
       feedback: { type: 'string', desc: 'append for whoever plans the tree: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
       verdict: { type: 'string', desc: 'append why it is not done: blocking findings, the reason for reopening. Required when moving back to open' },
@@ -220,7 +230,7 @@ export const OPS = [
         if (!input.confirm) {
           const similar = await q(
             `select id, statement from decisions where root = $1 and status = 'active'
-             and (similarity(statement, $2) > 0.45 or to_tsvector('english', statement) @@ plainto_tsquery('english', $2)) limit 5`,
+             and similarity(statement, $2) > ${SIMILAR} limit 5`,
             [task.root, input.statement]);
           if (similar.length) return { created: false, similar, hint: 'repeat with --confirm to record anyway' };
         }
