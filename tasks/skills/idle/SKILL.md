@@ -78,7 +78,7 @@ the worker is refused.
 |---|---|
 | anyone | drop a task |
 | doing a task | claim it; extend the lease; record decisions; append feedback; create `proposed` children when it is bigger than it looked; then exactly one of: submit, block with feedback, or release |
-| reviewing | move `verified` to `done`, or back to `open` with the blocking findings — never for work you did |
+| reviewing | move `verified` to `done`, or back to `open` with the blocking findings — never for work you did, and never leave it where it was: what needs it waits for `done` |
 | planning a tree | create and edit tasks; accept a proposal (`open`) or decline it (`archived`); unblock; mark a parent `done`; supersede decisions; archive |
 | the human | everything above, and alone: decide what a task is for and how far it goes, contradict a `done` |
 

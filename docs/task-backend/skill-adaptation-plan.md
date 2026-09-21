@@ -62,4 +62,14 @@ A repository with `.pipeline/work/<id>/plan.md` items is not blocked. `pipeline`
 
 ## How we know it worked
 
-The skills have no tests and won't get any. The proof is one real stream: stage A itself, run on backend steps 0–3, with a retro at the end. Where an agent chases an acceptance criterion past the goal, or the human cannot tell from the root state what to contradict, the model is wrong there and the Q&A gets a new part.
+The skills have no tests and won't get any. The proof is real runs: `/pipeline` on a throwaway repository with a real `npm test`, checks and review switched on, the task dropped as a bare title, the maintainer's interview answers given up front (headless, so nobody to ask). Three were run on 21 September 2026, and each was judged from the record and the repository, not from the agent's summary.
+
+| Run | Shape | What the record showed |
+|---|---|---|
+| 1 | one small bugfix | title → goal, plan, interview, scenario; kept as one task; builder and reviewer under distinct identities; system ran the checks at submit; reviewer passed; one clean commit, no task id in git; retro written |
+| 2 | two independent helpers + an integrate task | tree of three children, scopes that do not overlap, `needs` on the integrate task, 21 tests, everything working through the one entry point |
+| 3 | a dependency, and a choice left open on purpose | the builder's choice recorded as a decision and superseded twice as it was refined; a real rejection loop — the reviewer sent the task back for tests that could not fail *and for code that contradicted the recorded decision* — then passed it |
+
+What the runs found, none of which paper review or unit tests could have: reviewers leaving a passed task at `verified` instead of moving it to `done`, which stalled everything that needed it (the wording "it is done" read as a statement); a real builder choice written into feedback instead of a decision; a builder blocking a task that was merely not ready; entries carrying the writer's name twice; and the three Claude personas having no MCP tools at all — their `tools` line is an allowlist — so they reached the record only through the `idle` command in Bash. All fixed; run 3 confirmed the first three.
+
+Not yet run: another harness than Claude Code, a live human in the interview, a stream large enough to need detached workers, a shared database.

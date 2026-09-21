@@ -35,6 +35,8 @@ async function load(q, taskId) {
 
 // feedback (worker → planner) and verdict (why it came back) are fields that grow by one capped line.
 async function append(q, task, field, body, by) {
+  while (body.startsWith(`${by}:`) || body.startsWith(`- ${by}:`)) body = body.slice(body.indexOf(':') + 1).trimStart();
+  if (!body) refuse('nothing to append');
   if (body.length > CAPS.entry) refuse(`too long: ${body.length} characters, the cap is ${CAPS.entry}`);
   await q(`update tasks set ${field} = ${field} || $2, updated_at = now() where id = $1`, [task, `- ${by}: ${body}\n`]);
 }

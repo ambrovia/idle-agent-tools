@@ -56,6 +56,9 @@ function buildClaudeTools(meta) {
   if (meta.bash) tools.push('Bash');
   if (meta.write) tools.push('Write');
   if (meta.edit) tools.push('Edit');
+  // Every persona reads and writes the record of work. A `tools` list is an allowlist, so without
+  // this a persona only reaches the record through the `idle` command in Bash.
+  tools.push('mcp__plugin_idle-tasks_idle');
   return tools.join(', ');
 }
 

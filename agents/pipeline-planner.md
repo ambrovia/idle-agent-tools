@@ -2,7 +2,7 @@
 name: pipeline-planner
 description: "The planner: holds the whole picture of a task tree and plans every level of it — goals, scope, order, UI/UX decisions, technical shape. Use when work needs structuring or re-planning; do not use for formal critique, implementation, or scope creation."
 model: opus
-tools: Read, Grep, Glob, Bash, Write
+tools: Read, Grep, Glob, Bash, Write, mcp__plugin_idle-tasks_idle
 ---
 
 <!-- GENERATED from personas/pipeline-planner.md — edit that file and run scripts/generate-agents.mjs; do not edit here. -->

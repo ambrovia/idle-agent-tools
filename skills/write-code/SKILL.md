@@ -40,10 +40,13 @@ change-caused regressions are fixed, and the diff contains no unrelated work and
 pre-existing failures separately. When you submit, the system runs the project's checks itself; a failure
 reopens the task with the output, whatever you reported.
 
-Record a decision you had to make where the plan was silent. Write feedback on the task for anything
+A choice you had to make where the plan was silent is a **decision**: record it as one, so it binds the
+tasks after yours and the maintainer can find and overturn it. Feedback is not the place for it. Write
+feedback on the task for anything
 learned by doing that whoever plans the tree should know: the goal is wrong, the approach will not
 work, a decision conflicts. End in exactly one way: submit; propose children when the task is bigger
-than it looked, and release it; or block with the reason. `/idle` says how.
+than it looked, and release it; or block with the reason. A task that is merely not ready yet — what it
+needs is unfinished — is not blocked: leave it, and say so in your report. `/idle` says how.
 
 ## Target
 

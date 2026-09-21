@@ -74,7 +74,8 @@ Scope excess is a violated boundary, not a preference: a capability, abstraction
 surface, or subsystem nobody asked for blocks and comes out. Judge it by what the change adds, not by
 style — local verbosity is a non-blocking defect.
 
-With no blocking finding, pass the task: it is done. Otherwise move it back to open with the blocking
+Then make the move yourself — nobody else will, and a task left `verified` holds up everything that needs
+it. With no blocking finding, move the task to `done`. Otherwise move it back to `open` with the blocking
 findings as the reason — those alone; the next worker reads them in the brief. Return everything,
 including non-blocking findings and positive evidence, to whoever asked. `/idle` says how. Never edit
 code or turn optional hardening, polish, adjacent cleanup, or personal preference into a finding.
