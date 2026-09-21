@@ -1,5 +1,6 @@
 {
-  "name": "idle-agent-tools",
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "idle-skills",
   "version": "0.9.0",
-  "description": "Multi-agent development driven by a plan you own. An interview with the orchestrator produces the plan; three dials \u2014 complexity, ambiguity, exposure \u2014 decide how much planning, orchestration and review each item gets; you place the gates."
+  "description": "Multi-agent development on a shared record of work. An interview turns a dropped task into a goal and a plan you own; a planner breaks it into goals, builders and reviewers work them, and you contradict what is not done."
 }

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "idle": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "idle-agent-tasks@0.1.2",
+        "mcp"
+      ]
+    }
+  }
+}

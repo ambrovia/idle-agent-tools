@@ -206,12 +206,12 @@ test('every place that starts the published server names exactly the version in 
   // npx keeps serving a cached install for a version range, so a range never picks up a fix.
   const repo = resolve(new URL('..', import.meta.url).pathname);
   const { version } = JSON.parse(readFileSync(join(repo, 'tasks/package.json'), 'utf8'));
-  for (const file of ['tasks/.codex-plugin/plugin.json', 'tasks/.cursor-plugin/plugin.json', 'scripts/install-opencode.sh', 'scripts/install-cursor.sh', 'hooks/inject.mjs']) {
+  for (const file of ['tasks/.codex-plugin/plugin.json', 'tasks/.cursor-plugin/plugin.json', 'scripts/install-opencode.sh', 'scripts/install-cursor.sh', 'hooks/inject.mjs', 'tasks/mcp_config.json']) {
     const pins = readFileSync(join(repo, file), 'utf8').match(/idle-agent-tasks@[0-9][0-9.]*/g) ?? [];
     assert.ok(pins.length > 0, `${file} starts the server`);
     for (const pin of pins) assert.equal(pin, `idle-agent-tasks@${version}`, file);
   }
-  for (const file of ['tasks/.claude-plugin/plugin.json', 'tasks/.codex-plugin/plugin.json', 'tasks/.cursor-plugin/plugin.json']) {
+  for (const file of ['tasks/.claude-plugin/plugin.json', 'tasks/.codex-plugin/plugin.json', 'tasks/.cursor-plugin/plugin.json', 'tasks/plugin.json']) {
     assert.equal(JSON.parse(readFileSync(join(repo, file), 'utf8')).version, version, file);
   }
 });

@@ -149,6 +149,13 @@ function generateCursor(meta, body) {
   return `${fmLines.join('\n')}\n\n${mdMarker(meta.name)}\n${body}`;
 }
 
+// Antigravity drops an agent whose frontmatter carries fields it does not know
+// (Claude's `model` and `tools`), so its format is name and description only.
+function generateAntigravity(meta, body) {
+  const fmLines = ['---', `name: ${meta.name}`, `description: "${yamlQuote(meta.description)}"`, '---'];
+  return `${fmLines.join('\n')}\n\n${mdMarker(meta.name)}\n${body}`;
+}
+
 function generateCodex(meta, body) {
   // Escape any literal """ in the body so the TOML multi-line basic string stays valid.
   // NOTE: when this fires, the on-disk developer_instructions bytes differ from the persona
@@ -190,6 +197,10 @@ for (const file of personaFiles) {
   outputs.push({
     path: join(ROOT, 'agents-cursor', `${name}.md`),
     content: generateCursor(meta, body),
+  });
+  outputs.push({
+    path: join(ROOT, 'agents-antigravity', `${name}.md`),
+    content: generateAntigravity(meta, body),
   });
   outputs.push({
     path: join(ROOT, '.opencode', 'agents', `${name}.md`),
