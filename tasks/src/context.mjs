@@ -4,12 +4,18 @@ import { spawnSync } from 'node:child_process';
 import { basename, dirname, resolve } from 'node:path';
 import { userInfo } from 'node:os';
 
+// Where the work is. A harness may start the MCP server from the plugin's own folder,
+// so its statement of the project directory wins over the process's.
+export function workdir() {
+  return process.env.IDLE_PROJECT_DIR || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+}
+
 // The repository's name, so every clone and worktree lands on the same tasks.
 export function project() {
   if (process.env.IDLE_PROJECT) return process.env.IDLE_PROJECT;
-  const git = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { encoding: 'utf8' });
+  const git = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: workdir(), encoding: 'utf8' });
   if (git.status === 0 && git.stdout.trim()) return basename(dirname(git.stdout.trim()));
-  return basename(resolve('.'));
+  return basename(resolve(workdir()));
 }
 
 export function context(input = {}, fallbackBy) {

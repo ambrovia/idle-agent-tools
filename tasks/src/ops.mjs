@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs';
 import { checksFor, config, home, mode, withTx } from './store.mjs';
 import { CAPS, version } from './schema.mjs';
 import { brief, state, tree } from './views.mjs';
+import { workdir } from './context.mjs';
 
 export class Refused extends Error {}
 const refuse = (message) => { throw new Refused(message); };
@@ -314,7 +315,7 @@ const CHECK_TIMEOUT_MS = Number(process.env.IDLE_CHECK_TIMEOUT_MS) || 15 * 60_00
 
 // The configured commands, run where the work is. → null when green, else what failed.
 function runChecks(task) {
-  const cwd = task.metadata?.worktree && existsSync(task.metadata.worktree) ? task.metadata.worktree : process.cwd();
+  const cwd = task.metadata?.worktree && existsSync(task.metadata.worktree) ? task.metadata.worktree : workdir();
   for (const command of checksFor(task.project)) {
     const run = spawnSync(command, { shell: true, cwd, encoding: 'utf8', timeout: CHECK_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
     if (run.status === 0) continue;

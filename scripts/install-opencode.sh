@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# install-opencode.sh — install the agent-pipeline into a project (or globally)
+# install-opencode.sh — install idle-skills into a project (or globally)
 # for opencode.
 #
 # opencode plugins are JavaScript/TypeScript modules. Skills, agents, and rules
@@ -52,7 +52,7 @@ else
   SCOPE="project ($TARGET)"
 fi
 
-echo "Installing agent-pipeline for opencode → $SCOPE"
+echo "Installing idle-skills for opencode → $SCOPE"
 
 # 1. Skills — one per directory, each with a SKILL.md.
 mkdir -p "$SKILLS_DIR"
@@ -81,9 +81,9 @@ BEGIN="<!-- agent-pipeline:begin -->"
 END="<!-- agent-pipeline:end -->"
 read -r -d '' BLOCK <<EOF || true
 $BEGIN
-## agent-pipeline
+## idle-skills
 
-agent-pipeline is active. Work in structured phases, not freeform.
+idle-skills is active. Work in structured phases, not freeform.
 
 - Large or non-trivial changes: drop a task with the idle skill, then run it through the
   pipeline skill, which refines and plans it with the user. Don't freelance big changes.

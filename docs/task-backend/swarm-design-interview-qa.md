@@ -342,13 +342,27 @@ A (assistant, built): `work-planning` deleted; its value test moved into `refine
 
 ---
 
+## Part 21 — Names
+
+*21 September 2026.*
+
+**Q (T→A): The last part is turning this into a plugin. Is idle already available as a Claude, Codex, … plugin?**
+
+A (assistant, checked today): No plugin named `idle` in Anthropic's official (310) or community (2,282) marketplaces; the nearest is an unrelated `idle-timing`. From this repo the `idle` skill already ships, because every manifest points at the whole `skills/` folder — the backend does not: `tasks/` is in no file list, no manifest declares the MCP server, no installer copies it.
+
+**Q (A→T): One plugin or two? And the ids — marketplace and plugin names are baked into hook cache paths, so changing them means a reinstall for everyone.**
+
+A: I would like to rename the repo to idle agent tools — and the plugin. Idle agent tools marketplace, with idle-tasks and idle-skills.
+
+---
+
 ## Distilled stances (for priming a fresh session)
 
 - Not a harness; a framework for orchestration around harnesses. Simplicity; something in hours.
 - Passive first; active only when needed; an agent with a shell can launch sessions itself.
 - Work is the substrate. Tasks reference tasks → DAG. Claim = fields. Plan and interview Q&A = fields. There is no stream concept: anyone drops a task at any time, however unstructured; it starts as a single root task and refine and planning may grow it into a tree. No work-planning skill.
 - Decisions: searchable entities, made by anyone, reviewable, supersedable.
-- As few operations as possible: one edit per entity that creates or updates, and the task has a state. Working name: the `idle` CLI (`hyperidle` is taken by another application).
+- As few operations as possible: one edit per entity that creates or updates, and the task has a state. The CLI is `idle` (`hyperidle` is taken by another application). Repo and marketplace: `idle-agent-tools`. Two plugins in it: `idle-tasks` — the backend, its MCP server and the one `idle` skill, usable alone — and `idle-skills` — our workflow on top.
 - The backend stores tasks and decisions, exactly as the concept defines them, and nothing extra. No notes, no observations — `lore` is our version of notes.
 - Observations: own entity, char-capped, free-but-keyed subject, worker write / slow curation, archival first-class — deferred; inline comments work today.
 - Git, PRs, worktrees, containers, policies: not ours; cannot assume they exist; opaque references only. Worktrees are for work; orchestration never goes through a commit.

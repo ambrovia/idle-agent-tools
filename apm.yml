@@ -1,10 +1,10 @@
-name: agent-pipeline
+name: idle-agent-tools
 version: 0.8.4
 description: Structured multi-agent development pipeline — work packages through design, critique, build, review, retro, and ship.
 author: Ambrovia
 license: Apache-2.0
-homepage: https://github.com/ambrovia/agent-skills-pipeline
-repository: https://github.com/ambrovia/agent-skills-pipeline
+homepage: https://github.com/ambrovia/idle-agent-tools
+repository: https://github.com/ambrovia/idle-agent-tools
 keywords:
   - skills
   - agents

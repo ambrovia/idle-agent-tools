@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# install-cursor.sh — install agent-pipeline for Cursor.
+# install-cursor.sh — install idle-skills for Cursor.
 #
 # Cursor 2.5+ loads plugins from ~/.cursor/plugins/local/ (IDE) or from a
 # Team Marketplace import (Teams/Enterprise). This script supports:
@@ -46,14 +46,14 @@ if [ "$MODE" = "plugin" ]; then
     exit 1
   fi
   ln -sfn "$SRC" "$PLUGIN_LINK"
-  echo "Installed agent-pipeline as a local Cursor plugin:"
+  echo "Installed idle-skills as a local Cursor plugin:"
   echo "  $PLUGIN_LINK -> $SRC"
   echo ""
   echo "Restart Cursor or run Developer: Reload Window."
   echo ""
   echo "Teams/Enterprise: import the GitHub repo as a Team Marketplace instead:"
   echo "  Dashboard -> Plugins -> Team Marketplaces -> Import from Repo"
-  echo "  https://github.com/ambrovia/agent-skills-pipeline"
+  echo "  https://github.com/ambrovia/idle-agent-tools"
   exit 0
 fi
 
@@ -62,7 +62,7 @@ AGENTS_DIR="$TARGET/.cursor/agents"
 HOOKS_DIR="$TARGET/.cursor/hooks"
 HOOKS_FILE="$TARGET/.cursor/hooks.json"
 
-echo "Installing agent-pipeline for Cursor (project copy) → $TARGET"
+echo "Installing idle-skills for Cursor (project copy) → $TARGET"
 
 mkdir -p "$SKILLS_DIR" "$AGENTS_DIR" "$HOOKS_DIR"
 cp -R "$SRC/skills/." "$SKILLS_DIR/"

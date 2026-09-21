@@ -3,15 +3,20 @@
 
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 const bin = resolve(new URL('..', import.meta.url).pathname, 'tasks/bin/idle.mjs');
 
+// Every sandbox is a whole PGlite database; leave none behind.
+const homes = [];
+process.on('exit', () => homes.forEach((home) => rmSync(home, { recursive: true, force: true })));
+
 function sandbox(config) {
   const env = { ...process.env, IDLE_HOME: mkdtempSync(join(tmpdir(), 'idle-')), IDLE_PROJECT: `test-${Date.now()}` };
+  homes.push(env.IDLE_HOME);
   if (config) writeFileSync(join(env.IDLE_HOME, 'config.json'), JSON.stringify(config(env.IDLE_PROJECT)));
   delete env.IDLE_DATABASE_URL;
   if (process.env.IDLE_TEST_DATABASE_URL) env.IDLE_DATABASE_URL = process.env.IDLE_TEST_DATABASE_URL;
