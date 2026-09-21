@@ -5,7 +5,7 @@
 # Cursor 2.5+ loads plugins from ~/.cursor/plugins/local/ (IDE) or from a
 # Team Marketplace import (Teams/Enterprise). This script supports:
 #
-#   1. Plugin install (default) — symlink the repo into ~/.cursor/plugins/local/
+#   1. Plugin install (default) — copy both plugins into ~/.cursor/plugins/local/
 #      so Cursor discovers skills, agents, and hooks via .cursor-plugin/plugin.json.
 #
 #   2. Project copy (--project) — copy skills/agents/hooks into a project's
@@ -13,7 +13,7 @@
 #      the plugin loader.
 #
 # Usage:
-#   scripts/install-cursor.sh                    # plugin symlink (global IDE)
+#   scripts/install-cursor.sh                    # plugin copy (global IDE)
 #   scripts/install-cursor.sh /path/to/project   # project copy install
 #   scripts/install-cursor.sh --project          # project copy into cwd
 #   scripts/install-cursor.sh --help
@@ -42,17 +42,21 @@ if [ "$MODE" = "plugin" ]; then
   mkdir -p "$LOCAL_PLUGINS"
   # The link this installer made under the plugin's old name.
   if [ -L "$LOCAL_PLUGINS/pipeline" ]; then rm "$LOCAL_PLUGINS/pipeline"; fi
-  # idle-skills is the repository root; idle-tasks — the record of work it needs — is tasks/.
-  for pair in "idle-skills:$SRC" "idle-tasks:$SRC/tasks"; do
-    link="$LOCAL_PLUGINS/${pair%%:*}"
-    if [ -e "$link" ] && [ ! -L "$link" ]; then
-      echo "refusing to overwrite existing non-symlink: $link" >&2
+  # Cursor skips a symlink that points outside plugins/local, so each plugin is copied —
+  # only what its manifest names. Re-run after an update.
+  copy_plugin() { # name, source root, paths…
+    local name="$1" root="$2" dest="$LOCAL_PLUGINS/$1"; shift 2
+    if [ -e "$dest" ] && [ ! -L "$dest" ] && [ ! -f "$dest/.cursor-plugin/plugin.json" ]; then
+      echo "refusing to overwrite $dest: not a Cursor plugin" >&2
       exit 1
     fi
-    ln -sfn "${pair#*:}" "$link"
-    echo "Installed ${pair%%:*} as a local Cursor plugin:"
-    echo "  $link -> ${pair#*:}"
-  done
+    rm -rf "$dest" && mkdir -p "$dest"
+    for path in "$@"; do cp -R "$root/$path" "$dest/$path"; done
+    find "$dest" -type d -name node_modules -prune -exec rm -rf {} +
+    echo "Installed $name as a local Cursor plugin: $dest"
+  }
+  copy_plugin idle-skills "$SRC" .cursor-plugin skills agents-cursor hooks
+  copy_plugin idle-tasks "$SRC/tasks" .cursor-plugin skills
   echo ""
   echo "Restart Cursor or run Developer: Reload Window."
   echo ""

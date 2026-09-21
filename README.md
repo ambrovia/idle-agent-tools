@@ -37,6 +37,7 @@ drop a task ──▶ interview ──▶ plan the tree ──▶ build ──�
 | [`personas/`](personas/) | Persona source of truth; [`scripts/generate-agents.mjs`](scripts/generate-agents.mjs) renders every host format below |
 | [`agents/`](agents/) | Claude-format `pipeline-planner` / `pipeline-reviewer` / `pipeline-builder` personas (generated) |
 | [`agents-cursor/`](agents-cursor/) | Cursor-format personas (`model: inherit`, generated) |
+| [`agents-antigravity/`](agents-antigravity/) | Antigravity-format personas (generated) |
 | [`hooks/`](hooks/) | Session-start + edit-streak + thrash guards, and spawn-time evidence injection (Claude, Cursor, Gemini, Copilot, Codex, opencode) |
 | [`.claude-plugin/`](.claude-plugin/) | Claude Code marketplace (both plugins) + the idle-skills plugin |
 | [`.cursor-plugin/`](.cursor-plugin/) | Cursor Team Marketplace + plugin |
@@ -54,6 +55,7 @@ Support levels differ by host:
 | **Claude Code** | yes | yes | yes | plugin (MCP + the `idle` CLI) | native plugin marketplace |
 | **Cursor** | yes | yes | yes | plugin (MCP from npm) | native plugin / Team Marketplace, or `scripts/install-cursor.sh` |
 | **Codex** | yes | via script | yes | plugin (MCP from npm) | plugin marketplace + `scripts/install-codex.sh` for personas |
+| **Antigravity** | yes | yes | no | plugin (MCP from npm) | `scripts/install-antigravity.sh` |
 | **opencode** | yes | yes | yes | installer writes `opencode.json` | `scripts/install-opencode.sh` (JS plugin is hooks-only) |
 | **Copilot / Gemini** | copy or APM | Claude-format agents | yes | add the MCP server yourself | hooks configs shipped; skills via APM or manual copy |
 
@@ -101,9 +103,17 @@ https://github.com/ambrovia/idle-agent-tools
 Then install **idle-tasks** and **idle-skills** from Customize (skills, `agents-cursor/`, `hooks/cursor-hooks.json`).
 
 ```bash
-scripts/install-cursor.sh                 # symlinks → ~/.cursor/plugins/local/idle-skills and idle-tasks
+scripts/install-cursor.sh                 # copies → ~/.cursor/plugins/local/idle-skills and idle-tasks
 scripts/install-cursor.sh /path/to/project  # or --project: copy into .cursor/
 ```
+
+### Antigravity — installer
+
+```bash
+scripts/install-antigravity.sh   # → ~/.gemini/config/plugins/idle-skills and idle-tasks
+```
+
+The IDE and the `agy` CLI both read that folder. Antigravity copies whatever directory it is pointed at, so the script stages only what it reads: `plugin.json`, the skills, the personas from [`agents-antigravity/`](agents-antigravity/) (name and description only — it drops an agent with frontmatter fields it does not know), and for idle-tasks [`mcp_config.json`](tasks/mcp_config.json). Hooks are not installed.
 
 ### Codex — plugin
 
