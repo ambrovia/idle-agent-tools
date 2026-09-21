@@ -1,7 +1,7 @@
 {
   "name": "idle-tasks",
   "description": "The record of work for agents: tasks that nest into trees, and decisions. Four operations over MCP and the idle CLI; the system runs your project's checks when a task is submitted. PGlite locally, any Postgres when shared. Bring your own workflow.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "Ambrovia"
   },
@@ -32,7 +32,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "idle-agent-tasks@0.1.1",
+        "idle-agent-tasks@0.1.2",
         "mcp"
       ]
     }

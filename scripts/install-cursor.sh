@@ -111,7 +111,7 @@ let config = {};
 try { config = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (err) {
   if (err.code !== 'ENOENT') { console.error(`  ! ${file} is not plain JSON — add the idle MCP server by hand`); process.exit(0); }
 }
-config.mcpServers = { ...config.mcpServers, idle: { command: 'npx', args: ['-y', 'idle-agent-tasks@0.1.1', 'mcp'] } };
+config.mcpServers = { ...config.mcpServers, idle: { command: 'npx', args: ['-y', 'idle-agent-tasks@0.1.2', 'mcp'] } };
 fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
 NODE
 

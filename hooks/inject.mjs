@@ -41,7 +41,7 @@ const PLUGIN_ROOT = join(HOOK_DIR, '..');
 const LOCAL_IDLE = join(PLUGIN_ROOT, 'tasks', 'bin', 'idle.mjs');
 const IDLE = process.env.IDLE_BIN ? [process.execPath, process.env.IDLE_BIN]
   : existsSync(join(PLUGIN_ROOT, 'tasks', 'node_modules', '@electric-sql', 'pglite')) ? [process.execPath, LOCAL_IDLE]
-    : ['npx', '-y', 'idle-agent-tasks@0.1.1'];
+    : ['npx', '-y', 'idle-agent-tasks@0.1.2'];
 const SKILL_TOOL = /^skill$/i;
 const MAX_LINES = positiveInt(process.env.PIPELINE_INJECT_MAX_LINES, 300);
 // Codex truncates injected context hard at ~1k tokens and spills past 2.5k, so

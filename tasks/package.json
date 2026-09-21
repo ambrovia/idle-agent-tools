@@ -1,6 +1,6 @@
 {
   "name": "idle-agent-tasks",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A shared record of work for coding agents: tasks that nest into trees, and decisions. Four operations as a CLI and an MCP server. PGlite locally, any Postgres when shared.",
   "type": "module",
   "bin": {
