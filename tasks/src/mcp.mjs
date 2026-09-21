@@ -40,7 +40,7 @@ export function serve() {
   const send = (message) => process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', ...message })}\n`);
   const text = (body, isError = false) => ({ content: [{ type: 'text', text: body }], isError });
 
-  async function call({ name, arguments: input = {} }) {
+  async function call({ name, arguments: input = {} } = {}) {
     const op = tools.find((t) => t.name === name) && OPS.find((o) => o.name === name);
     if (!op) return text(`unknown operation "${name}"`, true);
     // Started from our own install folder and never told where the work is: do not guess a project.
@@ -66,9 +66,18 @@ export function serve() {
     pending.add(work);
   });
 
+  // One bad message must not end the session: whatever goes wrong becomes a JSON-RPC error.
   async function handle(line) {
     let message;
     try { message = JSON.parse(line); } catch { return; }
+    try {
+      await answer(message);
+    } catch (err) {
+      if (message?.id !== undefined) send({ id: message.id, error: { code: -32603, message: String(err?.message ?? err) } });
+    }
+  }
+
+  async function answer(message) {
     const { id, method, params } = message;
     if (id === 'roots' && !method) {
       // A harness may start us from the plugin's folder; the workspace root it names is where the work is.
@@ -81,7 +90,7 @@ export function serve() {
     if (method === 'initialize') {
       client = params?.clientInfo?.name ?? client;
       roots = !!params?.capabilities?.roots;
-      send({ id, result: { protocolVersion: params?.protocolVersion ?? '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'idle', version: '0.0.1' } } });
+      send({ id, result: { protocolVersion: params?.protocolVersion ?? '2025-06-18', capabilities: { tools: {} }, serverInfo: { name: 'idle', version: '0.1.1' } } });
     } else if (method === 'ping') send({ id, result: {} });
     else if (method === 'tools/list') send({ id, result: { tools } });
     else if (method === 'tools/call') send({ id, result: await call(params) });

@@ -86,9 +86,10 @@ ever was. For each:
   reconcile task done by neither of their workers;
 - **needs** — only what makes it impossible before that is done.
 
-**Children being done is not the goal being reached.** When the last child of a task completes, create
-an integrate task whose goal is the parent's goal, shown working through its real consuming path. Mark
-the parent done only after it.
+**Children being done is not the goal being reached.** When the last child of a task completes, ask
+whether the parent's goal has been shown working through its real consuming path. Where the children
+leave a seam between them, create an integrate task whose goal is the parent's goal; where one child was
+the whole of it, its review already judged that. Mark the parent done only when it is shown.
 
 **Optional rounds.** Run `/design` only for a user-facing decision not already settled by an approved
 pattern, and only when a design system is configured. Run `/architecture` only where scope and
@@ -110,6 +111,10 @@ contract. No conversation history, no re-narration of earlier attempts — a tas
 carries why. Order the brief stable content first. Where the host injects context when an agent starts,
 that is how state arrives; otherwise put the brief in the prompt yourself. Say so in the run summary when
 a host cannot inject, rather than giving every host the weaker treatment.
+
+Tell every agent you spawn who it is — `builder/<model>`, `reviewer/<model>` — and to say so on every
+call to the record. Agents in one session otherwise share one identity, and a reviewer that looks like
+the builder is refused.
 
 The agent claims its task, records the decisions it had to make, writes feedback for what it learned by
 doing, and ends by submitting, proposing children, or blocking with a reason. Its report says the same.
@@ -160,7 +165,7 @@ exists, and never respond by discarding work products wholesale.
 
 ## Finishing
 
-When the root's children are done and its integrate task has passed, run `/retro`, then `/ship`, which
+When the root's children are done and its goal is shown reached, run `/retro`, then `/ship`, which
 commits, verifies from a clean tree, opens or updates the PR, and waits for CI. Any later mutation
 re-enters ship. Stop at a CI-green merge-ready PR; a human merges. Mark the root done then, and archive
 it once it is merged or abandoned — the repository, not the record, is the truth about what was built.

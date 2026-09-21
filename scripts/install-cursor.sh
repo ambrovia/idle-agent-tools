@@ -21,8 +21,7 @@
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLUGIN_NAME="pipeline"
-PLUGIN_LINK="$HOME/.cursor/plugins/local/$PLUGIN_NAME"
+LOCAL_PLUGINS="$HOME/.cursor/plugins/local"
 
 MODE="plugin"
 TARGET="$(pwd)"
@@ -40,14 +39,20 @@ for arg in "$@"; do
 done
 
 if [ "$MODE" = "plugin" ]; then
-  mkdir -p "$HOME/.cursor/plugins/local"
-  if [ -e "$PLUGIN_LINK" ] && [ ! -L "$PLUGIN_LINK" ]; then
-    echo "refusing to overwrite existing non-symlink: $PLUGIN_LINK" >&2
-    exit 1
-  fi
-  ln -sfn "$SRC" "$PLUGIN_LINK"
-  echo "Installed idle-skills as a local Cursor plugin:"
-  echo "  $PLUGIN_LINK -> $SRC"
+  mkdir -p "$LOCAL_PLUGINS"
+  # The link this installer made under the plugin's old name.
+  if [ -L "$LOCAL_PLUGINS/pipeline" ]; then rm "$LOCAL_PLUGINS/pipeline"; fi
+  # idle-skills is the repository root; idle-tasks — the record of work it needs — is tasks/.
+  for pair in "idle-skills:$SRC" "idle-tasks:$SRC/tasks"; do
+    link="$LOCAL_PLUGINS/${pair%%:*}"
+    if [ -e "$link" ] && [ ! -L "$link" ]; then
+      echo "refusing to overwrite existing non-symlink: $link" >&2
+      exit 1
+    fi
+    ln -sfn "${pair#*:}" "$link"
+    echo "Installed ${pair%%:*} as a local Cursor plugin:"
+    echo "  $link -> ${pair#*:}"
+  done
   echo ""
   echo "Restart Cursor or run Developer: Reload Window."
   echo ""
@@ -66,6 +71,7 @@ echo "Installing idle-skills for Cursor (project copy) → $TARGET"
 
 mkdir -p "$SKILLS_DIR" "$AGENTS_DIR" "$HOOKS_DIR"
 cp -R "$SRC/skills/." "$SKILLS_DIR/"
+cp -R "$SRC/tasks/skills/." "$SKILLS_DIR/"
 cp "$SRC/agents-cursor/"*.md "$AGENTS_DIR/"
 cp "$SRC/hooks/session-start.sh" "$SRC/hooks/edit-streak.sh" "$SRC/hooks/thrash-detector.mjs" \
    "$SRC/hooks/inject.mjs" "$HOOKS_DIR/"
@@ -97,7 +103,20 @@ cat > "$HOOKS_FILE" <<'EOF'
 }
 EOF
 
+# The record of work — the idle-tasks MCP server, merged into .cursor/mcp.json.
+node - "$TARGET/.cursor/mcp.json" <<'NODE'
+const fs = require('node:fs');
+const file = process.argv[2];
+let config = {};
+try { config = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (err) {
+  if (err.code !== 'ENOENT') { console.error(`  ! ${file} is not plain JSON — add the idle MCP server by hand`); process.exit(0); }
+}
+config.mcpServers = { ...config.mcpServers, idle: { command: 'npx', args: ['-y', 'idle-agent-tasks@0.1', 'mcp'] } };
+fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
+NODE
+
 echo "  ✓ skills → $SKILLS_DIR"
+echo "  ✓ record → $TARGET/.cursor/mcp.json (mcpServers.idle)"
 echo "  ✓ agents → $AGENTS_DIR"
 echo "  ✓ hooks  → $HOOKS_FILE"
 echo ""

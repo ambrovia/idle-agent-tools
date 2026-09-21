@@ -10,7 +10,7 @@ user-invocable: true
 # Compound
 
 Read the candidate tracker at `.pipeline/compound-candidates.md`, then the `retro:` feedback on the root
-of every root task of this project, archived ones included. If the tracker does not exist, create it with a title and no rows.
+of every root task of this project — list them with archived ones included. If the tracker does not exist, create it with a title and no rows.
 
 You are the only writer of that tracker, and you run at maintainer cadence — after several tasks,
 never inside a run. That is what makes a single shared file safe here: nothing a run writes lands in

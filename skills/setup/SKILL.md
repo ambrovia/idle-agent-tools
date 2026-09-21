@@ -16,7 +16,7 @@ Configuration lives in `pipeline.config.yml` at the repository root — `verify`
 pointing at a markdown file of binding project guidance. Start from `pipeline.config.example.yml`.
 
 The record of work needs no setup in the repository: it lives in the user's home (`/idle`). Offer to set,
-in `~/.idle/config.json`: this project's `checks` to `{{verify}}`, so the system verifies every submitted
+in `~/.idle/config.json`: this project's `checks` to `{{verify}}` — keyed by the label `idle doctor` prints, so the system verifies every submitted
 task itself; `"review": true`, so a verified task waits for a reviewer who did not do the work; and a
 shared database only when the maintainer brings one.
 

@@ -61,5 +61,5 @@ if any generated file is stale, so the copies cannot silently drift.
   alone cannot create those roles.
 
 After regenerating Claude agents, reinstall/update the plugin so the cache copy
-(`~/.claude/plugins/cache/agent-pipeline/.../agents/`) picks up the change, and
+(`~/.claude/plugins/cache/idle-agent-tools/idle-skills/.../agents/`) picks up the change, and
 restart the session — Claude loads agent definitions once at startup.

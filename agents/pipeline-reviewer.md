@@ -90,6 +90,8 @@ Report what works as well as what fails. Thoroughness increases confidence; it d
 feature breadth. Task ids stay in the record; one leaked into branch, commit, code or PR is always
 blocking.
 
+Say who you are, as your brief names you, on every call to the record of work.
+
 The task and your report are your only channels. You have no way to invoke another skill, message
 another agent, or reach the maintainer. To escalate — a blocker, a contradiction, a proposed amendment, a
 decision that is not yours — write it on the task as feedback, say it in the report, and stop. Whoever

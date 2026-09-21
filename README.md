@@ -51,13 +51,25 @@ Support levels differ by host:
 | Host | Skills | Personas | Hooks | Record of work | How |
 |---|---|---|---|---|---|
 | **APM** | yes | yes | yes | add the MCP server yourself | `apm install` → harness dirs |
-| **Claude Code** | yes | yes | yes | plugin (MCP + `idle` on PATH) | native plugin marketplace |
+| **Claude Code** | yes | yes | yes | plugin (MCP + the `idle` CLI) | native plugin marketplace |
 | **Cursor** | yes | yes | yes | plugin (MCP from npm) | native plugin / Team Marketplace, or `scripts/install-cursor.sh` |
 | **Codex** | yes | via script | yes | plugin (MCP from npm) | plugin marketplace + `scripts/install-codex.sh` for personas |
 | **opencode** | yes | yes | yes | installer writes `opencode.json` | `scripts/install-opencode.sh` (JS plugin is hooks-only) |
 | **Copilot / Gemini** | copy or APM | Claude-format agents | yes | add the MCP server yourself | hooks configs shipped; skills via APM or manual copy |
 
 Anywhere else, the record of work is one MCP server: `npx -y idle-agent-tasks mcp`.
+
+### Upgrading from `agent-pipeline`
+
+The marketplace was renamed, so an existing install does not move by itself. Remove the old one and add the new:
+
+```text
+/plugin uninstall pipeline@agent-pipeline
+/plugin marketplace remove agent-pipeline
+/plugin marketplace add ambrovia/idle-agent-tools
+```
+
+then install both plugins as below. Skills keep their names; their prefix becomes `idle-skills:`. Codex asks once to re-approve the hooks, because their paths changed. Items that exist only as `.pipeline/work/<id>/plan.md` are adopted by `/pipeline` as tasks.
 
 ### APM
 
@@ -89,7 +101,7 @@ https://github.com/ambrovia/idle-agent-tools
 Then install **idle-tasks** and **idle-skills** from Customize (skills, `agents-cursor/`, `hooks/cursor-hooks.json`).
 
 ```bash
-scripts/install-cursor.sh                 # symlink → ~/.cursor/plugins/local/pipeline
+scripts/install-cursor.sh                 # symlinks → ~/.cursor/plugins/local/idle-skills and idle-tasks
 scripts/install-cursor.sh /path/to/project  # or --project: copy into .cursor/
 ```
 

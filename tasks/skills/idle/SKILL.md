@@ -66,7 +66,11 @@ when the session has them.
 | `show` | One task or decision. `brief`: what a worker starts from. `state`: the whole tree it belongs to — what needs attention, feedback, tree, ready, claims, recently done. |
 | `list` | Root tasks of this project; with `root` one of them as a tree; with `ready` what can be claimed; with `decisions` the decisions made in a tree. |
 
-`idle help <operation>` lists every input. Say who you are with `by` — `harness/model` is enough.
+`idle help <operation>` lists every input.
+
+**Say who you are on every call, with `by`** — `role/model` is enough (`builder/sonnet`, `reviewer/opus`).
+Agents started inside one session otherwise all look like that session, and a reviewer that looks like
+the worker is refused.
 
 ## Who makes which move
 
@@ -84,8 +88,9 @@ Never plan from memory of a conversation.
 ## Checks
 
 `~/.idle/config.json` names the commands that verify each project's work:
-`{ "checks": { "<project>": ["npm run verify"] }, "review": true }`. They run on the machine that
-submits, in the task's recorded worktree when it has one. `review` makes a verified task wait for
+`{ "checks": { "<project>": ["npm run verify"] }, "review": true }`. The project is the repository
+folder's name; `idle doctor` prints it and the checks it found. A wrong key means no checks, silently. They run on the machine that
+submits, in the worktree recorded on the task or the nearest task above it (`meta: {"worktree": …}`). `review` makes a verified task wait for
 someone who did not do the work.
 
 ## Starting a worker

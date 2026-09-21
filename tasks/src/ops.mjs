@@ -72,7 +72,10 @@ async function similarTasks(q, title, root, project) {
   );
 }
 
-const lease = (input) => Number(input.ttl ?? 30);
+function lease(input) {
+  const minutes = Number(input.ttl ?? 30);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : refuse(`--ttl must be a number of minutes, not "${input.ttl}"`);
+}
 
 async function claim(q, task, input, ctx) {
   // Serialises claims within one tree, on any Postgres.
@@ -91,7 +94,7 @@ async function claim(q, task, input, ctx) {
     const clash = task.scope.find((a) => other.scope.some((b) => overlaps(a, b)));
     if (clash) refuse(`scope "${clash}" overlaps ${other.id}, claimed by ${other.claimed_by}`);
   }
-  await q(`update tasks set status = 'claimed', claimed_by = $2, claim_expires = now() + make_interval(mins => $3), updated_at = now() where id = $1`,
+  await q(`update tasks set status = 'claimed', claimed_by = $2, claim_expires = now() + make_interval(secs => $3 * 60), updated_at = now() where id = $1`,
     [task.id, ctx.by, lease(input)]);
 }
 
@@ -99,16 +102,22 @@ async function claim(q, task, input, ctx) {
 async function move(q, task, to, input, ctx) {
   const from = task.status;
   const mine = from === 'claimed' && task.claimed_by === ctx.by;
+  // Asked of the database, not this machine's clock: on a shared database they differ.
+  const [{ live }] = await q(`select (${LIVE}) as live from tasks where id = $1`, [task.id]);
   const why = (field, what) => input[field] || refuse(`${from} → ${to} needs --${field}: ${what}`);
   const FREE = ', claimed_by = null, claim_expires = null';
 
   if (to === 'claimed') {
-    if (mine) return q(`update tasks set claim_expires = now() + make_interval(mins => $2) where id = $1`, [task.id, lease(input)]);
+    // An expired lease is nobody's: renewing it is a new claim, scope check and all.
+    if (mine && live) return q(`update tasks set claim_expires = now() + make_interval(secs => $2 * 60) where id = $1`, [task.id, lease(input)]);
     return claim(q, task, input, ctx);
   }
   if (to === 'archived') {
-    // A root is archived with everything under it.
-    return q(`update tasks set status = 'archived', updated_at = now() where id = $1 or (root = $1 and $2)`, [task.id, task.parent === null]);
+    if (from === 'submitted') refuse(`${task.id} is being verified — submit it again if its checks never finished`);
+    // A task is archived with everything under it.
+    return q(
+      `with recursive down as (select id from tasks where id = $1 union all select t.id from tasks t join down on t.parent = down.id)
+       update tasks set status = 'archived', updated_at = now() where id in (select id from down)`, [task.id]);
   }
   switch (`${from} → ${to}`) {
     case 'proposed → open':
@@ -119,6 +128,7 @@ async function move(q, task, to, input, ctx) {
       return setStatus(q, task.id, 'open', FREE);
     case 'open → blocked':
     case 'claimed → blocked':
+      if (live && !mine) refuse(`${task.id} is claimed by ${task.claimed_by}`);
       why('feedback', 'say why you are stopping');
       return setStatus(q, task.id, 'blocked', FREE);
     case 'claimed → submitted':
@@ -174,7 +184,7 @@ export const OPS = [
       goal: { type: 'string', desc: 'what is true when this is done, and why it matters — the contract' },
       ac: { type: 'string', desc: 'acceptance criteria: signs the goal is reached, never a substitute for it' },
       parent: { type: 'string', desc: 'parent task id, on create; omit to drop a new root task' },
-      status: { type: 'string', desc: 'proposed | open | claimed | submitted | done | blocked | archived. A new task is open; create it as proposed when it is work you found rather than were given, for someone else to accept (open) or decline (archived). claimed = claim or renew your lease; submitted = you say the goal is reached: the system then runs the project\'s configured checks (show --brief lists them) and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review or reopen' },
+      status: { type: 'string', desc: 'proposed | open | claimed | submitted | verified | done | blocked | archived (verified is set only by the system). A new task is open; create it as proposed when it is work you found rather than were given, for someone else to accept (open) or decline (archived). claimed = claim or renew your lease; submitted = you say the goal is reached: the system then runs the project\'s configured checks (show --brief lists them) and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review or reopen' },
       ttl: { type: 'string', desc: 'lease in minutes when claiming (default 30)' },
       feedback: { type: 'string', desc: 'append for whoever plans the tree: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
       verdict: { type: 'string', desc: 'append why it is not done: blocking findings, the reason for reopening. Required when moving back to open' },
@@ -201,13 +211,14 @@ export const OPS = [
         if (input[flag] !== undefined) { params.push(JSON.stringify(input[flag])); sets.push(`${column} = $${params.length}::jsonb`); }
       }
       await load(q, taskId);
+      if (input.id) for (const needed of input.needs ?? []) await load(q, needed);
       if (sets.length) await q(`update tasks set ${sets.join(', ')}, updated_at = now() where id = $1`, params);
       for (const field of ['feedback', 'verdict']) if (input[field]) await append(q, taskId, field, input[field], ctx.by);
       if (input.id && input.status) {
         const task = await load(q, taskId);
         if (task.status !== input.status || ['claimed', 'submitted'].includes(input.status)) await move(q, task, input.status, input, ctx);
       }
-      return settle(q, taskId);
+      return input.status ? settle(q, taskId) : load(q, taskId);
     },
   },
   {
@@ -281,6 +292,7 @@ export const OPS = [
       ready: { type: 'bool', desc: 'open, everything it needs is done, no children of its own' },
       decisions: { type: 'bool', desc: 'with --root: its decisions, newest first' },
       since: { type: 'string', desc: 'with --decisions: ISO time' },
+      archived: { type: 'bool', desc: 'include archived roots of this project' },
       all: { type: 'bool', desc: 'every project, archived roots too' },
     },
     run: async (q, input, ctx) => {
@@ -298,7 +310,7 @@ export const OPS = [
         return q(`select t.id, t.project, t.title, t.status,
                          (select max(c.updated_at) from tasks c where c.root = t.id) as touched
                   from tasks t where t.parent is null
-                  and ($1 or (t.project = $2 and t.status <> 'archived')) order by touched desc`, [!!input.all, ctx.project]);
+                  and ($1 or (t.project = $2 and ($3 or t.status <> 'archived'))) order by touched desc`, [!!input.all, ctx.project, !!input.archived]);
       }
       return tree(await q(`select id, parent, title, status, claimed_by from tasks where root = $1 order by created_at`, [root]));
     },
@@ -306,8 +318,8 @@ export const OPS = [
   {
     // For the human at a shell; not one of the operations an agent is offered.
     name: 'doctor', cliOnly: true, summary: 'Which mode this machine is on, where the data lives, and whether it is reachable.',
-    run: async (q) => ({
-      mode: mode(), home: home(), schema: await version(q),
+    run: async (q, input, ctx) => ({
+      mode: mode(), home: home(), project: ctx.project, checks: checksFor(ctx.project), review: !!config().review, schema: await version(q),
       tasks: Number((await q(`select count(*) n from tasks`))[0].n),
     }),
   },
@@ -316,8 +328,8 @@ export const OPS = [
 const CHECK_TIMEOUT_MS = Number(process.env.IDLE_CHECK_TIMEOUT_MS) || 15 * 60_000;
 
 // The configured commands, run where the work is. → null when green, else what failed.
-function runChecks(task) {
-  const cwd = task.metadata?.worktree && existsSync(task.metadata.worktree) ? task.metadata.worktree : workdir();
+function runChecks(task, worktree) {
+  const cwd = worktree && existsSync(worktree) ? worktree : workdir();
   for (const command of checksFor(task.project)) {
     const run = spawnSync(command, { shell: true, cwd, encoding: 'utf8', timeout: CHECK_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
     if (run.status === 0) continue;
@@ -331,8 +343,13 @@ function runChecks(task) {
 // system itself, outside any transaction, and moved on or sent back — no agent's word.
 export async function runOp(op, input, ctx) {
   const result = await withTx((q) => op.run(q, input, ctx));
-  if (op.name !== 'task' || result?.status !== 'submitted') return result;
-  const failed = runChecks(result);
+  if (op.name !== 'task' || input.status !== 'submitted' || result?.status !== 'submitted') return result;
+  // The worktree is usually recorded once, on the root; a task may name its own.
+  const [where] = await withTx((q) => q(
+    `with recursive up as (select id, parent, metadata, 0 as depth from tasks where id = $1
+       union all select t.id, t.parent, t.metadata, up.depth + 1 from tasks t join up on t.id = up.parent)
+     select metadata->>'worktree' as worktree from up where metadata ? 'worktree' order by depth limit 1`, [result.id]));
+  const failed = runChecks(result, where?.worktree);
   return withTx(async (q) => {
     const task = await load(q, result.id);
     if (task.status !== 'submitted') return task;

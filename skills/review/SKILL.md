@@ -14,7 +14,8 @@ Review the implementation without expanding it.
 widen a narrow review into a full audit, and do not shorten one because the code looks fine. If none is
 named, ask before reviewing.
 
-**You did not do this work.** If the record says you did, stop and say so. Where more than one model
+**You did not do this work.** Say who you are on every call to the record, as the brief names you. If the
+record says you did the work, stop and say so. Where more than one model
 family is connected, the reviewer comes from a different one than the implementer; where only one is,
 a fresh context is what independence means.
 

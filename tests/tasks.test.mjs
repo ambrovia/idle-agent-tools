@@ -34,10 +34,9 @@ test('a dropped task grows into a tree and travels to done', () => {
   const { env, run, task, create } = sandbox((project) => ({ checks: { [project]: ['test -f checks-pass'] } }));
   const root = create('Task backend for agentic work'); // a title is enough
   assert.equal(run('show', root).json.task.goal, '');
-  task('--id', root, '--goal', 'Agents coordinate through one record of work');
-  const where = ['--meta', JSON.stringify({ worktree: env.IDLE_HOME })];
-  const store = create('Storage adapter', '--parent', root, '--scope', 'tasks/src', ...where);
-  const cli = create('Command line', '--parent', root, '--needs', store, ...where);
+  task('--id', root, '--goal', 'Agents coordinate through one record of work', '--meta', JSON.stringify({ worktree: env.IDLE_HOME }));
+  const store = create('Storage adapter', '--parent', root, '--scope', 'tasks/src'); // inherits the root's worktree
+  const cli = create('Command line', '--parent', root, '--needs', store);
 
   assert.deepEqual(run('list', '--ready').json.map((t) => t.id), [store], 'only the task with nothing pending is ready');
 
@@ -78,11 +77,34 @@ test('refusals', () => {
   assert.match(task('--id', a, '--status', 'done').err, /cannot move/, 'a worker cannot skip to done');
   assert.match(task('--id', a, '--status', 'verified').err, /cannot move/, 'nobody verifies by hand');
   assert.match(task('--id', a, '--feedback', 'x'.repeat(1500)).err, /too long/);
-  assert.match(task('--id', a, '--status', 'blocked').err, /needs --feedback/);
+  assert.match(task('--id', a, '--status', 'blocked', '--by', 'alice').err, /needs --feedback/);
   assert.equal(task('--id', root, '--status', 'done').code, 1, 'children unfinished');
 
   assert.equal(task('--id', a, '--status', 'blocked', '--feedback', 'the form library cannot do this', '--by', 'alice').json.status, 'blocked');
   assert.equal(task('--id', b, '--status', 'claimed', '--by', 'bob').json.status, 'claimed', 'a blocked task no longer holds its scope');
+  assert.match(task('--id', b, '--status', 'blocked', '--feedback', 'not yours', '--by', 'alice').err, /claimed by bob/, 'only the holder blocks a live claim');
+  assert.match(task('--id', b, '--status', 'claimed', '--ttl', 'soon', '--by', 'bob').err, /--ttl must be a number/);
+});
+
+test('an expired lease is nobody\'s: renewing it is a new claim, scope check and all', async () => {
+  const { task, create } = sandbox();
+  const root = create('Leases');
+  const wide = create('Whole auth module', '--parent', root, '--scope', 'src/auth');
+  const narrow = create('Session file only', '--parent', root, '--scope', 'src/auth/session.ts');
+  task('--id', wide, '--status', 'claimed', '--ttl', '0.01', '--by', 'alice');
+  await new Promise((done) => setTimeout(done, 1200));
+  assert.equal(task('--id', narrow, '--status', 'claimed', '--by', 'bob').json.status, 'claimed', 'the expired lease no longer holds its scope');
+  assert.match(task('--id', wide, '--status', 'claimed', '--by', 'alice').err, /overlaps/, 'alice cannot quietly renew over bob');
+});
+
+test('an unrelated edit never moves a task on', () => {
+  const { task, create } = sandbox(() => ({ review: true }));
+  const root = create('Edits');
+  const work = create('Waiting for review', '--parent', root);
+  task('--id', work, '--status', 'claimed', '--by', 'alice');
+  task('--id', work, '--status', 'submitted', '--by', 'alice');
+  assert.equal(task('--id', work, '--feedback', 'just a note', '--by', 'carol').json.status, 'verified');
+  assert.match(task('--id', work, '--status', 'archived').json.status, /archived/);
 });
 
 test('decisions are searched before they are recorded, and can be superseded', () => {

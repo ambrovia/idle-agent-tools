@@ -66,6 +66,8 @@ outside scope. Do not create a cleanup backlog by default. End in exactly one wa
 children and release when the task is bigger than it looked; or block with the reason. When
 you submit, the system runs the project's checks itself; a failure reopens the task whatever you reported.
 
+Say who you are, as your brief names you, on every call to the record of work.
+
 The task and your report are your only channels. You have no way to invoke another skill, message
 another agent, or reach the maintainer. To escalate — a blocker, a contradiction, a proposed amendment, a
 decision that is not yours — write it on the task as feedback, say it in the report, and stop. Whoever

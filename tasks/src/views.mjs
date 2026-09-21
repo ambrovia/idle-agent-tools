@@ -34,6 +34,7 @@ export async function brief(q, task) {
   const refs = [...new Set(line.flatMap((t) => t.decision_refs))];
   const decisions = await q(`select id, statement, rationale from decisions where id = any($1) and status = 'active' order by at`, [refs]);
   const needs = await q(`select id, title, status, goal from tasks where id = any($1)`, [task.needs]);
+  const where = Object.assign({}, ...line.map((t) => t.metadata)); // root first, so a task's own entries win
   return [
     `# ${task.id} — ${task.title}  [${task.status}]\n`,
     section('Goal', task.goal || '_No goal written. Ask before guessing._'),
@@ -45,7 +46,7 @@ export async function brief(q, task) {
     section(`Plan${planned && planned.id !== task.id ? ` (from ${planned.id})` : ''}`, planned?.plan),
     section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement}${d.rationale ? ` — ${firstLine(d.rationale)}` : ''}`)),
     section('Builds on', bullets(needs, (n) => `${n.id} [${n.status}] **${n.title}** — ${firstLine(n.goal)}`)),
-    section('Where', Object.keys(task.metadata).length ? `\`${JSON.stringify(task.metadata)}\`` : ''),
+    section('Where', Object.keys(where).length ? `\`${JSON.stringify(where)}\`` : ''),
     '\nThe goal is the contract; the signs and the checks only help you tell. Done means the goal is reached.\n',
   ].join('');
 }
