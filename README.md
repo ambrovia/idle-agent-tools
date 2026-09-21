@@ -1,4 +1,4 @@
-<h1 align="center">Pipeline</h1>
+<h1 align="center">Idle Agent Tools</h1>
 
 <p align="center">
   <b>Structured, multi-agent software development for any AI coding tool.</b><br>
@@ -62,7 +62,7 @@ Support levels differ by host:
 ### APM
 
 ```bash
-apm install ambrovia/agent-skills-pipeline
+apm install ambrovia/idle-agent-tools
 ```
 
 APM reads the plugin layout (`plugin.json` / `.claude-plugin/`, `skills/`, `agents/`, `hooks/`) and deploys into the consumer's harness directories. Prefer this when the project already uses APM.
@@ -70,11 +70,12 @@ APM reads the plugin layout (`plugin.json` / `.claude-plugin/`, `skills/`, `agen
 ### Claude Code — plugin
 
 ```text
-/plugin marketplace add ambrovia/agent-skills-pipeline
-/plugin install pipeline@agent-pipeline
+/plugin marketplace add ambrovia/idle-agent-tools
+/plugin install idle-tasks@idle-agent-tools
+/plugin install idle-skills@idle-agent-tools
 ```
 
-The orchestrator is `/pipeline`; `/work-planning`, `/setup`, `/lore` and `/compound` are the other commands you invoke directly. The phase skills are dispatched by the orchestrator, not run by hand.
+`idle-tasks` is the record of work on its own — the `idle` CLI, its MCP server and the `/idle` skill — and works with any workflow. `idle-skills` is the workflow on top and needs it. The orchestrator is `/pipeline`; `/setup`, `/lore` and `/compound` are the other commands you invoke directly. The phase skills are dispatched by the orchestrator, not run by hand.
 
 ### Cursor — plugin
 
@@ -82,10 +83,10 @@ Native Cursor plugin via [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.js
 
 ```text
 Dashboard → Plugins → Team Marketplaces → Import from Repo
-https://github.com/ambrovia/agent-skills-pipeline
+https://github.com/ambrovia/idle-agent-tools
 ```
 
-Then install **pipeline** from Customize (skills, `agents-cursor/`, `hooks/cursor-hooks.json`).
+Then install **idle-tasks** and **idle-skills** from Customize (skills, `agents-cursor/`, `hooks/cursor-hooks.json`).
 
 ```bash
 scripts/install-cursor.sh                 # symlink → ~/.cursor/plugins/local/pipeline
@@ -97,10 +98,10 @@ scripts/install-cursor.sh /path/to/project  # or --project: copy into .cursor/
 [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) + [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json). Plugin install gives skills, `agents/openai.yaml`, and the Codex hook wiring in `hooks/hooks.json`.
 
 ```text
-codex plugin marketplace add ambrovia/agent-skills-pipeline
+codex plugin marketplace add ambrovia/idle-agent-tools
 ```
 
-Restart Codex, open `/plugins`, install `pipeline`. Personas are **not** in the plugin contract — register them with:
+Restart Codex, open `/plugins`, install `idle-tasks` and `idle-skills`. Personas are **not** in the plugin contract — register them with:
 
 ```bash
 scripts/install-codex.sh /path/to/project

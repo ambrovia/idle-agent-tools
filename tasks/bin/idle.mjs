@@ -10,8 +10,12 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Installed from a plugin checkout there is no node_modules yet; install once.
-if (!existsSync(join(ROOT, 'node_modules', '@electric-sql', 'pglite'))) {
+// Installed from npm the dependencies are already resolvable (usually hoisted, not under
+// our own folder). Only a bare plugin checkout has none yet; install once.
+function resolvable(name) {
+  try { import.meta.resolve(name); return true; } catch { return false; }
+}
+if (!resolvable('@electric-sql/pglite') && !existsSync(join(ROOT, 'node_modules', '@electric-sql', 'pglite'))) {
   process.stderr.write('idle: installing dependencies (first run only)…\n');
   const install = spawnSync('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], { cwd: ROOT, stdio: ['ignore', 2, 2] });
   if (install.status !== 0) { process.stderr.write('idle: npm install failed\n'); process.exit(2); }

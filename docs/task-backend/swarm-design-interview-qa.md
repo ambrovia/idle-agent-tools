@@ -356,6 +356,18 @@ A: I would like to rename the repo to idle agent tools — and the plugin. Idle 
 
 ---
 
+## Part 22 — Publish and rename
+
+*21 September 2026.*
+
+**Q (A→T): Only Claude Code installs a plugin's npm dependencies. For the others: publish to npm and start the server with `npx` (what Cursor's docs show), bundle the dependencies into the repo, or keep the first-run install?**
+
+A: Alright, let's publish the npm. I guess we need to sign up for that? And then yeah, let's rename the repo and all references.
+
+A (assistant, done): the GitHub repository is `ambrovia/idle-agent-tools`; the old URL redirects. The package is prepared as `@idle-agent-tools/tasks` (16.6 kB, 11 files; installs and runs from the packed tarball). `idle-tasks` and the `@idle` scope are taken on npm. Signing up, creating the `idle-agent-tools` organisation and logging in are the human's; nothing is published yet, and the plugins switch to `npx` only once it is.
+
+---
+
 ## Distilled stances (for priming a fresh session)
 
 - Not a harness; a framework for orchestration around harnesses. Simplicity; something in hours.
