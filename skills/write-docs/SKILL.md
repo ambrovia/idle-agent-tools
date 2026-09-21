@@ -8,7 +8,7 @@ user-invocable: false
 
 # Write docs
 
-Run only for an explicit documentation outcome, requested docs work, or concrete staleness caused by the
+Run only for a task whose goal is documentation, requested docs work, or concrete staleness caused by the
 change. Do not turn nearby documentation improvement into current scope. `{{rules.docs}}` from
 `pipeline.config.yml`, the existing docs under `{{paths.docs}}`, and established voice take precedence.
 
@@ -22,8 +22,8 @@ score. A reference correction need not become a tutorial; a guide need not becom
 invented claims, generic promotional prose, mechanical quotas, fake quotations, and examples that do not
 run.
 
-Review blocks only on factual errors, broken instructions, violated configured rules, or failure to meet
-the explicit docs outcome. Report optional editorial improvements separately.
+Review blocks only on factual errors, broken instructions, violated configured rules, or failure to reach
+the task's goal. Report optional editorial improvements separately.
 
 ## Target
 

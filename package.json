@@ -1,7 +1,7 @@
 {
-  "name": "agent-skills-pipeline",
-  "version": "0.8.4",
-  "description": "Structured, multi-agent development pipeline for AI coding tools, with an opencode plugin entrypoint.",
+  "name": "idle-agent-tools",
+  "version": "0.9.0",
+  "description": "Idle agent tools: a shared record of work for coding agents (idle-tasks) and a multi-agent development workflow on top of it (idle-skills).",
   "type": "module",
   "main": "./.opencode/plugins/pipeline.js",
   "exports": {
@@ -13,6 +13,8 @@
     ".opencode/plugins/pipeline.js",
     ".opencode/agents/",
     "agents/",
+    "tasks/",
+    "!tasks/node_modules/**",
     "skills/",
     "!skills/**/node_modules/**",
     "!skills/**/.annotations/**",
@@ -20,7 +22,6 @@
     "hooks/",
     "scripts/install-codex.sh",
     "scripts/install-opencode.sh",
-    "scripts/pipeline-snapshot.mjs",
     "pipeline.config.example.yml",
     "README.md",
     "LICENSE"
@@ -42,9 +43,9 @@
     "review"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/ambrovia/agent-skills-pipeline",
+  "homepage": "https://github.com/ambrovia/idle-agent-tools",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ambrovia/agent-skills-pipeline.git"
+    "url": "git+https://github.com/ambrovia/idle-agent-tools.git"
   }
 }

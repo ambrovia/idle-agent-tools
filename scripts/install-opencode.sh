@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# install-opencode.sh — install the agent-pipeline into a project (or globally)
+# install-opencode.sh — install idle-skills into a project (or globally)
 # for opencode.
 #
 # opencode plugins are JavaScript/TypeScript modules. Skills, agents, and rules
@@ -11,10 +11,12 @@
 #                                    no dependency on .claude/ or shared .agents/)
 #   agents  → .opencode/agents/    (opencode-format pipeline-planner / pipeline-reviewer / pipeline-builder)
 #   plugin  → .opencode/plugins/   (post-edit guards)
-#   helpers → .opencode/pipeline/   (skill-load injection + state snapshot the
-#                                    plugin shells out to; kept out of plugins/
-#                                    because opencode loads that dir as modules)
+#   helpers → .opencode/pipeline/   (skill-load injection the plugin shells out
+#                                    to; kept out of plugins/ because opencode
+#                                    loads that dir as modules)
 #   rules   → AGENTS.md            (session-start "pipeline is active" guidance)
+#   record  → opencode.json        (the idle-tasks MCP server, started from npm)
+#             + the idle skill, which says how the record of work is used
 #
 # Usage:
 #   scripts/install-opencode.sh [target-dir]   # project install (default: cwd)
@@ -42,6 +44,7 @@ if [ "$GLOBAL" -eq 1 ]; then
   PLUGINS_DIR="$HOME/.config/opencode/plugins"
   HELPERS_DIR="$HOME/.config/opencode/pipeline"
   RULES_FILE="$HOME/.config/opencode/AGENTS.md"
+  CONFIG_FILE="$HOME/.config/opencode/opencode.json"
   SCOPE="global (~/.config/opencode)"
 else
   SKILLS_DIR="$TARGET/.opencode/skills"
@@ -49,15 +52,31 @@ else
   PLUGINS_DIR="$TARGET/.opencode/plugins"
   HELPERS_DIR="$TARGET/.opencode/pipeline"
   RULES_FILE="$TARGET/AGENTS.md"
+  CONFIG_FILE="$TARGET/opencode.json"
   SCOPE="project ($TARGET)"
 fi
 
-echo "Installing agent-pipeline for opencode → $SCOPE"
+echo "Installing idle-skills for opencode → $SCOPE"
 
 # 1. Skills — one per directory, each with a SKILL.md.
 mkdir -p "$SKILLS_DIR"
 cp -R "$SRC/skills/." "$SKILLS_DIR/"
+cp -R "$SRC/tasks/skills/." "$SKILLS_DIR/"
 echo "  ✓ skills   → $SKILLS_DIR"
+
+# 1b. The record of work — the idle-tasks MCP server, merged into opencode.json.
+node - "$CONFIG_FILE" <<'NODE'
+const fs = require('node:fs');
+const file = process.argv[2];
+let config = {};
+try { config = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (err) {
+  if (err.code !== 'ENOENT') { console.error(`  ! ${file} is not plain JSON — add the idle MCP server by hand`); process.exit(0); }
+}
+config.$schema ??= 'https://opencode.ai/config.json';
+config.mcp = { ...config.mcp, idle: { type: 'local', command: ['npx', '-y', 'idle-agent-tasks@0.1.2', 'mcp'], enabled: true } };
+fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
+NODE
+echo "  ✓ record   → $CONFIG_FILE (mcp.idle)"
 
 # 2. Agents — opencode-format pipeline-planner / pipeline-reviewer / pipeline-builder.
 mkdir -p "$AGENTS_DIR"
@@ -72,7 +91,7 @@ echo "  ✓ plugin   → $PLUGINS_DIR/pipeline.js"
 # 4. Helpers the plugin shells out to. Not in plugins/ — opencode imports every
 #    module there, and these are executables with their own entry points.
 mkdir -p "$HELPERS_DIR"
-cp "$SRC/hooks/inject.mjs" "$SRC/scripts/pipeline-snapshot.mjs" "$HELPERS_DIR/"
+cp "$SRC/hooks/inject.mjs" "$HELPERS_DIR/"
 echo "  ✓ helpers  → $HELPERS_DIR"
 
 # 5. Session-start guidance — an idempotent managed block in AGENTS.md.
@@ -81,12 +100,12 @@ BEGIN="<!-- agent-pipeline:begin -->"
 END="<!-- agent-pipeline:end -->"
 read -r -d '' BLOCK <<EOF || true
 $BEGIN
-## agent-pipeline
+## idle-skills
 
-agent-pipeline is active. Work in structured phases, not freeform.
+idle-skills is active. Work in structured phases, not freeform.
 
-- Large or non-trivial changes: start with the work-planning skill to define the
-  work package, then run it through the pipeline skill. Don't freelance big changes.
+- Large or non-trivial changes: drop a task with the idle skill, then run it through the
+  pipeline skill, which refines and plans it with the user. Don't freelance big changes.
 - Conceptual questions (what a thing IS or should be): use the concept skill, and
   resolve them interactively with the user — don't settle load-bearing meaning alone.
 - Structured work uses three dedicated agents; you are the orchestrator, delegate

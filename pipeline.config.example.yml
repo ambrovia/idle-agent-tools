@@ -8,7 +8,7 @@
 verify: "npm run verify"
 
 # The customer every planning + critique phase is building for (over- and
-# under-building both count as defects). /work-planning re-confirms it each run
+# under-building both count as defects). /refine re-confirms it
 # and stops for a maintainer decision if unclear. Overridable per-track and
 # per-work-package.
 #   prototype  — builders/internal demo: core flow works manually; key features may be absent

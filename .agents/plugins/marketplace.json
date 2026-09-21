@@ -1,11 +1,23 @@
 {
-  "name": "agent-pipeline",
+  "name": "idle-agent-tools",
   "interface": {
-    "displayName": "Agent Pipeline"
+    "displayName": "Idle Agent Tools"
   },
   "plugins": [
     {
-      "name": "pipeline",
+      "name": "idle-tasks",
+      "source": {
+        "source": "local",
+        "path": "./tasks"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "idle-skills",
       "source": {
         "source": "local",
         "path": "./"

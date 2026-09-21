@@ -1,5 +1,5 @@
 /**
- * agent-pipeline — opencode plugin.
+ * idle-skills — opencode plugin.
  *
  * Ports the "edit-streak" hook: after THRESHOLD code edits the orchestrator is
  * nudged to delegate to its pipeline-builder/pipeline-planner/pipeline-reviewer team instead of doing the
@@ -80,7 +80,7 @@ export const AgentPipeline = async () => {
           streak.set(sid, 0);
           if (output && typeof output.output === "string") {
             output.output +=
-              `\n\n---\n[agent-pipeline] You've made ${THRESHOLD} code edits since the last ` +
+              `\n\n---\n[idle-skills] You've made ${THRESHOLD} code edits since the last ` +
               `reminder. You're the orchestrator — delegate to your team instead of doing the ` +
               `heavy lifting yourself: the pipeline-builder implements & ships, the pipeline-planner plans & ` +
               `structures, the pipeline-reviewer reviews & critiques. Hand structured work to a subagent.`;
@@ -94,7 +94,7 @@ export const AgentPipeline = async () => {
         const recent = [...(failures.get(sid) || []), `${input.tool}\0${toolResult}`].slice(-3);
         failures.set(sid, recent);
         if (recent.length === 3 && recent.every((item) => item === recent[0])) {
-          output.output += "\n\n---\n[agent-pipeline] This edit is repeating without progress. Inspect the failure and change strategy.";
+          output.output += "\n\n---\n[idle-skills] This edit is repeating without progress. Inspect the failure and change strategy.";
         }
       } catch {
         // A nudge must never break a tool call.

@@ -1,6 +1,6 @@
 ---
 name: architecture-critique
-description: "Read-only critique of architecture.md against the plan. Checks alignment, necessary contracts, feasibility, simplicity and readability. Requested when worth challenging, never scheduled; reports blockers without scoring or rewriting."
+description: "Read-only critique of a proposed technical breakdown against the plan, before it is accepted. Checks alignment, necessary contracts, feasibility, simplicity and readability. Requested when worth challenging, never scheduled; reports blockers without scoring or rewriting."
 persona: pipeline-reviewer
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
@@ -11,17 +11,18 @@ user-invocable: false
 Review as a fresh evaluator, starting from the injected state when present; artifacts injected in
 full are already in context and are not re-read. When the brief names a previous critique of this
 same architecture, read it and the delta since it, and carry its unchanged judgements forward rather
-than re-deriving them. Read `plan.md`, approved design when applicable, architecture,
-feasibility evidence, and the `pipeline.config.yml` rule slots
+than re-deriving them. Read the tree's state — the plan, the proposed tasks, the decisions — approved
+design when applicable, feasibility evidence, and the `pipeline.config.yml` rule slots
 `/architecture` works under
 (`{{rules.architecture}}`, `{{rules.code}}`, `{{rules.testing}}`, `{{rules.security}}` — skip undeclared
 slots). Fact-audit every load-bearing claim about existing code or precedent: independently locate it and
 cite `file:line` (or mark `UNVERIFIED`). Do the same against current official sources for external claims.
 
-Check that `architecture.md`:
+Check that the proposal:
 
-- traces obligations to ACs or approved constraints without adding outcomes;
-- defines necessary public/cross-cutting contracts and real dependency/ownership boundaries;
+- covers the parent's goal with its tasks and adds no outcome to it;
+- defines necessary public/cross-cutting contracts, real dependencies, and scopes that do not overlap
+  where tasks may run at once;
 - reconciles with existing code and approved design, and derives the real consumers of any renamed,
   moved, or removed symbol instead of repeating the spec's list;
 - addresses plausible changed failure, data, and migration risks at the stated tier, and reasons about
@@ -31,8 +32,8 @@ Check that `architecture.md`:
 - provides reliable, proportionate verification, including named end-to-end evidence that would show the
   change working through its real consuming path;
 - leaves reversible local choices to the builder and defaults to the simplest workable task tree —
-  no mechanism beyond what the ACs, applicable rules, and named change-caused risks require;
-- says the same thing as `plan.md` rather than a different thing: where the technical vocabulary has
+  no mechanism beyond what the goal, applicable rules, and named change-caused risks require;
+- says the same thing as the plan rather than a different thing: where the technical vocabulary has
   quietly decided how the program works, that decision escaped the maintainer and must go back;
 - can actually be read. Judge it as a tired builder would: invented abstraction, ceremony serving the
   document rather than its reader, restated obviousness, prose that cannot be followed.
@@ -45,7 +46,7 @@ Do not block on absent optional sections, alternative preferences, or speculativ
 
 Use `BLOCKING`, `NON-BLOCKING DEFECT`, and `FOLLOW-UP / NOTE`; cite evidence and authority and report
 what works. Verdict is `PASS` with no blockers. Return the findings and verdict to the orchestrator;
-never edit `architecture.md` yourself.
+never edit the proposal yourself.
 
 ## Target
 
