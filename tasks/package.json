@@ -1,10 +1,10 @@
 {
-  "name": "@idle-agent-tools/tasks",
+  "name": "idle-agent-tasks",
   "version": "0.1.0",
   "description": "A shared record of work for coding agents: tasks that nest into trees, and decisions. Four operations as a CLI and an MCP server. PGlite locally, any Postgres when shared.",
   "type": "module",
   "bin": {
-    "idle": "./bin/idle.mjs"
+    "idle": "bin/idle.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -37,8 +37,5 @@
     "type": "git",
     "url": "git+https://github.com/ambrovia/idle-agent-tools.git",
     "directory": "tasks"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

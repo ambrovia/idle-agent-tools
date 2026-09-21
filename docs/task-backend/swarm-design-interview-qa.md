@@ -364,7 +364,13 @@ A: I would like to rename the repo to idle agent tools — and the plugin. Idle 
 
 A: Alright, let's publish the npm. I guess we need to sign up for that? And then yeah, let's rename the repo and all references.
 
-A (assistant, done): the GitHub repository is `ambrovia/idle-agent-tools`; the old URL redirects. The package is prepared as `@idle-agent-tools/tasks` (16.6 kB, 11 files; installs and runs from the packed tarball). `idle-tasks` and the `@idle` scope are taken on npm. Signing up, creating the `idle-agent-tools` organisation and logging in are the human's; nothing is published yet, and the plugins switch to `npx` only once it is.
+A (assistant, done): the GitHub repository is `ambrovia/idle-agent-tools`; the old URL redirects.
+
+**Q (A→T): `idle-tasks` and the `@idle` scope are taken on npm, and the `idle-agent-tools` organisation does not exist. Create the organisation, or publish unscoped?**
+
+A: Let's publish without the npm org for now.
+
+A (assistant, done): published as **`idle-agent-tasks@0.1.0`** by the maintainer's npm account (two-factor confirmation is theirs on every publish). Verified from the registry: `npx -y idle-agent-tasks` runs the CLI and serves MCP. Codex, Cursor and opencode now start the server with `npx -y idle-agent-tasks@0.1 mcp`; Claude Code keeps running the copy inside the plugin, because it installs a plugin's dependencies itself.
 
 ---
 

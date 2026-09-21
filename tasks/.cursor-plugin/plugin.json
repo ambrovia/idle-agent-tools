@@ -17,9 +17,10 @@
   ],
   "mcpServers": {
     "idle": {
-      "command": "node",
+      "command": "npx",
       "args": [
-        "${CURSOR_PLUGIN_ROOT}/bin/idle.mjs",
+        "-y",
+        "idle-agent-tasks@0.1",
         "mcp"
       ]
     }

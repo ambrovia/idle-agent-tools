@@ -14,15 +14,15 @@ Bring your own workflow — or use [idle-skills](https://github.com/ambrovia/idl
 ## Use
 
 ```bash
-npx @idle-agent-tools/tasks help
-npx @idle-agent-tools/tasks task --title "Newsletter signup on the landing page"
-npx @idle-agent-tools/tasks list
+npx idle-agent-tasks help
+npx idle-agent-tasks task --title "Newsletter signup on the landing page"
+npx idle-agent-tasks list
 ```
 
 As an MCP server (stdio), in any harness:
 
 ```json
-{ "mcpServers": { "idle": { "command": "npx", "args": ["-y", "@idle-agent-tools/tasks", "mcp"] } } }
+{ "mcpServers": { "idle": { "command": "npx", "args": ["-y", "idle-agent-tasks", "mcp"] } } }
 ```
 
 ## Configure
