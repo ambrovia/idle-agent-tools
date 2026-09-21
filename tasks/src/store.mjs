@@ -43,9 +43,11 @@ function alive(pid) {
 
 // @lore: PGlite forks the data silently when two processes open one directory —
 // both "win" the same claim. The lock is what makes local mode correct.
-// Nothing slow ever runs under it (a project's checks run outside), so a lock older
-// than a minute is dead whatever its pid says — pids get recycled.
-const STALE_MS = 60_000;
+// Nothing slow ever runs under it (a project's checks run outside). A dead pid frees it at
+// once; age alone frees it only after ten minutes — long enough that a holder which merely
+// stalled (a sleeping laptop) is not robbed mid-transaction, short enough that a recycled
+// pid cannot wedge the record for good.
+const STALE_MS = 10 * 60_000;
 
 async function acquire(lock) {
   const owner = join(lock, 'pid');
@@ -89,7 +91,10 @@ async function local(fn) {
     });
   } finally {
     if (db) await db.close().catch(() => {});
-    rmSync(lock, { recursive: true, force: true });
+    // Release only what is still ours: if we were robbed, the lock now belongs to someone else.
+    let holder = 0;
+    try { holder = Number(readFileSync(join(lock, 'pid'), 'utf8')); } catch { /* already gone */ }
+    if (holder === process.pid) rmSync(lock, { recursive: true, force: true });
   }
 }
 

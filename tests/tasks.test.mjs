@@ -3,7 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
@@ -91,20 +91,29 @@ test('an expired lease is nobody\'s: renewing it is a new claim, scope check and
   const root = create('Leases');
   const wide = create('Whole auth module', '--parent', root, '--scope', 'src/auth');
   const narrow = create('Session file only', '--parent', root, '--scope', 'src/auth/session.ts');
-  task('--id', wide, '--status', 'claimed', '--ttl', '0.01', '--by', 'alice');
+  assert.equal(task('--id', wide, '--status', 'claimed', '--ttl', '0.01', '--by', 'alice').json.status, 'claimed', 'a lease may be a fraction of a minute');
   await new Promise((done) => setTimeout(done, 1200));
   assert.equal(task('--id', narrow, '--status', 'claimed', '--by', 'bob').json.status, 'claimed', 'the expired lease no longer holds its scope');
   assert.match(task('--id', wide, '--status', 'claimed', '--by', 'alice').err, /overlaps/, 'alice cannot quietly renew over bob');
 });
 
-test('an unrelated edit never moves a task on', () => {
-  const { task, create } = sandbox(() => ({ review: true }));
-  const root = create('Edits');
-  const work = create('Waiting for review', '--parent', root);
+test('while the system is verifying a task, nothing else moves it or runs its checks again', async () => {
+  const { env, run, task, create } = sandbox((project) => ({ checks: { [project]: ['sleep 3 && echo ran >> check-runs'] } }));
+  const root = create('Verification in flight');
+  task('--id', root, '--meta', JSON.stringify({ worktree: env.IDLE_HOME }));
+  const work = create('Slow to verify', '--parent', root);
   task('--id', work, '--status', 'claimed', '--by', 'alice');
-  task('--id', work, '--status', 'submitted', '--by', 'alice');
-  assert.equal(task('--id', work, '--feedback', 'just a note', '--by', 'carol').json.status, 'verified');
-  assert.match(task('--id', work, '--status', 'archived').json.status, /archived/);
+
+  const submitting = new Promise((done) => {
+    spawn(process.execPath, [bin, 'task', '--id', work, '--status', 'submitted', '--by', 'alice'], { env, stdio: 'ignore' }).on('exit', done);
+  });
+  await new Promise((done) => setTimeout(done, 1200)); // the checks are now running
+  assert.equal(task('--id', work, '--feedback', 'just a note', '--by', 'carol').json.status, 'submitted', 'an unrelated edit leaves it alone');
+  assert.match(task('--id', root, '--status', 'archived').err, /being verified/, 'nor can its tree be archived under it');
+
+  assert.equal(await submitting, 0);
+  assert.equal(run('show', work).json.task.status, 'done');
+  assert.equal(readFileSync(join(env.IDLE_HOME, 'check-runs'), 'utf8').trim().split('\n').length, 1, 'the checks ran exactly once');
 });
 
 test('decisions are searched before they are recorded, and can be superseded', () => {

@@ -94,7 +94,7 @@ async function claim(q, task, input, ctx) {
     const clash = task.scope.find((a) => other.scope.some((b) => overlaps(a, b)));
     if (clash) refuse(`scope "${clash}" overlaps ${other.id}, claimed by ${other.claimed_by}`);
   }
-  await q(`update tasks set status = 'claimed', claimed_by = $2, claim_expires = now() + make_interval(secs => $3 * 60), updated_at = now() where id = $1`,
+  await q(`update tasks set status = 'claimed', claimed_by = $2, claim_expires = now() + make_interval(secs => $3::float8 * 60), updated_at = now() where id = $1`,
     [task.id, ctx.by, lease(input)]);
 }
 
@@ -109,15 +109,16 @@ async function move(q, task, to, input, ctx) {
 
   if (to === 'claimed') {
     // An expired lease is nobody's: renewing it is a new claim, scope check and all.
-    if (mine && live) return q(`update tasks set claim_expires = now() + make_interval(secs => $2 * 60) where id = $1`, [task.id, lease(input)]);
+    if (mine && live) return q(`update tasks set claim_expires = now() + make_interval(secs => $2::float8 * 60) where id = $1`, [task.id, lease(input)]);
     return claim(q, task, input, ctx);
   }
   if (to === 'archived') {
-    if (from === 'submitted') refuse(`${task.id} is being verified — submit it again if its checks never finished`);
-    // A task is archived with everything under it.
-    return q(
-      `with recursive down as (select id from tasks where id = $1 union all select t.id from tasks t join down on t.parent = down.id)
-       update tasks set status = 'archived', updated_at = now() where id in (select id from down)`, [task.id]);
+    // A task is archived with everything under it — never while the system is verifying any of it.
+    const DOWN = `with recursive down as (select id, status from tasks where id = $1
+      union all select t.id, t.status from tasks t join down on t.parent = down.id)`;
+    const [busy] = await q(`${DOWN} select id from down where status = 'submitted' limit 1`, [task.id]);
+    if (busy) refuse(`${busy.id} is being verified — submit it again if its checks never finished`);
+    return q(`${DOWN} update tasks set status = 'archived', updated_at = now() where id in (select id from down)`, [task.id]);
   }
   switch (`${from} → ${to}`) {
     case 'proposed → open':
