@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Spawn/skill injection — put fresh state, mechanical check results, the item
-// diff and critiqued artifacts into an agent's context at the moment it starts,
+// Spawn/skill injection — put the state of the task tree being worked, mechanical
+// check results and the diff into an agent's context at the moment it starts,
 // so it begins with evidence instead of spending round trips fetching it.
 //
 // Two entry points: SubagentStart, which reaches the spawned agent rather than
@@ -28,17 +28,20 @@
 // makes codex discard the output entirely).
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = join(HOOK_DIR, '..');
-// Project installers drop the snapshot next to this hook rather than under scripts/.
-const SNAPSHOT_CANDIDATES = [
-  join(PLUGIN_ROOT, 'scripts', 'pipeline-snapshot.mjs'),
-  join(HOOK_DIR, 'pipeline-snapshot.mjs'),
-];
+// The record of work is read through the idle CLI: a copy beside this plugin when
+// it is installed with its dependencies, otherwise the published package.
+const LOCAL_IDLE = join(PLUGIN_ROOT, 'tasks', 'bin', 'idle.mjs');
+const IDLE = process.env.IDLE_BIN ? [process.execPath, process.env.IDLE_BIN]
+  : existsSync(join(PLUGIN_ROOT, 'tasks', 'node_modules', '@electric-sql', 'pglite')) ? [process.execPath, LOCAL_IDLE]
+    : ['npx', '-y', 'idle-agent-tasks@0.1'];
 const SKILL_TOOL = /^skill$/i;
 const MAX_LINES = positiveInt(process.env.PIPELINE_INJECT_MAX_LINES, 300);
 // Codex truncates injected context hard at ~1k tokens and spills past 2.5k, so
@@ -67,7 +70,7 @@ const EXTRA = {
   review: { checks: true, diff: true },
   'write-code': { checks: true, checksNote: 'baseline, ran before this session\'s edits' },
   'write-tests': { checks: true, checksNote: 'baseline, ran before this session\'s edits' },
-  'architecture-critique': { artifacts: ['plan.md', 'architecture.md'] },
+  'architecture-critique': {},
 };
 
 let lastEvent = 'skill';
@@ -158,52 +161,26 @@ function readConfig(root) {
   return { verify, preSpawn };
 }
 
-function findActiveWp(root) {
-  const workRoot = join(root, '.pipeline', 'work');
-  let entries = [];
+function idle(root, ...args) {
+  const [command, ...prefix] = IDLE;
+  const result = spawnSync(command, [...prefix, ...args], { cwd: root, encoding: 'utf8', timeout: 20_000 });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+// The root task being worked: the most recently touched one that is not finished.
+function findActiveRoot(root) {
   try {
-    entries = readdirSync(workRoot).filter((name) => statSync(join(workRoot, name)).isDirectory());
+    const roots = JSON.parse(idle(root, 'list') ?? '[]');
+    return roots.find((task) => !['done', 'archived'].includes(task.status)) ?? null;
   } catch {
     return null;
   }
-  const active = [];
-  for (const name of entries) {
-    const dir = join(workRoot, name);
-    let progress = null;
-    try { progress = JSON.parse(readFileSync(join(dir, 'progress.json'), 'utf8')); } catch { /* absent */ }
-    const status = String(progress?.status ?? '');
-    if (status === 'done') continue;
-    active.push({ name, mtime: touchedAt(dir) });
-  }
-  if (active.length === 0) return null;
-  active.sort((a, b) => b.mtime - a.mtime);
-  return active[0].name;
-}
-
-// State age is progress.json's mtime. A directory's mtime only moves when
-// entries are added or removed — an in-place progress write never registers,
-// while this hook's own checks-latest.log write does — so it is the fallback
-// for a work package that has no progress file yet, not the primary signal.
-function touchedAt(dir) {
-  for (const path of [join(dir, 'progress.json'), dir]) {
-    try { return statSync(path).mtimeMs; } catch { /* absent */ }
-  }
-  return 0;
 }
 
 function cap(text, label) {
   const lines = text.split('\n');
   if (lines.length <= maxLines) return text;
   return `${lines.slice(0, maxLines).join('\n')}\n… [truncated — full: ${label}]`;
-}
-
-function digest(root, wpId) {
-  const script = SNAPSHOT_CANDIDATES.find((path) => existsSync(path));
-  if (!script) return null;
-  const result = spawnSync(process.execPath, [script, wpId], {
-    cwd: root, encoding: 'utf8', timeout: 10_000,
-  });
-  return result.status === 0 ? result.stdout.trim() : null;
 }
 
 // Stamps check results against the tree they ran on, so an agent can tell
@@ -216,8 +193,10 @@ function treeState(root) {
   return `${head.stdout.trim()}${suffix}`;
 }
 
-function runChecks(root, command, wpDir) {
-  const cachePath = join(wpDir, 'checks-latest.log');
+function runChecks(root, command) {
+  // Outside the repository: nothing a run writes may land in the work tree.
+  const cacheDir = join(tmpdir(), 'idle-skills-checks');
+  const cachePath = join(cacheDir, `${createHash('sha1').update(root).digest('hex').slice(0, 12)}.log`);
   const result = spawnSync(command, {
     shell: true, cwd: root, encoding: 'utf8', timeout: CHECK_TIMEOUT_MS, maxBuffer: 2 * 1024 * 1024,
   });
@@ -230,7 +209,7 @@ function runChecks(root, command, wpDir) {
   }
   const text = `${(result.stdout ?? '') + (result.stderr ?? '')}`.trim() || '(no output)';
   try {
-    mkdirSync(wpDir, { recursive: true });
+    mkdirSync(cacheDir, { recursive: true });
     writeFileSync(cachePath, `${text}\n`);
   } catch { /* cache is best-effort */ }
   return { text, stale: false, exit: result.status };
@@ -268,22 +247,21 @@ function buildInjection(format) {
   }
 
   const root = process.cwd();
-  const wpId = findActiveWp(root);
-  if (!wpId) return null;
-  const wpDir = join(root, '.pipeline', 'work', wpId);
+  const active = findActiveRoot(root);
+  if (!active) return null;
   lastEvent = target.kind;
   // No leading bracket: codex discards stdout that looks like JSON but is not.
   const label = target.name || 'spawn';
-  const sections = [`pipeline injection — ${target.kind}: ${label}, item: ${wpId}`];
+  const sections = [`pipeline injection — ${target.kind}: ${label}, task: ${active.id}`];
 
-  const state = digest(root, wpId);
-  if (state) sections.push('## state', state);
+  const state = idle(root, 'show', active.id, '--state');
+  if (state) sections.push('## state', cap(state, `idle show ${active.id} --state`));
 
   if (extra.checks) {
     const { verify, preSpawn } = readConfig(root);
     const command = preSpawn ?? verify;
     if (command) {
-      const outcome = runChecks(root, command, wpDir);
+      const outcome = runChecks(root, command);
       if (outcome) {
         const staleness = outcome.stale ? ', STALE cache, live run timed out' : '';
         const exit = outcome.exit === null ? '?' : outcome.exit;
@@ -296,23 +274,13 @@ function buildInjection(format) {
   }
 
   if (extra.diff) {
+    // The commit the work started from, recorded on the root when its worktree was cut.
     let since = null;
-    try { since = JSON.parse(readFileSync(join(wpDir, 'progress.json'), 'utf8')).since; } catch { /* absent */ }
+    try { since = JSON.parse(idle(root, 'show', active.id)).task.metadata.since; } catch { /* absent */ }
     if (since) {
       const diff = diffSince(root, String(since));
       if (diff) sections.push(`## diff since ${since} (${diff.lines} lines)`, cap(diff.text, `git diff ${since}`));
     }
-  }
-
-  for (const artifact of extra.artifacts ?? []) {
-    const path = join(wpDir, artifact);
-    if (!existsSync(path)) continue;
-    try {
-      sections.push(
-        `## ${artifact} (.pipeline/work/${wpId}/${artifact} — already in context, do not re-read)`,
-        cap(readFileSync(path, 'utf8').trim(), path),
-      );
-    } catch { /* unreadable artifact — skip */ }
   }
 
   return sections.length > 1 ? sections.join('\n\n') : null;

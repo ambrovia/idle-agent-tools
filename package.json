@@ -1,6 +1,6 @@
 {
   "name": "idle-agent-tools",
-  "version": "0.8.4",
+  "version": "0.9.0",
   "description": "Idle agent tools: a shared record of work for coding agents (idle-tasks) and a multi-agent development workflow on top of it (idle-skills).",
   "type": "module",
   "main": "./.opencode/plugins/pipeline.js",
@@ -22,7 +22,6 @@
     "hooks/",
     "scripts/install-codex.sh",
     "scripts/install-opencode.sh",
-    "scripts/pipeline-snapshot.mjs",
     "pipeline.config.example.yml",
     "README.md",
     "LICENSE"

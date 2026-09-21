@@ -11,9 +11,9 @@
 #                                    no dependency on .claude/ or shared .agents/)
 #   agents  → .opencode/agents/    (opencode-format pipeline-planner / pipeline-reviewer / pipeline-builder)
 #   plugin  → .opencode/plugins/   (post-edit guards)
-#   helpers → .opencode/pipeline/   (skill-load injection + state snapshot the
-#                                    plugin shells out to; kept out of plugins/
-#                                    because opencode loads that dir as modules)
+#   helpers → .opencode/pipeline/   (skill-load injection the plugin shells out
+#                                    to; kept out of plugins/ because opencode
+#                                    loads that dir as modules)
 #   rules   → AGENTS.md            (session-start "pipeline is active" guidance)
 #   record  → opencode.json        (the idle-tasks MCP server, started from npm)
 #             + the idle skill, which says how the record of work is used
@@ -91,7 +91,7 @@ echo "  ✓ plugin   → $PLUGINS_DIR/pipeline.js"
 # 4. Helpers the plugin shells out to. Not in plugins/ — opencode imports every
 #    module there, and these are executables with their own entry points.
 mkdir -p "$HELPERS_DIR"
-cp "$SRC/hooks/inject.mjs" "$SRC/scripts/pipeline-snapshot.mjs" "$HELPERS_DIR/"
+cp "$SRC/hooks/inject.mjs" "$HELPERS_DIR/"
 echo "  ✓ helpers  → $HELPERS_DIR"
 
 # 5. Session-start guidance — an idempotent managed block in AGENTS.md.

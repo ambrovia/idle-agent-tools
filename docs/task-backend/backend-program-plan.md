@@ -1,6 +1,6 @@
 # Backend — program plan
 
-*19 September 2026. How the task-and-decision backend works, in plain words, and the order we build it in. Derived from plan v0.3 and Q&A Parts 13–15. Working name: the `idle` CLI; lives in `tasks/` in this repo, published later. Steps 0–4 are built; 5 (a hosted Postgres behind its pooler) and 6 (shipping inside the plugin) are open.*
+*19 September 2026. How the task-and-decision backend works, in plain words, and the order we build it in. Derived from plan v0.3 and Q&A Parts 13–15. Working name: the `idle` CLI; lives in `tasks/` in this repo, published later. Steps 0–4 and 6 are built, and the package is on npm as `idle-agent-tasks`; step 5 (a hosted Postgres behind its pooler) has only been run against a local Postgres 17.*
 
 ## What it is
 

@@ -80,9 +80,6 @@ export async function state(q, root) {
   return [
     `# ${root.id} — ${root.title}  [${root.status}]\n`,
     section('Goal', root.goal),
-    section('How it is used', root.consumer_scenario),
-    section('Plan', root.plan),
-    section('Interview', root.interview),
     section('Needs attention', bullets(attention, (a) => a)),
     section('Feedback from the work', feedback.map((t) => `**${t.id} ${t.title}**\n${t.feedback}`).join('\n')),
     section('Tree', `\`\`\`\n${tree(rows)}\n\`\`\``),
@@ -90,5 +87,8 @@ export async function state(q, root) {
     section('Live claims', bullets(claims, (c) => `${c.id} ${c.claimed_by} — ${c.scope.join(', ') || 'no scope'}`)),
     section('Recently done — contradict what is not', bullets(done, (t) => `${t.id} **${t.title}** — ${firstLine(t.goal)}`)),
     section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement} (${d.by})`)),
+    section('How it is used', root.consumer_scenario),
+    section('Plan', root.plan),
+    section('Interview', root.interview),
   ].join('');
 }

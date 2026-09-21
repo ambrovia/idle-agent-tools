@@ -275,7 +275,7 @@ export const OPS = [
   },
   {
     name: 'list',
-    summary: 'The root tasks of this project. --root: one of them as a tree. --ready: what can be claimed now. --decisions: the decisions made in a tree.',
+    summary: 'The root tasks of this project, most recently touched first. --root: one of them as a tree. --ready: what can be claimed now. --decisions: the decisions made in a tree.',
     flags: {
       root: { type: 'string', desc: 'a root task (any task id in its tree will do)' },
       ready: { type: 'bool', desc: 'open, everything it needs is done, no children of its own' },
@@ -295,8 +295,10 @@ export const OPS = [
                   where ${READY} and t.project = $1 and ($2::text is null or t.root = $2) order by t.created_at`, [ctx.project, root]);
       }
       if (!root) {
-        return q(`select id, project, title, status from tasks where parent is null
-                  and ($1 or (project = $2 and status <> 'archived')) order by created_at`, [!!input.all, ctx.project]);
+        return q(`select t.id, t.project, t.title, t.status,
+                         (select max(c.updated_at) from tasks c where c.root = t.id) as touched
+                  from tasks t where t.parent is null
+                  and ($1 or (t.project = $2 and t.status <> 'archived')) order by touched desc`, [!!input.all, ctx.project]);
       }
       return tree(await q(`select id, parent, title, status, claimed_by from tasks where root = $1 order by created_at`, [root]));
     },

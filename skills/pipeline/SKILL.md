@@ -144,7 +144,7 @@ to the maintainer. Never try again with the same understanding.
 
 - **Enter the worktree before working the task.** Create it with the configured workflow, cut from the
   current remote default branch — a stale local base hides work and reintroduces reverted code. Record
-  branch and worktree on the root.
+  branch, worktree and the commit it was cut from (`since`) on the root.
 - **Bootstrap only when the worktree is new or stale**, using the configured command.
 - **Run the configured contamination and cleanup checks** before any commit or removal. Never invent a
   cleanup command.
