@@ -370,7 +370,7 @@ A (assistant, done): the GitHub repository is `ambrovia/idle-agent-tools`; the o
 
 A: Let's publish without the npm org for now.
 
-A (assistant, done): published as **`idle-agent-tasks@0.1.0`** by the maintainer's npm account (two-factor confirmation is theirs on every publish). Verified from the registry: `npx -y idle-agent-tasks` runs the CLI and serves MCP. Codex, Cursor and opencode now start the server with `npx -y idle-agent-tasks@0.1 mcp`; Claude Code keeps running the copy inside the plugin, because it installs a plugin's dependencies itself.
+A (assistant, done): published as **`idle-agent-tasks@0.1.0`** by the maintainer's npm account (two-factor confirmation is theirs on every publish). Verified from the registry: `npx -y idle-agent-tasks` runs the CLI and serves MCP. Codex, Cursor and opencode start the server with `npx -y idle-agent-tasks@<exact version> mcp` — exact, because `npx` keeps serving a cached install for a version range (seen: `@0.1` still ran 0.1.0 after 0.1.1 was out); a test keeps every pin equal to `tasks/package.json`; Claude Code keeps running the copy inside the plugin, because it installs a plugin's dependencies itself.
 
 ---
 

@@ -32,7 +32,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "idle-agent-tasks@0.1",
+        "idle-agent-tasks@0.1.1",
         "mcp"
       ]
     }
