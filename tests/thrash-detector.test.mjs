@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { detectThrash, normalizeEvent } from "../hooks/thrash-detector.mjs";
+import { detectThrash, normalizeEvent } from "../idle-skills/hooks/thrash-detector.mjs";
 
 const edit = (input, output, extra = {}) => ({
   tool_name: "Edit",

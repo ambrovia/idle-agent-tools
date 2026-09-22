@@ -7,7 +7,7 @@
 # staged first with only what Antigravity reads:
 #
 #   idle-tasks   plugin.json, mcp_config.json (the record of work, from npm), skills/
-#   idle-skills  plugin.json, skills/, agents/ (the personas, from agents-antigravity/)
+#   idle-skills  plugin.json, skills/, agents/ (the personas, from idle-skills/agents-antigravity/)
 #
 # Destination: ~/.gemini/config/plugins/<name>
 #
@@ -31,11 +31,11 @@ STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
 mkdir -p "$STAGE/idle-tasks" "$STAGE/idle-skills/agents"
-cp "$SRC/tasks/plugin.json" "$SRC/tasks/mcp_config.json" "$STAGE/idle-tasks/"
-cp -R "$SRC/tasks/skills" "$STAGE/idle-tasks/skills"
-cp "$SRC/plugin.json" "$STAGE/idle-skills/"
-cp -R "$SRC/skills" "$STAGE/idle-skills/skills"
-cp "$SRC/agents-antigravity/"pipeline-*.md "$STAGE/idle-skills/agents/"
+cp "$SRC/idle-tasks/plugin.json" "$SRC/idle-tasks/mcp_config.json" "$STAGE/idle-tasks/"
+cp -R "$SRC/idle-tasks/skills" "$STAGE/idle-tasks/skills"
+cp "$SRC/idle-skills/plugin.json" "$STAGE/idle-skills/"
+cp -R "$SRC/idle-skills/skills" "$STAGE/idle-skills/skills"
+cp "$SRC/idle-skills/agents-antigravity/"pipeline-*.md "$STAGE/idle-skills/agents/"
 # A skill may carry a locally installed node_modules; that is not part of the plugin.
 find "$STAGE" -type d -name node_modules -prune -exec rm -rf {} +
 

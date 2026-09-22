@@ -8,7 +8,7 @@
       "name": "idle-tasks",
       "source": {
         "source": "local",
-        "path": "./tasks"
+        "path": "./idle-tasks"
       },
       "policy": {
         "installation": "AVAILABLE",
@@ -20,7 +20,7 @@
       "name": "idle-skills",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./idle-skills"
       },
       "policy": {
         "installation": "AVAILABLE",

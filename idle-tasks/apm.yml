@@ -1,0 +1,16 @@
+name: idle-tasks
+version: 0.1.2
+description: A shared record of work for coding agents — tasks that nest into trees, and decisions. The idle skill; the server itself is npm idle-agent-tasks.
+author: Ambrovia
+license: Apache-2.0
+homepage: https://github.com/ambrovia/idle-agent-tools/tree/main/idle-tasks
+repository: https://github.com/ambrovia/idle-agent-tools
+keywords:
+  - tasks
+  - decisions
+  - mcp
+  - multi-agent
+includes: auto
+dependencies:
+  apm: []
+  mcp: []

@@ -84,11 +84,11 @@ function yamlQuote(s) {
 // ---------------------------------------------------------------------------
 
 function mdMarker(name) {
-  return `<!-- GENERATED from personas/${name}.md — edit that file and run scripts/generate-agents.mjs; do not edit here. -->`;
+  return `<!-- GENERATED from idle-skills/personas/${name}.md — edit that file and run scripts/generate-agents.mjs; do not edit here. -->`;
 }
 
 function tomlMarker(name) {
-  return `# GENERATED from personas/${name}.md — edit that file and run scripts/generate-agents.mjs; do not edit here.`;
+  return `# GENERATED from idle-skills/personas/${name}.md — edit that file and run scripts/generate-agents.mjs; do not edit here.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +180,7 @@ function generateCodex(meta, body) {
 // Main
 // ---------------------------------------------------------------------------
 
-const personasDir = join(ROOT, 'personas');
+const personasDir = join(ROOT, 'idle-skills', 'personas');
 const personaFiles = readdirSync(personasDir).filter(f => f.endsWith('.md'));
 
 const outputs = []; // { path, content }
@@ -191,23 +191,23 @@ for (const file of personaFiles) {
   const name = meta.name;
 
   outputs.push({
-    path: join(ROOT, 'agents', `${name}.md`),
+    path: join(ROOT, 'idle-skills', 'agents', `${name}.md`),
     content: generateClaude(meta, body),
   });
   outputs.push({
-    path: join(ROOT, 'agents-cursor', `${name}.md`),
+    path: join(ROOT, 'idle-skills', 'agents-cursor', `${name}.md`),
     content: generateCursor(meta, body),
   });
   outputs.push({
-    path: join(ROOT, 'agents-antigravity', `${name}.md`),
+    path: join(ROOT, 'idle-skills', 'agents-antigravity', `${name}.md`),
     content: generateAntigravity(meta, body),
   });
   outputs.push({
-    path: join(ROOT, '.opencode', 'agents', `${name}.md`),
+    path: join(ROOT, 'idle-skills', '.opencode', 'agents', `${name}.md`),
     content: generateOpencode(meta, body),
   });
   outputs.push({
-    path: join(ROOT, '.codex', 'agents', `${name}.toml`),
+    path: join(ROOT, 'idle-skills', '.codex', 'agents', `${name}.toml`),
     content: generateCodex(meta, body),
   });
 }
