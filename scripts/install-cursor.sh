@@ -55,8 +55,8 @@ if [ "$MODE" = "plugin" ]; then
     find "$dest" -type d -name node_modules -prune -exec rm -rf {} +
     echo "Installed $name as a local Cursor plugin: $dest"
   }
-  copy_plugin idle-skills "$SRC" .cursor-plugin skills agents-cursor hooks
-  copy_plugin idle-tasks "$SRC/tasks" .cursor-plugin skills
+  copy_plugin idle-skills "$SRC/idle-skills" .cursor-plugin skills agents-cursor hooks
+  copy_plugin idle-tasks "$SRC/idle-tasks" .cursor-plugin skills
   echo ""
   echo "Restart Cursor or run Developer: Reload Window."
   echo ""
@@ -74,11 +74,11 @@ HOOKS_FILE="$TARGET/.cursor/hooks.json"
 echo "Installing idle-skills for Cursor (project copy) → $TARGET"
 
 mkdir -p "$SKILLS_DIR" "$AGENTS_DIR" "$HOOKS_DIR"
-cp -R "$SRC/skills/." "$SKILLS_DIR/"
-cp -R "$SRC/tasks/skills/." "$SKILLS_DIR/"
-cp "$SRC/agents-cursor/"*.md "$AGENTS_DIR/"
-cp "$SRC/hooks/session-start.sh" "$SRC/hooks/edit-streak.sh" "$SRC/hooks/thrash-detector.mjs" \
-   "$SRC/hooks/inject.mjs" "$HOOKS_DIR/"
+cp -R "$SRC/idle-skills/skills/." "$SKILLS_DIR/"
+cp -R "$SRC/idle-tasks/skills/." "$SKILLS_DIR/"
+cp "$SRC/idle-skills/agents-cursor/"*.md "$AGENTS_DIR/"
+cp "$SRC/idle-skills/hooks/session-start.sh" "$SRC/idle-skills/hooks/edit-streak.sh" "$SRC/idle-skills/hooks/thrash-detector.mjs" \
+   "$SRC/idle-skills/hooks/inject.mjs" "$HOOKS_DIR/"
 chmod +x "$HOOKS_DIR/session-start.sh" "$HOOKS_DIR/edit-streak.sh" "$HOOKS_DIR/thrash-detector.mjs" \
           "$HOOKS_DIR/inject.mjs"
 

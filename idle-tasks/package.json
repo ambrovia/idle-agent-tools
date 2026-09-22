@@ -1,0 +1,41 @@
+{
+  "name": "idle-agent-tasks",
+  "version": "0.1.2",
+  "description": "A shared record of work for coding agents: tasks that nest into trees, and decisions. Four operations as a CLI and an MCP server. PGlite locally, any Postgres when shared.",
+  "type": "module",
+  "bin": {
+    "idle": "bin/idle.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "pg": "^8.13.0"
+  },
+  "license": "Apache-2.0",
+  "files": [
+    "bin/",
+    "src/",
+    "skills/",
+    "README.md"
+  ],
+  "keywords": [
+    "agents",
+    "tasks",
+    "mcp",
+    "multi-agent",
+    "claude-code",
+    "codex",
+    "cursor",
+    "opencode",
+    "pglite",
+    "postgres"
+  ],
+  "homepage": "https://github.com/ambrovia/idle-agent-tools/tree/main/idle-tasks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambrovia/idle-agent-tools.git",
+    "directory": "idle-tasks"
+  }
+}

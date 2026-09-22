@@ -9,7 +9,7 @@ import {
   detectAliases,
   detectCssEntries,
   detectToolchain,
-} from "../skills/design/viewer/launch.mjs";
+} from "../idle-skills/skills/design/viewer/launch.mjs";
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), "pipeline-viewer-"));

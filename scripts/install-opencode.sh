@@ -60,8 +60,8 @@ echo "Installing idle-skills for opencode → $SCOPE"
 
 # 1. Skills — one per directory, each with a SKILL.md.
 mkdir -p "$SKILLS_DIR"
-cp -R "$SRC/skills/." "$SKILLS_DIR/"
-cp -R "$SRC/tasks/skills/." "$SKILLS_DIR/"
+cp -R "$SRC/idle-skills/skills/." "$SKILLS_DIR/"
+cp -R "$SRC/idle-tasks/skills/." "$SKILLS_DIR/"
 echo "  ✓ skills   → $SKILLS_DIR"
 
 # 1b. The record of work — the idle-tasks MCP server, merged into opencode.json.
@@ -80,18 +80,18 @@ echo "  ✓ record   → $CONFIG_FILE (mcp.idle)"
 
 # 2. Agents — opencode-format pipeline-planner / pipeline-reviewer / pipeline-builder.
 mkdir -p "$AGENTS_DIR"
-cp "$SRC/.opencode/agents/"*.md "$AGENTS_DIR/"
+cp "$SRC/idle-skills/.opencode/agents/"*.md "$AGENTS_DIR/"
 echo "  ✓ agents   → $AGENTS_DIR"
 
 # 3. Plugin — post-edit guards.
 mkdir -p "$PLUGINS_DIR"
-cp "$SRC/.opencode/plugins/pipeline.js" "$PLUGINS_DIR/"
+cp "$SRC/idle-skills/.opencode/plugins/pipeline.js" "$PLUGINS_DIR/"
 echo "  ✓ plugin   → $PLUGINS_DIR/pipeline.js"
 
 # 4. Helpers the plugin shells out to. Not in plugins/ — opencode imports every
 #    module there, and these are executables with their own entry points.
 mkdir -p "$HELPERS_DIR"
-cp "$SRC/hooks/inject.mjs" "$HELPERS_DIR/"
+cp "$SRC/idle-skills/hooks/inject.mjs" "$HELPERS_DIR/"
 echo "  ✓ helpers  → $HELPERS_DIR"
 
 # 5. Session-start guidance — an idempotent managed block in AGENTS.md.

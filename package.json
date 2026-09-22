@@ -1,37 +1,30 @@
 {
   "name": "idle-agent-tools",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Idle agent tools: a shared record of work for coding agents (idle-tasks) and a multi-agent development workflow on top of it (idle-skills).",
   "type": "module",
-  "main": "./.opencode/plugins/pipeline.js",
+  "main": "./idle-skills/.opencode/plugins/pipeline.js",
   "exports": {
-    ".": "./.opencode/plugins/pipeline.js"
+    ".": "./idle-skills/.opencode/plugins/pipeline.js"
   },
   "files": [
-    ".codex/",
-    ".codex-plugin/",
-    ".opencode/plugins/pipeline.js",
-    ".opencode/agents/",
-    "agents/",
-    "tasks/",
-    "!tasks/node_modules/**",
-    "skills/",
-    "!skills/**/node_modules/**",
-    "!skills/**/.annotations/**",
-    "!skills/**/.vite/**",
-    "hooks/",
-    "scripts/install-codex.sh",
-    "scripts/install-opencode.sh",
-    "pipeline.config.example.yml",
+    "idle-skills/",
+    "!idle-skills/**/node_modules/**",
+    "!idle-skills/**/.annotations/**",
+    "!idle-skills/**/.vite/**",
+    "idle-tasks/",
+    "!idle-tasks/node_modules/**",
+    "scripts/",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check:opencode-plugin": "node --check .opencode/plugins/pipeline.js",
+    "check:opencode-plugin": "node --check idle-skills/.opencode/plugins/pipeline.js",
     "check:codex-installer": "bash -n scripts/install-codex.sh",
-    "check:installers": "bash -n scripts/install-codex.sh scripts/install-cursor.sh scripts/install-opencode.sh",
-    "verify": "npm run check:opencode-plugin && npm run check:installers && npm test"
+    "check:installers": "bash -n scripts/install-codex.sh scripts/install-cursor.sh scripts/install-opencode.sh scripts/install-antigravity.sh",
+    "verify": "npm run check:opencode-plugin && npm run check:installers && npm run check:agents && npm test",
+    "check:agents": "node scripts/generate-agents.mjs --check"
   },
   "keywords": [
     "opencode",

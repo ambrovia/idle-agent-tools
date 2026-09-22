@@ -7,42 +7,30 @@
 
 ---
 
-Freeform "vibe coding" with an agent fails at scale: no separation between deciding *what* to build and building it, the author grades their own homework, scope creeps, review gets skipped when "it's simple," agents that work to a checklist miss what the checklist was for, and nothing compounds.
+Two plugins, usable together or apart. One marketplace serves both on every harness.
 
-This repository is two plugins that fix that, usable together or apart.
+### [`idle-tasks/`](idle-tasks/) — the record of work
 
-**`idle-tasks` — the record of work.** Agents do not talk to each other; they read and write one record. It holds two things: **tasks** — goals that nest into trees, need each other and carry scope — and **decisions**. Anyone can drop a task at any time; a title is enough. Four operations (`task`, `decision`, `show`, `list`), the same over the `idle` CLI and over MCP; everything else is a state. Claims are leases, refused when scopes overlap. When a task is submitted **the system runs your project's checks itself** and sends a failing task back with the output — no agent's word counts. It lives in your home folder on PGlite, or on any Postgres you bring. It knows nothing about our workflow: bring your own. Also on npm as [`idle-agent-tasks`](https://www.npmjs.com/package/idle-agent-tasks).
+Agents do not talk to each other; they read and write one record. It holds two things: **tasks** — goals that nest into trees, need each other and carry scope — and **decisions**. Anyone can drop a task at any time; a title is enough. Four operations (`task`, `decision`, `show`, `list`), the same over the `idle` CLI and over MCP; everything else is a state. Claims are leases, refused when scopes overlap. When a task is submitted **the system runs your project's checks itself** and sends a failing task back with the output — no agent's word counts. It lives in your home folder on PGlite, or on any Postgres you bring. It knows nothing about our workflow: bring your own. Also on npm as [`idle-agent-tasks`](https://www.npmjs.com/package/idle-agent-tasks).
 
-**`idle-skills` — the workflow.** A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan of 50–100 lines in your own words. The planner breaks the work into more detailed goals; builders work them; fresh reviewers judge whether each *goal* is reached, not whether a list was ticked.
+### [`idle-skills/`](idle-skills/) — the workflow
+
+A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan in your own words. The planner breaks the work into goals, builders work them, the system runs the checks, fresh reviewers judge whether each *goal* is reached — and you contradict what is not done. Fifteen skills, three personas, hooks that put fresh evidence in front of every agent when it starts. Needs idle-tasks.
 
 ```
 drop a task ──▶ interview ──▶ plan the tree ──▶ build ──▶ checks ──▶ review ──▶ ship
    anyone      you + planner     planner        builder    system    reviewer   builder
-                                                   ▲                     │
-                                                   └── came back, with why ┘
 ```
 
-- **The goal is the contract.** A task says what is true when it is done, and why. Acceptance criteria are signs of that and checks are a floor; satisfying both while missing the goal is not done. Detail comes from nesting, not from longer lists.
-- **The plan is yours.** It is written with you, not handed to you, and nothing in a run may quietly grow it. Work found along the way becomes a task of its own.
-- **No gates — you contradict.** The planner says what is done and on what evidence; you reopen what is not. The higher in the tree, the more it is yours. This is not a hands-off factory.
-- **One planner, no sub-planners.** One agent holds the whole picture and plans every level, so no two tasks decide the same question.
-- **How much ceremony is a judgement, not a setting.** Ambiguity decides how much interview and whether design or architecture happen at all; exposure decides how many review lenses. A hundred bugs and one architectural decision get different treatment.
-
-## What's in here
+## Layout
 
 | Path | Role |
 |---|---|
-| [`tasks/`](tasks/) | The **idle-tasks** plugin: the `idle` CLI and MCP server, the `idle` skill, its own manifests. Published to npm as `idle-agent-tasks` |
-| [`skills/`](skills/) | The **idle-skills** workflow skills (`SKILL.md`, [Agent Skills](https://agents.md/) standard) |
-| [`personas/`](personas/) | Persona source of truth; [`scripts/generate-agents.mjs`](scripts/generate-agents.mjs) renders every host format below |
-| [`agents/`](agents/) | Claude-format `pipeline-planner` / `pipeline-reviewer` / `pipeline-builder` personas (generated) |
-| [`agents-cursor/`](agents-cursor/) | Cursor-format personas (`model: inherit`, generated) |
-| [`agents-antigravity/`](agents-antigravity/) | Antigravity-format personas (generated) |
-| [`hooks/`](hooks/) | Session-start + edit-streak + thrash guards, and spawn-time evidence injection (Claude, Cursor, Gemini, Copilot, Codex, opencode) |
-| [`.claude-plugin/`](.claude-plugin/) | Claude Code marketplace (both plugins) + the idle-skills plugin |
-| [`.cursor-plugin/`](.cursor-plugin/) | Cursor Team Marketplace + plugin |
-| [`.codex-plugin/`](.codex-plugin/) | Codex plugin (+ [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json)) |
-| [`.opencode/plugins/pipeline.js`](.opencode/plugins/pipeline.js) | opencode post-edit plugin (also exported by [`package.json`](package.json)) |
+| [`idle-tasks/`](idle-tasks/) | The **idle-tasks** plugin: the `idle` CLI and MCP server, the `idle` skill, its manifests for every harness. Published to npm as `idle-agent-tasks` |
+| [`idle-skills/`](idle-skills/) | The **idle-skills** plugin: skills, personas, hooks, its manifests for every harness |
+| [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json), [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json), [`.cursor-plugin/marketplace.json`](.cursor-plugin/marketplace.json) | The marketplace, for Claude Code, Codex and Cursor |
+| [`scripts/`](scripts/) | Installers for the harnesses without a marketplace, and the persona generator |
+| [`tests/`](tests/) | `npm run verify` — the backend against PGlite (and Postgres with `IDLE_TEST_DATABASE_URL`), the hooks, the installers |
 | [`docs/task-backend/`](docs/task-backend/) | The design record: the interview Q&A everything traces back to, the plan, the research |
 
 ## Install
@@ -76,10 +64,11 @@ then install both plugins as below. Skills keep their names; their prefix become
 ### APM
 
 ```bash
-apm install ambrovia/idle-agent-tools
+apm install ambrovia/idle-agent-tools/idle-tasks
+apm install ambrovia/idle-agent-tools/idle-skills
 ```
 
-APM reads the plugin layout (`plugin.json` / `.claude-plugin/`, `skills/`, `agents/`, `hooks/`) and deploys into the consumer's harness directories. Prefer this when the project already uses APM.
+Each plugin folder is an APM package (`apm.yml`, `includes: auto`); APM deploys the skills and agents into the consumer's harness directories. The record's MCP server is not part of the APM contract — add `npx -y idle-agent-tasks mcp` to your harness yourself. Prefer this when the project already uses APM.
 
 ### Claude Code — plugin
 
@@ -93,7 +82,7 @@ APM reads the plugin layout (`plugin.json` / `.claude-plugin/`, `skills/`, `agen
 
 ### Cursor — plugin
 
-Native Cursor plugin via [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json). Team Marketplace import (Cursor 2.6+, Teams/Enterprise):
+Native Cursor plugins via each plugin's `.cursor-plugin/plugin.json`. Team Marketplace import (Cursor 2.6+, Teams/Enterprise):
 
 ```text
 Dashboard → Plugins → Team Marketplaces → Import from Repo
@@ -113,11 +102,11 @@ scripts/install-cursor.sh /path/to/project  # or --project: copy into .cursor/
 scripts/install-antigravity.sh   # → ~/.gemini/config/plugins/idle-skills and idle-tasks
 ```
 
-The IDE and the `agy` CLI both read that folder. Antigravity copies whatever directory it is pointed at, so the script stages only what it reads: `plugin.json`, the skills, the personas from [`agents-antigravity/`](agents-antigravity/) (name and description only — it drops an agent with frontmatter fields it does not know), and for idle-tasks [`mcp_config.json`](tasks/mcp_config.json). Hooks are not installed.
+The IDE and the `agy` CLI both read that folder. Antigravity copies whatever directory it is pointed at, so the script stages only what it reads: `plugin.json`, the skills, the personas from [`idle-skills/agents-antigravity/`](idle-skills/agents-antigravity/) (name and description only — it drops an agent with frontmatter fields it does not know), and for idle-tasks [`mcp_config.json`](idle-tasks/mcp_config.json). Hooks are not installed.
 
 ### Codex — plugin
 
-[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) + [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json). Plugin install gives skills, `agents/openai.yaml`, and the Codex hook wiring in `hooks/hooks.json`.
+[`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) lists both plugins. Plugin install gives skills, the record's MCP server, and the Codex hook wiring in `idle-skills/hooks/hooks.json`.
 
 ```text
 codex plugin marketplace add ambrovia/idle-agent-tools
@@ -133,7 +122,7 @@ That writes `.codex/agents/*.toml` and namespaced `[agents.pipeline-*]` entries 
 
 ### opencode — installer
 
-[`.opencode/plugins/pipeline.js`](.opencode/plugins/pipeline.js) covers post-edit guards only. For skills, personas, and session-start guidance:
+[`idle-skills/.opencode/plugins/pipeline.js`](idle-skills/.opencode/plugins/pipeline.js) covers post-edit guards only. For skills, personas, and session-start guidance:
 
 ```text
 scripts/install-opencode.sh            # current project
@@ -149,11 +138,11 @@ scripts/install-opencode.sh --global   # ~/.config/opencode
 | Session-start | managed block in `AGENTS.md` |
 | Record of work | `mcp.idle` in `opencode.json` (started from npm) |
 
-Opening this repo in opencode loads the JS plugin from `.opencode/plugins/` automatically.
+
 
 ### Copilot / Gemini — hooks + skills copy
 
-Hook configs ship in-repo ([`.github/hooks/pipeline.json`](.github/hooks/pipeline.json), [`.gemini/settings.json`](.gemini/settings.json)). Skills are not a native plugin on these hosts — use APM, or copy `skills/` (and Claude-format `agents/` if needed):
+Hook configs ship with the workflow plugin ([`idle-skills/.github/hooks/pipeline.json`](idle-skills/.github/hooks/pipeline.json), [`idle-skills/.gemini/settings.json`](idle-skills/.gemini/settings.json)). Skills are not a native plugin on these hosts — use APM, or copy `idle-skills/skills/` and `idle-tasks/skills/` (and Claude-format `idle-skills/agents/` if needed):
 
 | Tool | Skills path |
 |---|---|
@@ -164,106 +153,7 @@ Hook configs ship in-repo ([`.github/hooks/pipeline.json`](.github/hooks/pipelin
 
 ## Configure
 
-Everything project-specific lives in one file. Copy [`pipeline.config.example.yml`](pipeline.config.example.yml) to `pipeline.config.yml`; skills resolve `{{key}}` from it:
-
-The record of work needs nothing in the repository. Its settings are per machine, in `~/.idle/config.json` — `/setup` offers to write them:
-
-```json
-{ "checks": { "my-repo": ["go test ./..."] }, "review": true }
-```
-
-`checks` are what the system runs when a task in that project is submitted; `review` makes a verified task wait for a reviewer who did not do the work. Add `"database": "postgres://…"` to share the record across machines.
-
-```yaml
-verify: "go test ./..."   # the single command that must pass before ship
-engineering:
-  tier: mvp               # prototype | mvp | production | critical — the customer and rigor the code targets
-designSystem: null        # null → the design round never runs
-vcs: github
-# worktree:               # optional repository-owned lifecycle commands
-#   bootstrap: "go mod download"
-#   cleanup: null
-```
-
-The **engineering tier** is load-bearing and is chosen by customer, not by aspiration:
-
-| Tier | Customer | Expected result |
-|---|---|---|
-| `prototype` | Builders or an internal demo audience | The core flow can be demonstrated, often with manual steps. Key features may still be missing. |
-| `mvp` | Early, tolerant users | The core works most of the time. Auxiliary features, polish, and less-common edge cases may be missing. |
-| `production` | Ordinary public or paying users | Standard ordinary software: it works normally and reliably, with proportionate tests, error handling, and security. It does not imply enterprise controls. |
-| `critical` | Large-company, regulated, contractual, or high-consequence customers | Adds the rigor actually demanded by that context, such as compliance evidence, audit trails, rollback procedures, stronger operational controls, and exhaustive failure handling. |
-
-Do not choose `critical` merely because software is deployed or stores real user data. Feature flags, audit systems, elaborate observability, formal rollback machinery, exhaustive fallbacks, and speculative abstractions require a concrete customer, regulatory, contractual, or blast-radius need. At every tier, build only what the goal and known risks require. `engineering.tier` is set once for the repository and describes the product, not the task.
-
-### Injected evidence when an agent starts
-
-A fresh agent should not spend its first ten tool calls working out where it is. Where the host
-supports it ([`hooks/inject.mjs`](hooks/inject.mjs)), a spawned agent's context already contains the
-state of the task tree being worked — and, by role, fresh mechanical check results and the diff.
-
-`SubagentStart` is the primary event: it exists on both Claude Code and Codex, and it injects into
-the *subagent's* context rather than the parent's. Claude Code additionally fires `PostToolUse` for
-the `Skill` tool, so skill-load injection works there as a supplement; Codex has no skill lifecycle
-event at all.
-
-| spawned as | receives |
-|---|---|
-| `pipeline-planner` | the tree's state |
-| `pipeline-builder` | state + check results, marked as a pre-edit baseline |
-| `pipeline-reviewer` | state + check results + the diff since the work started |
-
-**This runs `checks.preSpawn` (or `verify`) as a shell command.** A hook executes directly, so it is
-not covered by the host's tool-permission prompts: whatever that line contains runs when an agent
-starts. Point it only at commands the repository owns, and review changes to it as you would a CI
-workflow.
-
-| Env var | Default | Effect |
-|---|---|---|
-| `PIPELINE_SKILL_INJECT` | unset | `off` disables injection entirely — no check run, no diff, no state |
-| `PIPELINE_CHECK_TIMEOUT_MS` | `45000` | check-command timeout; on timeout the last cached result is injected, marked `STALE` |
-| `PIPELINE_INJECT_MAX_LINES` | `300` | per-section truncation (60 on Codex, which truncates injected context at roughly 1k tokens) |
-
-Check results are stamped with the commit (and dirty flag) they ran on, so an agent can tell a
-pre-edit baseline from a completion gate. Every failure degrades to silence — a spawn never breaks
-on this hook.
-
-### Steer skills with project rules
-
-The skills are deliberately generic — repo-specific knowledge (test layout, where code lives, type conventions, component budget, reuse-before-build, security policy) lives in **rules**, not in forks of the skills. `pipeline.config.yml` exposes a fixed set of optional rule **slots**; point a slot at a markdown file and the skills that consult that slot read it as **binding** guidance (a project rule overrides the skill's generic advice on conflict). Leave a slot null and skills skip it.
-
-```yaml
-rules:
-  code: .pipeline/rules/typescript.md       # → write-code, architecture, architecture-critique, review
-  testing: .pipeline/rules/testing.md       # → write-tests, architecture, architecture-critique, review, pipeline
-  design-system: .pipeline/rules/design.md  # → design, write-code, review
-  security: .pipeline/rules/security.md     # → architecture, architecture-critique, write-code, review
-```
-
-Rule files live under `.pipeline/rules/` so every host reads the same ones — nothing about them is Claude-, Cursor-, or Codex-specific. They are maintainer-authored and committed: `/setup` writes them with your approval, and a pipeline run may not edit them. Nothing a run writes lands under `.pipeline/` — state lives in the record of work.
-
-| Slot | Read by | Use it for |
-|---|---|---|
-| `code` | write-code, architecture, architecture-critique, review | language / type / style conventions |
-| `testing` | write-tests, architecture, architecture-critique, review, pipeline | what counts as a test, layout, lanes/fixtures |
-| `architecture` | architecture, architecture-critique, write-code, review | architecture invariants & conventions |
-| `taste` | refine, program-design, pipeline | standing conventions for how this repo likes things done |
-| `design-system` | design, write-code, review | component budget, tokens, reuse-before-build, promotion |
-| `frontend` | design, write-code, review | client / UI conventions |
-| `visual` | design, review | visual fidelity / regression policy |
-| `aesthetics` | design | aesthetic quality bar |
-| `security` | architecture, architecture-critique, write-code, review | security policy / threat model |
-| `docs` | write-docs, review | documentation voice & conventions |
-
-This is how one repo makes `/review` enforce its own reuse-before-build rule, or `/write-tests` follow its real-vs-mock lane policy, while another repo running the same plugin does something different — same skills, different rules. See [`pipeline.config.example.yml`](pipeline.config.example.yml) for the full slot list.
-
-## The skills
-
-`idle-skills`: `pipeline` · `refine` · `program-design` · `design` · `architecture` · `architecture-critique` · `write-tests` · `write-code` · `write-docs` · `review` · `retro` · `ship` · `compound` · `lore` · `setup`
-
-`idle-tasks`: `idle`
-
-Drop a task — `idle task --title "…"`, or just tell the agent — and run it end to end with `/pipeline <id>`. After several tasks, run `/compound` to mine the retro log for recurring patterns and propose process fixes. Use `/lore` anytime to capture or surface tribal knowledge.
+The record of work is configured per machine in `~/.idle/config.json` — see [idle-tasks](idle-tasks/README.md#configure). The workflow is configured per repository in `pipeline.config.yml` — see [idle-skills](idle-skills/README.md#configure).
 
 ## License
 

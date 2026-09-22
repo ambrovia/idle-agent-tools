@@ -6,11 +6,11 @@ import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { AgentPipeline } from "../.opencode/plugins/pipeline.js";
+import { AgentPipeline } from "../idle-skills/.opencode/plugins/pipeline.js";
 
 const root = resolve(new URL("..", import.meta.url).pathname);
-const guard = join(root, "hooks/thrash-detector.mjs");
-const editStreak = join(root, "hooks/edit-streak.sh");
+const guard = join(root, "idle-skills/hooks/thrash-detector.mjs");
+const editStreak = join(root, "idle-skills/hooks/edit-streak.sh");
 
 const fixture = (session = "session") => JSON.stringify({
   session_id: session,

@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
-const bin = resolve(new URL('..', import.meta.url).pathname, 'tasks/bin/idle.mjs');
+const bin = resolve(new URL('..', import.meta.url).pathname, 'idle-tasks/bin/idle.mjs');
 
 // Every sandbox is a whole PGlite database; leave none behind.
 const homes = [];
@@ -35,7 +35,7 @@ test('a dropped task grows into a tree and travels to done', () => {
   const root = create('Task backend for agentic work'); // a title is enough
   assert.equal(run('show', root).json.task.goal, '');
   task('--id', root, '--goal', 'Agents coordinate through one record of work', '--meta', JSON.stringify({ worktree: env.IDLE_HOME }));
-  const store = create('Storage adapter', '--parent', root, '--scope', 'tasks/src'); // inherits the root's worktree
+  const store = create('Storage adapter', '--parent', root, '--scope', 'idle-tasks/src'); // inherits the root's worktree
   const cli = create('Command line', '--parent', root, '--needs', store);
 
   assert.deepEqual(run('list', '--ready').json.map((t) => t.id), [store], 'only the task with nothing pending is ready');
@@ -202,16 +202,16 @@ test('the same operations over MCP', async () => {
   assert.equal(await new Promise((done) => server.on('exit', done)), 0);
 });
 
-test('every place that starts the published server names exactly the version in tasks/package.json', () => {
+test('every place that starts the published server names exactly the version in idle-tasks/package.json', () => {
   // npx keeps serving a cached install for a version range, so a range never picks up a fix.
   const repo = resolve(new URL('..', import.meta.url).pathname);
-  const { version } = JSON.parse(readFileSync(join(repo, 'tasks/package.json'), 'utf8'));
-  for (const file of ['tasks/.codex-plugin/plugin.json', 'tasks/.cursor-plugin/plugin.json', 'scripts/install-opencode.sh', 'scripts/install-cursor.sh', 'hooks/inject.mjs', 'tasks/mcp_config.json']) {
+  const { version } = JSON.parse(readFileSync(join(repo, 'idle-tasks/package.json'), 'utf8'));
+  for (const file of ['idle-tasks/.codex-plugin/plugin.json', 'idle-tasks/.cursor-plugin/plugin.json', 'scripts/install-opencode.sh', 'scripts/install-cursor.sh', 'idle-skills/hooks/inject.mjs', 'idle-tasks/mcp_config.json']) {
     const pins = readFileSync(join(repo, file), 'utf8').match(/idle-agent-tasks@[0-9][0-9.]*/g) ?? [];
     assert.ok(pins.length > 0, `${file} starts the server`);
     for (const pin of pins) assert.equal(pin, `idle-agent-tasks@${version}`, file);
   }
-  for (const file of ['tasks/.claude-plugin/plugin.json', 'tasks/.codex-plugin/plugin.json', 'tasks/.cursor-plugin/plugin.json', 'tasks/plugin.json']) {
+  for (const file of ['idle-tasks/.claude-plugin/plugin.json', 'idle-tasks/.codex-plugin/plugin.json', 'idle-tasks/.cursor-plugin/plugin.json', 'idle-tasks/plugin.json']) {
     assert.equal(JSON.parse(readFileSync(join(repo, file), 'utf8')).version, version, file);
   }
 });

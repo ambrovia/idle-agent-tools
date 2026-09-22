@@ -12,7 +12,7 @@
   "plugins": [
     {
       "name": "idle-tasks",
-      "source": "./tasks",
+      "source": "./idle-tasks",
       "description": "The record of work for agents: tasks that nest into trees, and decisions. Four operations over MCP and the idle CLI; the system runs your project's checks when a task is submitted. PGlite locally, any Postgres when shared. Bring your own workflow.",
       "homepage": "https://github.com/ambrovia/idle-agent-tools",
       "license": "Apache-2.0",
@@ -27,7 +27,7 @@
     },
     {
       "name": "idle-skills",
-      "source": "./",
+      "source": "./idle-skills",
       "description": "An interview turns a dropped task into a goal and a plan you own; a planner breaks it into goals, builders and reviewers work them, and you contradict what is not done. 15 skills + 3 personas. Works on idle-tasks.",
       "homepage": "https://github.com/ambrovia/idle-agent-tools",
       "license": "Apache-2.0",

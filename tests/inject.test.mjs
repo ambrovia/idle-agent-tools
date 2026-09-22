@@ -5,8 +5,8 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-const hook = resolve(new URL('..', import.meta.url).pathname, 'hooks/inject.mjs');
-const idleBin = resolve(new URL('..', import.meta.url).pathname, 'tasks/bin/idle.mjs');
+const hook = resolve(new URL('..', import.meta.url).pathname, 'idle-skills/hooks/inject.mjs');
+const idleBin = resolve(new URL('..', import.meta.url).pathname, 'idle-tasks/bin/idle.mjs');
 
 // Each fixture is a repository plus a whole PGlite database; leave none behind.
 const made = [];

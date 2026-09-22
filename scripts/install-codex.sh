@@ -4,7 +4,7 @@ set -euo pipefail
 # Install Pipeline's Codex subagent roles into a target project.
 # Usage: scripts/install-codex.sh [project-root]
 
-PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../idle-skills" && pwd)"
 TARGET_ROOT="${1:-$(pwd)}"
 TARGET_ROOT="$(cd "$TARGET_ROOT" && pwd)"
 
