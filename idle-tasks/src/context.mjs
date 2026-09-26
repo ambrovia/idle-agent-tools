@@ -10,12 +10,14 @@ export function workdir() {
   return process.env.IDLE_PROJECT_DIR || process.env.CLAUDE_PROJECT_DIR || process.cwd();
 }
 
-// The repository's name, so every clone and worktree lands on the same tasks.
-export function project() {
-  if (process.env.IDLE_PROJECT) return process.env.IDLE_PROJECT;
+// The repository's name, so every clone and worktree lands on the same tasks. Null outside one.
+export function repository() {
   const git = spawnSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], { cwd: workdir(), encoding: 'utf8' });
-  if (git.status === 0 && git.stdout.trim()) return basename(dirname(git.stdout.trim()));
-  return basename(resolve(workdir()));
+  return git.status === 0 && git.stdout.trim() ? basename(dirname(git.stdout.trim())) : null;
+}
+
+export function project() {
+  return process.env.IDLE_PROJECT || repository() || basename(resolve(workdir()));
 }
 
 export function context(input = {}, fallbackBy) {

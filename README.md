@@ -70,13 +70,30 @@ apm install ambrovia/idle-agent-tools/idle-skills
 
 Each plugin folder is an APM package (`apm.yml`, `includes: auto`); APM deploys the skills and agents into the consumer's harness directories. The record's MCP server is not part of the APM contract — add `npx -y idle-agent-tasks mcp` to your harness yourself. Prefer this when the project already uses APM.
 
+### Per repository
+
+Turn the plugins on per repository, not for the whole machine: an agent then gets the record of work only inside a repository that opted in — never in a scratch folder or an unrelated project. Install once per machine, then enable in each repository. Outside a repository the `idle` MCP server lists no tools and refuses every call.
+
 ### Claude Code — plugin
 
-```text
-/plugin marketplace add ambrovia/idle-agent-tools
-/plugin install idle-tasks@idle-agent-tools
-/plugin install idle-skills@idle-agent-tools
+Once per machine:
+
+```bash
+claude plugin marketplace add ambrovia/idle-agent-tools
 ```
+
+In each repository, commit `.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "idle-tasks@idle-agent-tools": true,
+    "idle-skills@idle-agent-tools": true
+  }
+}
+```
+
+Claude reads it from the folder a session starts in, so start at the repository root. `claude plugin marketplace update idle-agent-tools` picks up a new release.
 
 `idle-tasks` is the record of work on its own — the `idle` CLI, its MCP server and the `/idle` skill — and works with any workflow. `idle-skills` is the workflow on top and needs it. The orchestrator is `/pipeline`; `/setup`, `/lore` and `/compound` are the other commands you invoke directly. The phase skills are dispatched by the orchestrator, not run by hand.
 
@@ -108,11 +125,25 @@ The IDE and the `agy` CLI both read that folder. Antigravity copies whatever dir
 
 [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) lists both plugins. Plugin install gives skills, the record's MCP server, and the Codex hook wiring in `idle-skills/hooks/hooks.json`.
 
-```text
+Codex 0.151 or later. Once per machine — install both, then turn them off for the machine:
+
+```bash
 codex plugin marketplace add ambrovia/idle-agent-tools
+codex plugin add idle-tasks@idle-agent-tools
+codex plugin add idle-skills@idle-agent-tools
 ```
 
-Restart Codex, open `/plugins`, install `idle-tasks` and `idle-skills`. Personas are **not** in the plugin contract — register them with:
+and set `enabled = false` for both under `[plugins."…@idle-agent-tools"]` in `~/.codex/config.toml`. In each repository, commit `.codex/config.toml`:
+
+```toml
+[plugins."idle-tasks@idle-agent-tools"]
+enabled = true
+
+[plugins."idle-skills@idle-agent-tools"]
+enabled = true
+```
+
+Codex reads a repository's `.codex/` only when the repository is trusted (`trust_level = "trusted"` under `[projects."<path>"]`). Enabling a plugin there does not install it. `codex plugin marketplace upgrade` picks up a new release. Personas are **not** in the plugin contract — register them with:
 
 ```bash
 scripts/install-codex.sh /path/to/project
