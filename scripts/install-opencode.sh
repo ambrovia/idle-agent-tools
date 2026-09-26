@@ -73,7 +73,7 @@ try { config = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (err) {
   if (err.code !== 'ENOENT') { console.error(`  ! ${file} is not plain JSON — add the idle MCP server by hand`); process.exit(0); }
 }
 config.$schema ??= 'https://opencode.ai/config.json';
-config.mcp = { ...config.mcp, idle: { type: 'local', command: ['npx', '-y', 'idle-agent-tasks@0.1.2', 'mcp'], enabled: true } };
+config.mcp = { ...config.mcp, idle: { type: 'local', command: ['npx', '-y', 'idle-agent-tasks@0.1.3', 'mcp'], enabled: true } };
 fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
 NODE
 echo "  ✓ record   → $CONFIG_FILE (mcp.idle)"

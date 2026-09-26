@@ -97,6 +97,20 @@ test('an expired lease is nobody\'s: renewing it is a new claim, scope check and
   assert.match(task('--id', wide, '--status', 'claimed', '--by', 'alice').err, /overlaps/, 'alice cannot quietly renew over bob');
 });
 
+test('a stray claim is taken back without waiting out its lease', () => {
+  const { task, create } = sandbox();
+  const root = create('Strays');
+  const work = create('Abandoned mid-way', '--parent', root, '--scope', 'src/auth');
+  task('--id', work, '--status', 'claimed', '--ttl', '240', '--by', 'alice');
+  assert.match(task('--id', work, '--status', 'open', '--by', 'bob').err, /needs --verdict: say why you are taking it from alice/);
+  const freed = task('--id', work, '--status', 'open', '--verdict', 'alice stopped responding', '--by', 'bob').json;
+  assert.equal(freed.status, 'open');
+  assert.equal(freed.claimed_by, null);
+  assert.match(freed.verdict, /bob: alice stopped responding/, 'the next worker sees why');
+  assert.match(task('--id', work, '--status', 'submitted', '--by', 'alice').err, /cannot move/, 'the stray cannot submit over it');
+  assert.equal(task('--id', work, '--status', 'claimed', '--by', 'bob').json.claimed_by, 'bob', 'and its scope is free');
+});
+
 test('while the system is verifying a task, nothing else moves it or runs its checks again', async () => {
   const { env, run, task, create } = sandbox((project) => ({ checks: { [project]: ['sleep 3 && echo ran >> check-runs'] } }));
   const root = create('Verification in flight');

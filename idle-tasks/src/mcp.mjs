@@ -93,7 +93,7 @@ export function serve() {
     if (method === 'initialize') {
       client = params?.clientInfo?.name ?? client;
       roots = !!params?.capabilities?.roots;
-      send({ id, result: { protocolVersion: params?.protocolVersion ?? '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'idle', version: '0.1.2' } } });
+      send({ id, result: { protocolVersion: params?.protocolVersion ?? '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'idle', version: '0.1.3' } } });
     } else if (method === 'ping') send({ id, result: {} });
     else if (method === 'tools/list') {
       hidden = !inRepository();
