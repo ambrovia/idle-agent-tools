@@ -182,24 +182,34 @@ test('with review on, whoever did the work cannot pass it', () => {
   assert.equal(task('--id', work, '--status', 'done', '--by', 'bob').json.status, 'done');
 });
 
-test('the same operations over MCP', async () => {
-  const { env } = sandbox();
-  const server = spawn(process.execPath, [bin, 'mcp'], { env, stdio: ['pipe', 'pipe', 'inherit'] });
+// A harness talking to the MCP server over stdio. Notifications the server sends land in `notices`.
+function mcp(env, cwd) {
+  const server = spawn(process.execPath, [bin, 'mcp'], { env, cwd, stdio: ['pipe', 'pipe', 'inherit'] });
   const replies = new Map();
+  const notices = [];
   let buffer = '';
   server.stdout.on('data', (chunk) => {
     buffer += chunk;
     for (let at; (at = buffer.indexOf('\n')) >= 0; buffer = buffer.slice(at + 1)) {
       const message = JSON.parse(buffer.slice(0, at));
+      if (message.id === undefined || !replies.has(message.id)) notices.push(message);
       replies.get(message.id)?.(message);
     }
   });
   let next = 0;
+  const write = (message) => server.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', ...message })}\n`);
   const ask = (method, params) => new Promise((done) => {
     const id = ++next;
     replies.set(id, done);
-    server.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`);
+    write({ id, method, params });
   });
+  const close = () => { server.stdin.end(); return new Promise((done) => server.on('exit', done)); };
+  return { ask, write, notices, close };
+}
+
+test('the same operations over MCP', async () => {
+  const { env } = sandbox();
+  const { ask, close } = mcp(env);
 
   const hello = await ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test-harness', version: '0' } });
   assert.equal(hello.result.serverInfo.name, 'idle');
@@ -212,8 +222,33 @@ test('the same operations over MCP', async () => {
   assert.equal(refused.result.isError, true);
   assert.match(refused.result.content[0].text, /refused/);
 
-  server.stdin.end();
-  assert.equal(await new Promise((done) => server.on('exit', done)), 0);
+  assert.equal(await close(), 0);
+});
+
+test('outside a repository the MCP server offers nothing, until the harness names one', async () => {
+  const { env } = sandbox();
+  for (const name of ['IDLE_PROJECT', 'IDLE_PROJECT_DIR', 'CLAUDE_PROJECT_DIR']) delete env[name];
+  const scratch = mkdtempSync(join(tmpdir(), 'idle-scratch-'));
+  const repo = mkdtempSync(join(tmpdir(), 'idle-repo-'));
+  spawnSync('git', ['init', '-q', repo]);
+  const { ask, write, notices, close } = mcp(env, scratch);
+
+  await ask('initialize', { protocolVersion: '2025-06-18', capabilities: { roots: {} }, clientInfo: { name: 'test-harness', version: '0' } });
+  assert.deepEqual((await ask('tools/list')).result.tools, [], 'a scratch folder sees no tools');
+  const refused = await ask('tools/call', { name: 'list', arguments: { all: true, project: 'someone-else' } });
+  assert.equal(refused.result.isError, true);
+  assert.match(refused.result.content[0].text, /not inside a repository/, 'naming a project does not get around it');
+
+  write({ method: 'notifications/initialized' });
+  write({ id: 'roots', result: { roots: [{ uri: `file://${repo}` }] } });
+  await ask('ping');
+  assert.ok(notices.some((n) => n.method === 'notifications/tools/list_changed'), 'the harness is told the tools changed');
+  assert.equal((await ask('tools/list')).result.tools.length, 4);
+  assert.equal((await ask('tools/call', { name: 'list', arguments: {} })).result.isError, false);
+
+  assert.equal(await close(), 0);
+  rmSync(scratch, { recursive: true, force: true });
+  rmSync(repo, { recursive: true, force: true });
 });
 
 test('every place that starts the published server names exactly the version in idle-tasks/package.json', () => {
