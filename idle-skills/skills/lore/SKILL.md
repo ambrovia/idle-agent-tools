@@ -20,29 +20,37 @@ Add `@lore` only when all are true:
 - not obvious from nearby code or an authoritative source
 - omission would likely repeat a mistake or break an invariant
 
-Reject chronology: “X replaced Y,” “previously,” migration narrative, diff recap. Historical facts qualify
-only when they explain an active compatibility constraint or trap; write the present constraint, not its
-succession story. Delete stale lore. Link authoritative detail instead of copying it.
+Never code history: no “X replaced Y,” “previously,” “was added/removed,” “no longer,” “now,” “before this,”
+migration narrative, diff recap, or what the code used to do. State only what holds now. Delete stale lore. Link authoritative detail instead of copying it.
 
-Write telegraphic fragments: no full sentences, optional grammar, minimum words for unambiguous meaning.
-One line preferred; two only when a link or essential condition needs its own line. No preamble, background,
-or obvious local behavior.
+Format — exactly one line, always:
+
+```
+@lore: <subject> — <constraint>; <consequence or rule>[; <link>]
+```
+
+- one line, never wrapped or continued; does not fit → split into separate entries or link out
+- fragments only: no sentences, articles, connectives, prose, rationale narrative
+- pure information: facts, conditions, numbers, names; drop every word that carries none
+- no preamble, background, history, examples, or obvious local behavior
+
+Good: `@lore: PGlite — two processes on one dir fork data silently; lock required; stale after 10 min or dead pid`
+Bad: `@lore: PGlite forks the data silently when two processes open one directory, so the lock is what…`
 
 ## Scan
 
-Find candidates that pass the capture test. Present only location, terse proposed annotation, and evidence.
+Find candidates that pass the capture test. Present only location, proposed one-line annotation, and evidence.
 Obtain user approval before modifying code.
 
 ## Index
 
-List current lore by kind — constraint, workaround, hazard, trade-off — and location, including contradictions, stale entries, and any that have
-grown past a line or two. Terse entries; no conversational framing. Do not edit — report.
+List current lore by kind — constraint, workaround, hazard, trade-off — and location, including contradictions, stale entries, and any entry longer
+than one line, written as prose, or narrating code history. Terse entries; no conversational framing. Do not edit — report.
 
 Missing lore blocks a task only when a non-obvious invariant would otherwise live nowhere but the task
 record. A decision that still explains why the code looks the way it does belongs beside that code.
 
-When capturing or revising an entry, cut anything that has grown into a paragraph back to the
-constraint.
+When capturing or revising an entry, cut it back to the one-line format.
 
 ## Target
 

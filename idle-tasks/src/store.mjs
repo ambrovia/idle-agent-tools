@@ -41,12 +41,7 @@ function alive(pid) {
   try { process.kill(pid, 0); return true; } catch (err) { return err.code === 'EPERM'; }
 }
 
-// @lore: PGlite forks the data silently when two processes open one directory —
-// both "win" the same claim. The lock is what makes local mode correct.
-// Nothing slow ever runs under it (a project's checks run outside). A dead pid frees it at
-// once; age alone frees it only after ten minutes — long enough that a holder which merely
-// stalled (a sleeping laptop) is not robbed mid-transaction, short enough that a recycled
-// pid cannot wedge the record for good.
+// @lore: PGlite — two processes on one dir fork data silently, both win a claim; lock required; nothing slow under it; freed by dead pid or 10 min age (sleep-safe, recycled-pid-safe)
 const STALE_MS = 10 * 60_000;
 
 async function acquire(lock) {
