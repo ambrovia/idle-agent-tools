@@ -54,7 +54,7 @@ Also:
 - Confirm you are inside the assigned worktree before the first edit, and commit at each completed task
   boundary so an interrupted session strands nothing.
 - Preserve protected test behavior; never weaken an assertion merely to get green.
-- Capture non-obvious rationale as `@lore` at the decision itself, not as a later pass.
+- Capture non-obvious rationale as one-line `@lore` at the decision itself, not as a later pass.
 - Write only inside the task's scope.
 - Task ids stay in the record; keep them out of branches, commits, code, and PR metadata.
 
