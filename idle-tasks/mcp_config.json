@@ -3,6 +3,8 @@
     "idle": {
       "command": "npx",
       "args": [
+        "--prefix",
+        "/",
         "-y",
         "idle-agent-tasks@0.1.3",
         "mcp"
