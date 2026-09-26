@@ -46,7 +46,8 @@ proposed → open → claimed → submitted → verified → done
 
 - A task is **ready** when it is open, everything it `needs` is done, and it has no children. A task
   with children is never claimed; it is done when its children are and its own goal is reached.
-- **claimed** is a lease. Claim again to extend it. An expired lease is anyone's.
+- **claimed** is a lease. Claim again to extend it. An expired lease is anyone's. A live claim whose
+  holder has gone quiet can be taken back to open by anyone, with a verdict saying why.
 - **submitted** is as far as whoever did the work can move it. The system then runs the project's
   checks itself — shell commands configured on the machine, never taken from a task, run where the work
   is — and moves the task to verified, or back to open with the output. No agent is asked and no agent's

@@ -1,5 +1,5 @@
 name: idle-tasks
-version: 0.1.2
+version: 0.1.3
 description: A shared record of work for coding agents — tasks that nest into trees, and decisions. The idle skill; the server itself is npm idle-agent-tasks.
 author: Ambrovia
 license: Apache-2.0

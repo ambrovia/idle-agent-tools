@@ -127,7 +127,8 @@ async function move(q, task, to, input, ctx) {
     case 'blocked → open':
       return setStatus(q, task.id, 'open');
     case 'claimed → open':
-      if (!mine) refuse(`${task.id} is not claimed by ${ctx.by}`);
+      // A stray holder never comes back to release: anyone may take a live claim back, saying why.
+      if (live && !mine) why('verdict', `say why you are taking it from ${task.claimed_by}`);
       return setStatus(q, task.id, 'open', FREE);
     case 'open → blocked':
     case 'claimed → blocked':
@@ -187,7 +188,7 @@ export const OPS = [
       goal: { type: 'string', desc: 'what is true when this is done, and why it matters — the contract' },
       ac: { type: 'string', desc: 'acceptance criteria: signs the goal is reached, never a substitute for it' },
       parent: { type: 'string', desc: 'parent task id, on create; omit to drop a new root task' },
-      status: { type: 'string', desc: 'proposed | open | claimed | submitted | verified | done | blocked | archived (verified is set only by the system). A new task is open; create it as proposed when it is work you found rather than were given, for someone else to accept (open) or decline (archived). claimed = claim or renew your lease; submitted = you say the goal is reached: the system then runs the project\'s configured checks (show --brief lists them) and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review or reopen' },
+      status: { type: 'string', desc: 'proposed | open | claimed | submitted | verified | done | blocked | archived (verified is set only by the system). A new task is open; create it as proposed when it is work you found rather than were given, for someone else to accept (open) or decline (archived). claimed = claim or renew your lease; submitted = you say the goal is reached: the system then runs the project\'s configured checks (show --brief lists them) and moves the task on, or back to open with the output; open = release, accept, unblock, fail a review, reopen, or take back someone else\'s claim (with --verdict)' },
       ttl: { type: 'string', desc: 'lease in minutes when claiming (default 30)' },
       feedback: { type: 'string', desc: 'append for whoever plans the tree: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
       verdict: { type: 'string', desc: 'append why it is not done: blocking findings, the reason for reopening. Required when moving back to open' },
