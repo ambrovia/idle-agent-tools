@@ -14,11 +14,12 @@ it does not record project history, create requirements, or duplicate architectu
 
 ## Capture
 
-Add `@lore` only when all are true:
+Must-read test: would a future developer or agent likely make a real mistake without it? No → no lore.
+
+Add `@lore` only when it passes and all are true:
 
 - current constraint, workaround, hazard, or trade-off affects future work
 - not obvious from nearby code or an authoritative source
-- omission would likely repeat a mistake or break an invariant
 
 Never code history: no “X replaced Y,” “previously,” “was added/removed,” “no longer,” “now,” “before this,”
 migration narrative, diff recap, or what the code used to do. State only what holds now. Delete stale lore. Link authoritative detail instead of copying it.
@@ -44,7 +45,7 @@ Obtain user approval before modifying code.
 
 ## Index
 
-List current lore by kind — constraint, workaround, hazard, trade-off — and location, including contradictions, stale entries, and any entry longer
+List current lore by kind — constraint, workaround, hazard, trade-off — and location, including contradictions, stale entries, entries failing the must-read test, and any entry longer
 than one line, written as prose, or narrating code history. Terse entries; no conversational framing. Do not edit — report.
 
 Missing lore blocks a task only when a non-obvious invariant would otherwise live nowhere but the task
