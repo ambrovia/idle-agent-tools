@@ -1,6 +1,6 @@
 {
   "name": "idle-agent-tools",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Idle agent tools: a shared record of work for coding agents (idle-tasks) and a multi-agent development workflow on top of it (idle-skills).",
   "type": "module",
   "main": "./idle-skills/.opencode/plugins/pipeline.js",

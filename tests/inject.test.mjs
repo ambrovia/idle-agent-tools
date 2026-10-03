@@ -201,3 +201,16 @@ test('an unknown agent type injects nothing', () => {
   assert.equal(result.status, 0);
   assert.equal(result.stdout.trim(), '');
 });
+
+test('with the record in Linear, an agent gets the checks without idle ever starting', () => {
+  const root = emptyRepo();
+  writeFileSync(join(root, 'pipeline.config.yml'), 'tasks: linear  # no idle-tasks\nverify: "echo CHECKS-GREEN"\n');
+  const marker = join(root, 'idle-started');
+  const fakeIdle = join(root, 'fake-idle.mjs');
+  writeFileSync(fakeIdle, `process.getBuiltinModule('node:fs').writeFileSync(${JSON.stringify(marker)}, '');`);
+  const context = claudeContext(run(root, 'claude', spawnPayload('pipeline-reviewer'), { IDLE_BIN: fakeIdle }));
+  assert.match(context, /task: in Linear — read it with \/linear/);
+  assert.match(context, /CHECKS-GREEN/);
+  assert.doesNotMatch(context, /## state|## diff since/);
+  assert.equal(spawnSync('test', ['-e', marker]).status, 1, 'idle was started');
+});

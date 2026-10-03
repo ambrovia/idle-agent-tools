@@ -147,6 +147,7 @@ function scalar(raw) {
 function readConfig(root) {
   let verify = null;
   let preSpawn = null;
+  let tasks = 'idle';
   let inChecks = false;
   try {
     for (const line of readFileSync(join(root, 'pipeline.config.yml'), 'utf8').split('\n')) {
@@ -154,11 +155,13 @@ function readConfig(root) {
       if (inChecks && /^\S/.test(line)) inChecks = false;
       let match = line.match(/^verify:\s*(.*)$/);
       if (match) verify = scalar(match[1]);
+      match = line.match(/^tasks:\s*(.*)$/);
+      if (match) tasks = scalar(match[1]) ?? tasks;
       match = line.match(/^\s+preSpawn:\s*(.*)$/);
       if (match && inChecks) preSpawn = scalar(match[1]);
     }
   } catch { /* no config — checks skipped */ }
-  return { verify, preSpawn };
+  return { verify, preSpawn, tasks };
 }
 
 function idle(root, ...args) {
@@ -247,18 +250,21 @@ function buildInjection(format) {
   }
 
   const root = process.cwd();
-  const active = findActiveRoot(root);
-  if (!active) return null;
+  const { verify, preSpawn, tasks } = readConfig(root);
+  // A record kept in Linear is read by the agent through the Linear MCP (/linear); a hook has no
+  // way in, so it brings the checks alone and never starts idle.
+  const linear = tasks === 'linear';
+  const active = linear ? null : findActiveRoot(root);
+  if (!linear && !active) return null;
   lastEvent = target.kind;
   // No leading bracket: codex discards stdout that looks like JSON but is not.
   const label = target.name || 'spawn';
-  const sections = [`pipeline injection — ${target.kind}: ${label}, task: ${active.id}`];
+  const sections = [`pipeline injection — ${target.kind}: ${label}, task: ${linear ? 'in Linear — read it with /linear' : active.id}`];
 
-  const state = idle(root, 'show', active.id, '--state');
+  const state = linear ? null : idle(root, 'show', active.id, '--state');
   if (state) sections.push('## state', cap(state, `idle show ${active.id} --state`));
 
   if (extra.checks) {
-    const { verify, preSpawn } = readConfig(root);
     const command = preSpawn ?? verify;
     if (command) {
       const outcome = runChecks(root, command);
@@ -273,7 +279,7 @@ function buildInjection(format) {
     }
   }
 
-  if (extra.diff) {
+  if (extra.diff && !linear) {
     // The commit the work started from, recorded on the root when its worktree was cut.
     let since = null;
     try { since = JSON.parse(idle(root, 'show', active.id)).task.metadata.since; } catch { /* absent */ }

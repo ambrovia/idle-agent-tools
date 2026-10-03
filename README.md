@@ -15,7 +15,7 @@ Agents do not talk to each other; they read and write one record. It holds two t
 
 ### [`idle-skills/`](idle-skills/) — the workflow
 
-A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan in your own words. The planner breaks the work into goals, builders work them, the system runs the checks, fresh reviewers judge whether each *goal* is reached — and you contradict what is not done. Fifteen skills, three personas, hooks that put fresh evidence in front of every agent when it starts. Needs idle-tasks.
+A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan in your own words. The planner breaks the work into goals, builders work them, the system runs the checks, fresh reviewers judge whether each *goal* is reached — and you contradict what is not done. Sixteen skills, three personas, hooks that put fresh evidence in front of every agent when it starts. Needs idle-tasks — or keeps the record in Linear instead (`tasks: linear`).
 
 ```
 drop a task ──▶ interview ──▶ plan the tree ──▶ build ──▶ checks ──▶ review ──▶ ship

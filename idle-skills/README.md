@@ -133,9 +133,11 @@ This is how one repo makes `/review` enforce its own reuse-before-build rule, or
 
 ## The skills
 
-`pipeline` · `refine` · `program-design` · `design` · `architecture` · `architecture-critique` · `write-tests` · `write-code` · `write-docs` · `review` · `retro` · `ship` · `compound` · `lore` · `setup`
+`pipeline` · `refine` · `program-design` · `design` · `architecture` · `architecture-critique` · `write-tests` · `write-code` · `write-docs` · `review` · `retro` · `ship` · `compound` · `lore` · `setup` · `linear`
 
 The record's own skill, `idle`, comes with [idle-tasks](../idle-tasks/).
+
+**Linear instead of idle-tasks.** Set `tasks: linear` and `linear.team` in `pipeline.config.yml` and the skills keep the record in Linear through the Linear MCP: tasks are issues and sub-issues, decisions are issues labelled `decision`, and the pull request's CI is what verifies a submitted task. idle-tasks then goes unused. `/linear` maps every move; the rules idle-tasks enforced (leases, non-overlapping scopes) become rules the agents keep.
 
 Drop a task — `idle task --title "…"`, or just tell the agent — and run it end to end with `/pipeline <id>`. After several tasks, run `/compound` to mine the retro log for recurring patterns and propose process fixes. Use `/lore` anytime to capture or surface tribal knowledge.
 

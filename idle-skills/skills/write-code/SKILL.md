@@ -37,7 +37,7 @@ Raise a blocker with evidence when new scope or a changed structural decision is
 
 Submit only when the goal is reached and shown to be — `{{verify}}` green, and the change working through its real consuming path where the goal names one —
 change-caused regressions are fixed, and the diff contains no unrelated work and no task id. Report
-pre-existing failures separately. When you submit, the system runs the project's checks itself; a failure
+pre-existing failures separately. When you submit, the system runs the project's checks itself (in Linear, the PR's CI); a failure
 reopens the task with the output, whatever you reported.
 
 A choice you had to make where the plan was silent is a **decision**: record it as one, so it binds the
@@ -46,7 +46,7 @@ feedback on the task for anything
 learned by doing that whoever plans the tree should know: the goal is wrong, the approach will not
 work, a decision conflicts. End in exactly one way: submit; propose children when the task is bigger
 than it looked, and release it; or block with the reason. A task that is merely not ready yet — what it
-needs is unfinished — is not blocked: leave it, and say so in your report. `/idle` says how.
+needs is unfinished — is not blocked: leave it, and say so in your report. `/idle` (or `/linear`) says how.
 
 ## Target
 

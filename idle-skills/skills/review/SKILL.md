@@ -77,7 +77,7 @@ style — local verbosity is a non-blocking defect.
 Then make the move yourself — nobody else will, and a task left `verified` holds up everything that needs
 it. With no blocking finding, move the task to `done`. Otherwise move it back to `open` with the blocking
 findings as the reason — those alone; the next worker reads them in the brief. Return everything,
-including non-blocking findings and positive evidence, to whoever asked. `/idle` says how. Never edit
+including non-blocking findings and positive evidence, to whoever asked. `/idle` (or `/linear`) says how. Never edit
 code or turn optional hardening, polish, adjacent cleanup, or personal preference into a finding.
 
 ## Target

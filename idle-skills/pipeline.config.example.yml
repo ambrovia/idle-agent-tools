@@ -7,6 +7,13 @@
 # what "green" means is up to you, as long as one command produces it.
 verify: "npm run verify"
 
+# Where the record of work lives. idle (default): the idle-tasks plugin, in the
+# user's home. linear: Linear issues through the Linear MCP; idle-tasks not needed.
+# tasks: linear
+# linear:
+#   team: ENG
+#   project: my-repo   # defaults to the repository's name
+
 # The customer every planning + critique phase is building for (over- and
 # under-building both count as defects). /refine re-confirms it
 # and stops for a maintainer decision if unclear. Overridable per-track and

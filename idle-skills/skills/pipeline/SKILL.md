@@ -18,7 +18,8 @@ a tool call unless that state is reached.
 
 ## The record
 
-State lives in the record of work; `/idle` says how to read and write it. Work starts as a single root
+State lives in the record of work; `/idle` says how to read and write it — or `/linear` when
+`pipeline.config.yml` sets `tasks: linear`. Work starts as a single root
 task — anyone can drop one at any time, and it need not be well formed — and grows into a tree only as
 far as it has to. Everything a cold agent needs to resume is there or it does not exist.
 
@@ -121,7 +122,7 @@ doing, and ends by submitting, proposing children, or blocking with a reason. It
 
 **Fan out only for homogeneous work** — the same thing done many times, sharing one topic and context.
 Run anything heterogeneous sequentially. Parallel tasks need isolated worktrees and non-overlapping
-scope; the record refuses an overlapping claim, and without per-writer isolation you run them
+scope; the record refuses an overlapping claim (in Linear the claimant checks it), and without per-writer isolation you run them
 sequentially regardless.
 
 Freshness belongs at phase boundaries, continuity within a loop: keep the same builder across its
@@ -131,7 +132,7 @@ retries and the same reviewer across its evaluations when the host lets you resu
 
 **Nobody's word that the checks pass counts, yours included.** When a task is submitted the system runs
 the project's configured checks itself and sends a failing task back to open with the output. You do not
-run them, and you do not move a task past them.
+run them, and you do not move a task past them. In Linear the PR's CI plays the system (`/linear`).
 
 Every task is then reviewed by a fresh reviewer that did not do the work — from a different model
 family when more than one is connected. The backend's review setting holds verified tasks for this;

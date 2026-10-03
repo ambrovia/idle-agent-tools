@@ -5,7 +5,7 @@
   },
   "metadata": {
     "description": "Idle agent tools: a shared record of work for coding agents, and a multi-agent development workflow on top of it.",
-    "version": "0.9.3"
+    "version": "0.9.4"
   },
   "plugins": [
     {
