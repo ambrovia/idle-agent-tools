@@ -1,6 +1,6 @@
 name: idle-skills
 version: 0.9.4
-description: Multi-agent development on a shared record of work — interview, plan, build, review, ship. Needs idle-tasks.
+description: Multi-agent development on a shared record of work — interview, plan, build, review, ship. Needs idle-tasks, or Linear.
 author: Ambrovia
 license: Apache-2.0
 homepage: https://github.com/ambrovia/idle-agent-tools

@@ -4,7 +4,7 @@
 
 Freeform "vibe coding" with an agent fails at scale: no separation between deciding *what* to build and building it, the author grades their own homework, scope creeps, review gets skipped when "it's simple," agents that work to a checklist miss what the checklist was for, and nothing compounds.
 
-idle-skills is a workflow over [idle-tasks](../idle-tasks/), the record of work. A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan of 50–100 lines in your own words. The planner breaks the work into more detailed goals; builders work them; the system runs your project's checks; fresh reviewers judge whether each *goal* is reached, not whether a list was ticked.
+idle-skills is a workflow over a record of work: [idle-tasks](../idle-tasks/), or Linear. A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan of 50–100 lines in your own words. The planner breaks the work into more detailed goals; builders work them; the system runs your project's checks; fresh reviewers judge whether each *goal* is reached, not whether a list was ticked.
 
 ```
 drop a task ──▶ interview ──▶ plan the tree ──▶ build ──▶ checks ──▶ review ──▶ ship
@@ -34,13 +34,13 @@ drop a task ──▶ interview ──▶ plan the tree ──▶ build ──�
 
 ## Install
 
-Install both plugins from the marketplace at the repository root — see the [top-level README](../README.md#install). This plugin declares `idle-tasks` as a dependency; without the record of work, the skills have nothing to write to.
+Install both plugins from the marketplace at the repository root — see the [top-level README](../README.md#install). This plugin declares `idle-tasks` as a dependency; without a record of work, the skills have nothing to write to. With the record in Linear, idle-tasks is installed but unused.
 
 ## Configure
 
 Everything project-specific lives in one file. Copy [`pipeline.config.example.yml`](pipeline.config.example.yml) to `pipeline.config.yml`; skills resolve `{{key}}` from it:
 
-The record of work needs nothing in the repository. Its settings are per machine, in `~/.idle/config.json` — `/setup` offers to write them:
+With idle-tasks, the record of work needs nothing in the repository. Its settings are per machine, in `~/.idle/config.json` — `/setup` offers to write them:
 
 ```json
 { "checks": { "my-repo": ["go test ./..."] }, "review": true }
@@ -86,6 +86,8 @@ event at all.
 | `pipeline-planner` | the tree's state |
 | `pipeline-builder` | state + check results, marked as a pre-edit baseline |
 | `pipeline-reviewer` | state + check results + the diff since the work started |
+
+With the record in Linear (`tasks: linear`) the hook cannot read it: every spawn above gets the check results alone, and the agent reads the state and the diff itself (`/linear`).
 
 **This runs `checks.preSpawn` (or `verify`) as a shell command.** A hook executes directly, so it is
 not covered by the host's tool-permission prompts: whatever that line contains runs when an agent
@@ -137,9 +139,9 @@ This is how one repo makes `/review` enforce its own reuse-before-build rule, or
 
 The record's own skill, `idle`, comes with [idle-tasks](../idle-tasks/).
 
-**Linear instead of idle-tasks.** Set `tasks: linear` and `linear.team` in `pipeline.config.yml` and the skills keep the record in Linear through the Linear MCP: tasks are issues and sub-issues, decisions are issues labelled `decision`, and the pull request's CI is what verifies a submitted task. idle-tasks then goes unused. `/linear` maps every move; the rules idle-tasks enforced (leases, non-overlapping scopes) become rules the agents keep.
+**Linear instead of idle-tasks.** Set `tasks: linear` and `linear.team` in `pipeline.config.yml` and the skills keep the record in Linear through the Linear MCP: tasks are issues and sub-issues, decisions are issues labelled `decision`, the reviewer runs `verify` on every submitted task, and the pull request's CI verifies the root at ship. idle-tasks then goes unused. `/linear` maps every move; the rules idle-tasks enforced (leases, non-overlapping scopes) become rules the agents keep.
 
-Drop a task — `idle task --title "…"`, or just tell the agent — and run it end to end with `/pipeline <id>`. After several tasks, run `/compound` to mine the retro log for recurring patterns and propose process fixes. Use `/lore` anytime to capture or surface tribal knowledge.
+Drop a task — `idle task --title "…"`, an issue in the Linear project, or just tell the agent — and run it end to end with `/pipeline <id>`. After several tasks, run `/compound` to mine the retro log for recurring patterns and propose process fixes. Use `/lore` anytime to capture or surface tribal knowledge.
 
 ## License
 

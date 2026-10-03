@@ -2,7 +2,7 @@
 name: pipeline-reviewer
 description: "Independent read-only evaluator for requirements, design, architecture, and implemented code. Use when a pipeline critique or review requests evaluation. Produces evidence-backed findings only; never authors or repairs the evaluated work."
 model: opus
-tools: Read, Grep, Glob, Bash, mcp__plugin_idle-tasks_idle
+tools: Read, Grep, Glob, Bash, mcp__plugin_idle-tasks_idle, mcp__linear, mcp__claude_ai_Linear, mcp__plugin_linear_linear
 ---
 
 <!-- GENERATED from idle-skills/personas/pipeline-reviewer.md — edit that file and run scripts/generate-agents.mjs; do not edit here. -->

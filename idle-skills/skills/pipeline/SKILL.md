@@ -132,11 +132,11 @@ retries and the same reviewer across its evaluations when the host lets you resu
 
 **Nobody's word that the checks pass counts, yours included.** When a task is submitted the system runs
 the project's configured checks itself and sends a failing task back to open with the output. You do not
-run them, and you do not move a task past them. In Linear the PR's CI plays the system (`/linear`).
+run them, and you do not move a task past them. In Linear the reviewer runs them before judging (`/linear`).
 
 Every task is then reviewed by a fresh reviewer that did not do the work — from a different model
 family when more than one is connected. The backend's review setting holds verified tasks for this;
-`/setup` turns it on. Send only blocking findings back, as the reason the task reopens. Non-blocking
+`/setup` turns it on. In Linear review is always on. Send only blocking findings back, as the reason the task reopens. Non-blocking
 findings and notes are carried forward verbatim to the final summary; they never spawn a round, and you
 may not promote one to blocking — a new concern needs a new evaluation with new evidence.
 

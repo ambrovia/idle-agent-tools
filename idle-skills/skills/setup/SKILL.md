@@ -21,8 +21,9 @@ task itself; `"review": true`, so a verified task waits for a reviewer who did n
 shared database only when the maintainer brings one.
 
 To keep the record in Linear instead, set `tasks: linear` and `linear.team` in `pipeline.config.yml`;
-idle-tasks is then not needed. Confirm the Linear MCP is connected, and that the repository's CI runs
-`{{verify}}` on pull requests, since in Linear the PR's CI is what verifies a submitted task (`/linear`).
+idle-tasks is then not needed. Confirm the Linear MCP is connected under a name the agents allow
+(`/linear` lists them). In Linear the reviewer runs `{{verify}}` on every submitted task and the PR's CI
+verifies the root at ship, so `verify` has to be right.
 
 Write approved rule files to `.pipeline/rules/<slot>.md` and point the slot at that path. Rule files are maintainer-authored and committed; a
 pipeline run may not edit them.

@@ -29,7 +29,7 @@ Owned by `idle-skills/skills/linear/SKILL.md`: task = issue, tree = sub-issues, 
 
 | idle-tasks | In Linear |
 |---|---|
-| The system runs the configured checks on submit and sends failures back | The PR's CI is the check: a submitted task moves on only when its PR is green |
+| The system runs the configured checks on submit and sends failures back | The reviewer, never the worker, runs `verify` on every submitted task before judging it; the PR's CI verifies the root again at ship |
 | Claims are leases, refused while another live one holds | A claim comment with an expiry; agents read before claiming |
 | Overlapping scopes cannot be claimed at once | The claimant compares `## Scope` sections of In Progress siblings |
 | Claims are serialised in one transaction | No transactions: after claiming, re-read; the older live claim wins |
@@ -40,4 +40,5 @@ These are rules agents keep rather than refusals a system makes. That is the pri
 ## Open
 
 - idle-skills still declares idle-tasks as a plugin dependency, so it is installed in Linear mode but unused. Making the dependency optional differs per harness.
-- What verifies when a repository has no CI. PR CI is the default the skill is written for.
+- Linear's GitHub integration links nothing, because task ids stay out of branch and PR names; a team that links anyway has to turn its automatic state changes off.
+- The generated Claude agents allow the Linear MCP under three common server names; another name needs adding by hand.

@@ -37,7 +37,7 @@ Raise a blocker with evidence when new scope or a changed structural decision is
 
 Submit only when the goal is reached and shown to be — `{{verify}}` green, and the change working through its real consuming path where the goal names one —
 change-caused regressions are fixed, and the diff contains no unrelated work and no task id. Report
-pre-existing failures separately. When you submit, the system runs the project's checks itself (in Linear, the PR's CI); a failure
+pre-existing failures separately. When you submit, the system runs the project's checks itself (in Linear, your reviewer runs them); a failure
 reopens the task with the output, whatever you reported.
 
 A choice you had to make where the plan was silent is a **decision**: record it as one, so it binds the

@@ -31,6 +31,9 @@ what was already judged except where the delta touches it.
 
 ## Evaluate
 
+**When the record is in Linear, run `{{verify}}` in the root's worktree first.** Nothing else ran the
+checks; red sends the task back with the failure as the verdict, before any other judgement (`/linear`).
+
 **Is the goal reached?** Judge the task in its full description, in the light of what it is for — not
 a list. Acceptance criteria are signs that help you tell; all of them passing while the goal is missed
 is a failed review, and one of them unmet while the goal is plainly reached is a note. Use the cheapest

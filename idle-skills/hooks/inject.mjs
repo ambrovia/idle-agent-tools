@@ -156,7 +156,7 @@ function readConfig(root) {
       let match = line.match(/^verify:\s*(.*)$/);
       if (match) verify = scalar(match[1]);
       match = line.match(/^tasks:\s*(.*)$/);
-      if (match) tasks = scalar(match[1]) ?? tasks;
+      if (match) tasks = (scalar(match[1]) ?? tasks).toLowerCase();
       match = line.match(/^\s+preSpawn:\s*(.*)$/);
       if (match && inChecks) preSpawn = scalar(match[1]);
     }
@@ -252,7 +252,8 @@ function buildInjection(format) {
   const root = process.cwd();
   const { verify, preSpawn, tasks } = readConfig(root);
   // A record kept in Linear is read by the agent through the Linear MCP (/linear); a hook has no
-  // way in, so it brings the checks alone and never starts idle.
+  // way in, so it brings the checks alone and never starts idle. With no active root to gate on,
+  // every matching spawn and skill load runs them.
   const linear = tasks === 'linear';
   const active = linear ? null : findActiveRoot(root);
   if (!linear && !active) return null;

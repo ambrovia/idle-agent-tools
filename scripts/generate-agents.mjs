@@ -57,8 +57,9 @@ function buildClaudeTools(meta) {
   if (meta.write) tools.push('Write');
   if (meta.edit) tools.push('Edit');
   // Every persona reads and writes the record of work. A `tools` list is an allowlist, so without
-  // this a persona only reaches the record through the `idle` command in Bash.
-  tools.push('mcp__plugin_idle-tasks_idle');
+  // this a persona only reaches the record through the `idle` command in Bash. A record kept in Linear
+  // is reached through the Linear MCP, under the names its common installs give it.
+  tools.push('mcp__plugin_idle-tasks_idle', 'mcp__linear', 'mcp__claude_ai_Linear', 'mcp__plugin_linear_linear');
   return tools.join(', ');
 }
 

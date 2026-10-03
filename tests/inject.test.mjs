@@ -204,10 +204,10 @@ test('an unknown agent type injects nothing', () => {
 
 test('with the record in Linear, an agent gets the checks without idle ever starting', () => {
   const root = emptyRepo();
-  writeFileSync(join(root, 'pipeline.config.yml'), 'tasks: linear  # no idle-tasks\nverify: "echo CHECKS-GREEN"\n');
+  writeFileSync(join(root, 'pipeline.config.yml'), 'tasks: Linear  # no idle-tasks\nverify: "echo CHECKS-GREEN"\n');
   const marker = join(root, 'idle-started');
-  const fakeIdle = join(root, 'fake-idle.mjs');
-  writeFileSync(fakeIdle, `process.getBuiltinModule('node:fs').writeFileSync(${JSON.stringify(marker)}, '');`);
+  const fakeIdle = join(root, 'fake-idle.cjs');
+  writeFileSync(fakeIdle, `require('node:fs').writeFileSync(${JSON.stringify(marker)}, '');`);
   const context = claudeContext(run(root, 'claude', spawnPayload('pipeline-reviewer'), { IDLE_BIN: fakeIdle }));
   assert.match(context, /task: in Linear — read it with \/linear/);
   assert.match(context, /CHECKS-GREEN/);
