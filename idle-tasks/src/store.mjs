@@ -1,12 +1,13 @@
-// Storage — one verb: run a function inside a transaction.
+// Storage — one verb: run a function against the store, inside a transaction.
 // Local: PGlite in the user's home, one process at a time, so every call is
 // lock → open → transaction → close. Shared: any Postgres the config names.
-// Same SQL either way.
+// Same SQL either way; the operations see only the store (pg-store.mjs), never SQL.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { migrate } from './schema.mjs';
+import { pgStore } from './pg-store.mjs';
 
 export function home() {
   return process.env.IDLE_HOME || join(homedir(), '.idle');
@@ -28,6 +29,11 @@ export function checksFor(project) {
 
 export function mode() {
   return config().database ? 'shared' : 'local';
+}
+
+// fn receives the store: every question the operations ask of storage.
+export async function withStore(fn) {
+  return withTx((q) => fn(pgStore(q)));
 }
 
 // fn receives q(sql, params) → rows.

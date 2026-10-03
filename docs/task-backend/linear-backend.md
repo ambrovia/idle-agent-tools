@@ -84,6 +84,6 @@ Keep PGlite/Postgres as the source of truth and mirror tasks to Linear one way (
 
 ## Order of work
 
-1. Store interface, PGlite and Postgres behind it, tests green. One PR, no behaviour change.
+1. Store interface, PGlite and Postgres behind it, tests green. One PR, no behaviour change. *Built: `idle-tasks/src/pg-store.mjs`.*
 2. Linear store behind `"backend": "linear"`, with a test suite that runs against a real Linear workspace when `IDLE_TEST_LINEAR_TEAM` and `LINEAR_API_KEY` are set, and is skipped otherwise.
 3. README and the `idle` skill: one paragraph on the Linear mode. idle-tasks version bump; idle-skills needs no change and no bump.
