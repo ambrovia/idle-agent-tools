@@ -2,6 +2,7 @@
 // Local: PGlite in the user's home, one process at a time, so every call is
 // lock → open → transaction → close. Shared: any Postgres the config names.
 // Same SQL either way; the operations see only the store (pg-store.mjs), never SQL.
+// Linear: the tasks live in a Linear team (linear.mjs), behind the same store.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -28,11 +29,13 @@ export function checksFor(project) {
 }
 
 export function mode() {
-  return config().database ? 'shared' : 'local';
+  const cfg = config();
+  return cfg.backend === 'linear' ? 'linear' : cfg.database ? 'shared' : 'local';
 }
 
 // fn receives the store: every question the operations ask of storage.
 export async function withStore(fn) {
+  if (config().backend === 'linear') return (await import('./linear.mjs')).withLinear(fn);
   return withTx((q) => fn(pgStore(q)));
 }
 
@@ -76,27 +79,37 @@ async function acquire(lock) {
   }
 }
 
-async function local(fn) {
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm');
+// One process at a time on this machine, for whatever fn does with the data in home().
+export async function withLock(fn) {
   mkdirSync(home(), { recursive: true });
   const lock = join(home(), 'db.lock');
   await acquire(lock);
-  let db;
   try {
-    db = new PGlite(join(home(), 'db'), { extensions: { pg_trgm } });
-    return await db.transaction(async (tx) => {
-      const q = async (sql, params = []) => (await tx.query(sql, params)).rows;
-      await migrate(q);
-      return fn(q);
-    });
+    return await fn();
   } finally {
-    if (db) await db.close().catch(() => {});
     // Release only what is still ours: if we were robbed, the lock now belongs to someone else.
     let holder = 0;
     try { holder = Number(readFileSync(join(lock, 'pid'), 'utf8')); } catch { /* already gone */ }
     if (holder === process.pid) rmSync(lock, { recursive: true, force: true });
   }
+}
+
+async function local(fn) {
+  const { PGlite } = await import('@electric-sql/pglite');
+  const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm');
+  return withLock(async () => {
+    let db;
+    try {
+      db = new PGlite(join(home(), 'db'), { extensions: { pg_trgm } });
+      return await db.transaction(async (tx) => {
+        const q = async (sql, params = []) => (await tx.query(sql, params)).rows;
+        await migrate(q);
+        return fn(q);
+      });
+    } finally {
+      if (db) await db.close().catch(() => {});
+    }
+  });
 }
 
 async function shared(fn) {
