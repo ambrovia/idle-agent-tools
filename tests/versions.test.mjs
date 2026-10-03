@@ -14,4 +14,5 @@ test('every idle-skills manifest names exactly the version in package.json', () 
     assert.equal(read(file).version, version, file);
   }
   assert.equal(read('.cursor-plugin/marketplace.json').metadata.version, version, '.cursor-plugin/marketplace.json');
+  assert.equal(readFileSync(join(repo, 'idle-skills/apm.yml'), 'utf8').match(/^version:\s*(\S+)/m)?.[1], version, 'idle-skills/apm.yml');
 });
