@@ -11,7 +11,7 @@ Two plugins, usable together or apart. One marketplace serves both on every harn
 
 ### [`idle-tasks/`](idle-tasks/) — the record of work
 
-Agents do not talk to each other; they read and write one record. It holds two things: **tasks** — goals that nest into trees, need each other and carry scope — and **decisions**. Anyone can drop a task at any time; a title is enough. Four operations (`task`, `decision`, `show`, `list`), the same over the `idle` CLI and over MCP; everything else is a state. Claims are leases, refused when scopes overlap. When a task is submitted **the system runs your project's checks itself** and sends a failing task back with the output — no agent's word counts. It lives in your home folder on PGlite, or on any Postgres you bring. It knows nothing about our workflow: bring your own. Also on npm as [`idle-agent-tasks`](https://www.npmjs.com/package/idle-agent-tasks).
+Agents do not talk to each other; they read and write one record. It holds two things: **tasks** — goals that nest into trees, need each other and carry scope — and **decisions**. Anyone can drop a task at any time; a title is enough. Four operations (`task`, `decision`, `show`, `list`), the same over the `idle` CLI and over MCP; everything else is a state. Claims are leases, refused when scopes overlap. When a task is submitted **the system runs your project's checks itself** and sends a failing task back with the output — no agent's word counts. It lives in your home folder on PGlite, on any Postgres you bring, or in Linear. It knows nothing about our workflow: bring your own. Also on npm as [`idle-agent-tasks`](https://www.npmjs.com/package/idle-agent-tasks).
 
 ### [`idle-skills/`](idle-skills/) — the workflow
 

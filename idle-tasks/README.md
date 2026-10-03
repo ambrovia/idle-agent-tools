@@ -7,7 +7,7 @@ A shared record of work for coding agents. Agents do not talk to each other; the
 - **Anyone can drop a task.** A title is enough. It is searched for near-duplicates first.
 - **Claims are leases**, refused when the scope overlaps another live claim in the same tree.
 - **The system verifies, not an agent.** Submitting a task runs your project's configured shell commands where the work is, and sends a failing task back to `open` with the output.
-- **Storage lives in your home folder:** PGlite by default, or any Postgres you bring. Same SQL either way.
+- **Storage lives in your home folder:** PGlite by default, or any Postgres you bring. Same SQL either way. Or keep the tasks in **Linear**, where humans see and edit them as issues.
 
 Bring your own workflow — or use [idle-skills](https://github.com/ambrovia/idle-agent-tools), a multi-agent development workflow built on it.
 
@@ -38,6 +38,22 @@ As an MCP server (stdio), in any harness:
 ```
 
 `checks` are run by the system when a task in that project is submitted. `review` makes a verified task wait for someone who did not do the work. `database` switches from the local PGlite folder to a shared Postgres. The project label is the repository's name, so every clone and worktree lands on the same tasks.
+
+### Linear
+
+```json
+{ "backend": "linear", "linear": { "team": "ENG", "apiKeyEnv": "LINEAR_API_KEY" } }
+```
+
+The tasks live in that Linear team instead, with a Linear project per project label, created on first use. The API key is read from the environment variable named by `apiKeyEnv` (default `LINEAR_API_KEY`), never from the file. Everything else is unchanged: the same operations and refusals, and the checks still run on this machine when a task is submitted.
+
+- A task is an issue, its children are sub-issues. The description holds the goal, then `## Signs the goal is reached`, `## Plan`, `## Interview` and `## How it is used`.
+- States map onto the team's workflow: proposed → Triage (or Backlog), open → Todo, claimed → In Progress, submitted and verified → In Review, done → Done, archived → Canceled; blocked is Todo with a `blocked` label.
+- A decision is an issue labelled `decision`, in Done while it is in force and Canceled once superseded.
+- What Linear has no field for — scope, needs, claims, feedback, verdicts, decision refs, `meta` — rides in an attachment idle keeps on each issue. `needs` are also shown as blocked-by relations.
+- What people change in Linear counts: titles, descriptions, states, sub-issues. An issue created in Linear inside the project is a task, with its Linear identifier as its id.
+
+Linear has no transactions. Each call loads the team's issues, runs the operation, and writes back only what changed, under this machine's lock, so one machine stays consistent. Two machines working the same tree at the same moment are not serialised: the later write wins.
 
 The `idle` skill in `skills/idle/SKILL.md` tells an agent everything above.
 

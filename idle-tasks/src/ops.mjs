@@ -1,13 +1,14 @@
 // Operations — as few as possible: task and decision each create-or-update,
 // show and list read. Defined once; the CLI, the MCP server and the help text
-// are all generated from this list. run(q, input, ctx) → a plain object or a string.
+// are all generated from this list. run(s, input, ctx) → a plain object or a string.
+// s is the store (pg-store.mjs); nothing here speaks SQL.
 // ctx: { by, project }. A Refused error is an expected "no", not a crash.
 
 import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { checksFor, config, home, mode, withTx } from './store.mjs';
-import { CAPS, version } from './schema.mjs';
+import { checksFor, config, home, mode, withStore } from './store.mjs';
+import { CAPS } from './schema.mjs';
 import { brief, state, tree } from './views.mjs';
 import { workdir } from './context.mjs';
 
@@ -18,31 +19,29 @@ const ALPHABET = 'abcdefghjkmnpqrstvwxyz23456789';
 // Random, never counters: sequential ids collide as soon as two machines create at once.
 const id = (prefix) => `${prefix}-${[...randomBytes(6)].map((b) => ALPHABET[b % ALPHABET.length]).join('')}`;
 
-// Near-duplicates only. Measured: a typo or reworded title scores 0.7–0.95, siblings that
-// merely share a prefix ("Newsletter signup form" / "… API endpoint") about 0.5.
-const SIMILAR = 0.65;
-
-const LIVE = `status = 'claimed' and claim_expires > now()`;
-const READY = `
-  (t.status = 'open' or (t.status = 'claimed' and t.claim_expires <= now()))
-  and not exists (select 1 from tasks n where n.id = any(t.needs) and n.status <> 'done')
-  and not exists (select 1 from tasks c where c.parent = t.id)`;
-
-async function load(q, taskId) {
-  const [task] = await q(`select * from tasks where id = $1`, [taskId]);
-  return task ?? refuse(`no task ${taskId}`);
+async function load(s, taskId) {
+  return (await s.task(taskId)) ?? refuse(`no task ${taskId}`);
 }
 
+// The caps, refused here so every store keeps them; Postgres also holds them as CHECK constraints.
+const CAPPED = { title: CAPS.title, goal: CAPS.goal, acceptance_criteria: CAPS.acceptance, consumer_scenario: CAPS.scenario, plan: CAPS.plan, interview: CAPS.interview, statement: CAPS.statement, rationale: CAPS.rationale };
+function capped(fields) {
+  for (const [field, value] of Object.entries(fields)) {
+    if (!Object.hasOwn(CAPPED, field) || typeof value !== 'string') continue;
+    if (field === 'title' || field === 'statement') { if (!value) refuse(`--${field} cannot be empty`); }
+    if (value.length > CAPPED[field]) refuse(`${field} too long: ${value.length} characters, the cap is ${CAPPED[field]}`);
+  }
+  return fields;
+}
+
+const glance = (rows) => rows.map(({ id, title, status }) => ({ id, title, status }));
+
 // feedback (worker → planner) and verdict (why it came back) are fields that grow by one capped line.
-async function append(q, task, field, body, by) {
+async function append(s, task, field, body, by) {
   while (body.startsWith(`${by}:`) || body.startsWith(`- ${by}:`)) body = body.slice(body.indexOf(':') + 1).trimStart();
   if (!body) refuse('nothing to append');
   if (body.length > CAPS.entry) refuse(`too long: ${body.length} characters, the cap is ${CAPS.entry}`);
-  await q(`update tasks set ${field} = ${field} || $2, updated_at = now() where id = $1`, [task, `- ${by}: ${body}\n`]);
-}
-
-async function setStatus(q, taskId, status, extra = '') {
-  await q(`update tasks set status = $2, updated_at = now() ${extra} where id = $1`, [taskId, status]);
+  await s.append(task, field, `- ${by}: ${body}\n`);
 }
 
 const trim = (s) => s.replace(/\/+$/, '');
@@ -53,25 +52,14 @@ export function overlaps(a, b) {
 
 // Nothing left to wait for → move on. No checks configured: straight to verified.
 // Verified with review off: done.
-async function settle(q, taskId) {
-  let task = await load(q, taskId);
+async function settle(s, taskId) {
+  let task = await load(s, taskId);
   if (task.status === 'submitted' && checksFor(task.project).length === 0) {
-    await setStatus(q, taskId, 'verified');
-    task = await load(q, taskId);
+    await s.update(taskId, { status: 'verified' });
+    task = await load(s, taskId);
   }
-  if (task.status === 'verified' && !config().review) await setStatus(q, taskId, 'done');
-  return load(q, taskId);
-}
-
-async function similarTasks(q, title, root, project) {
-  return q(
-    `select id, title, status from tasks
-     where status not in ('done', 'archived')
-       and (($2::text is not null and root = $2) or ($2::text is null and project = $3 and parent is null))
-       and similarity(title, $1) > ${SIMILAR}
-     order by similarity(title, $1) desc limit 5`,
-    [title, root, project],
-  );
+  if (task.status === 'verified' && !config().review) await s.update(taskId, { status: 'done' });
+  return load(s, taskId);
 }
 
 function lease(input) {
@@ -79,102 +67,99 @@ function lease(input) {
   return Number.isFinite(minutes) && minutes > 0 ? minutes : refuse(`--ttl must be a number of minutes, not "${input.ttl}"`);
 }
 
-async function claim(q, task, input, ctx) {
-  // Serialises claims within one tree, on any Postgres.
-  await q(`select pg_advisory_xact_lock(hashtext($1))`, [task.root]);
-  const [ready] = await q(`select t.id from tasks t where t.id = $1 and ${READY}`, [task.id]);
+async function claim(s, task, input, ctx) {
+  await s.lockTree(task.root);
+  const ready = (await s.ready({ root: task.root })).some((t) => t.id === task.id);
   if (!ready) {
-    const waiting = await q(`select id from tasks where id = any($1) and status <> 'done'`, [task.needs]);
-    const [child] = await q(`select id from tasks where parent = $1 limit 1`, [task.id]);
+    const waiting = (await s.tasks(task.needs)).filter((n) => n.status !== 'done');
+    const [child] = await s.children(task.id);
     const why = waiting.length ? `it needs ${waiting.map((w) => w.id).join(', ')} done first`
       : child ? 'it has children — claim one of them'
         : task.status === 'claimed' ? `it is claimed by ${task.claimed_by}` : `it is ${task.status}`;
     refuse(`${task.id} is not ready: ${why}`);
   }
-  const others = await q(`select id, scope, claimed_by from tasks where root = $1 and id <> $2 and ${LIVE}`, [task.root, task.id]);
+  const others = (await s.liveClaims(task.root)).filter((other) => other.id !== task.id);
   for (const other of others) {
     const clash = task.scope.find((a) => other.scope.some((b) => overlaps(a, b)));
     if (clash) refuse(`scope "${clash}" overlaps ${other.id}, claimed by ${other.claimed_by}`);
   }
-  await q(`update tasks set status = 'claimed', claimed_by = $2, claim_expires = now() + make_interval(secs => $3::float8 * 60), updated_at = now() where id = $1`,
-    [task.id, ctx.by, lease(input)]);
+  await s.lease(task.id, ctx.by, lease(input));
 }
 
 // The lifecycle. Every status change goes through here; anything not listed is refused.
-async function move(q, task, to, input, ctx) {
+async function move(s, task, to, input, ctx) {
   const from = task.status;
   const mine = from === 'claimed' && task.claimed_by === ctx.by;
-  // Asked of the database, not this machine's clock: on a shared database they differ.
-  const [{ live }] = await q(`select (${LIVE}) as live from tasks where id = $1`, [task.id]);
+  // Asked of the store, not this machine's clock: on a shared database they differ.
+  const live = await s.isLive(task.id);
   const why = (field, what) => input[field] || refuse(`${from} → ${to} needs --${field}: ${what}`);
-  const FREE = ', claimed_by = null, claim_expires = null';
+  const FREE = { claimed_by: null, claim_expires: null };
 
   if (to === 'claimed') {
     // An expired lease is nobody's: renewing it is a new claim, scope check and all.
-    if (mine && live) return q(`update tasks set claim_expires = now() + make_interval(secs => $2::float8 * 60) where id = $1`, [task.id, lease(input)]);
-    return claim(q, task, input, ctx);
+    if (mine && live) return s.lease(task.id, ctx.by, lease(input));
+    return claim(s, task, input, ctx);
   }
   if (to === 'archived') {
     // A task is archived with everything under it — never while the system is verifying any of it.
-    const DOWN = `with recursive down as (select id, status from tasks where id = $1
-      union all select t.id, t.status from tasks t join down on t.parent = down.id)`;
-    const [busy] = await q(`${DOWN} select id from down where status = 'submitted' limit 1`, [task.id]);
+    const down = await s.subtree(task.id);
+    const busy = down.find((t) => t.status === 'submitted');
     if (busy) refuse(`${busy.id} is being verified — submit it again if its checks never finished`);
-    return q(`${DOWN} update tasks set status = 'archived', updated_at = now() where id in (select id from down)`, [task.id]);
+    for (const t of down) await s.update(t.id, { status: 'archived' });
+    return null;
   }
   switch (`${from} → ${to}`) {
     case 'proposed → open':
     case 'blocked → open':
-      return setStatus(q, task.id, 'open');
+      return s.update(task.id, { status: 'open' });
     case 'claimed → open':
       // A stray holder never comes back to release: anyone may take a live claim back, saying why.
       if (live && !mine) why('verdict', `say why you are taking it from ${task.claimed_by}`);
-      return setStatus(q, task.id, 'open', FREE);
+      return s.update(task.id, { status: 'open', ...FREE });
     case 'open → blocked':
     case 'claimed → blocked':
       if (live && !mine) refuse(`${task.id} is claimed by ${task.claimed_by}`);
       why('feedback', 'say why you are stopping');
-      return setStatus(q, task.id, 'blocked', FREE);
+      return s.update(task.id, { status: 'blocked', ...FREE });
     case 'claimed → submitted':
       if (!mine) refuse(`${task.id} is not claimed by ${ctx.by}`);
-      return setStatus(q, task.id, 'submitted', ', claim_expires = null');
+      return s.update(task.id, { status: 'submitted', claim_expires: null });
     case 'submitted → submitted': // checks never finished; run them again
       return null;
     case 'verified → done':
       if (config().review && task.claimed_by === ctx.by) refuse('whoever did the work cannot pass its review');
-      return setStatus(q, task.id, 'done');
+      return s.update(task.id, { status: 'done' });
     case 'open → done': {
-      const children = await q(`select status from tasks where parent = $1`, [task.id]);
+      const children = await s.children(task.id);
       if (!children.length) refuse(`${task.id} has no children — it is finished by submitting it`);
       if (children.some((c) => !['done', 'archived'].includes(c.status))) refuse(`${task.id} still has unfinished children`);
-      return setStatus(q, task.id, 'done');
+      return s.update(task.id, { status: 'done' });
     }
     case 'verified → open':
     case 'done → open':
       why('verdict', 'say why it is not done');
-      return setStatus(q, task.id, 'open', FREE);
+      return s.update(task.id, { status: 'open', ...FREE });
     default:
       return refuse(`cannot move ${task.id} from ${from} to ${to}`);
   }
 }
 
-const FIELDS = { title: 'title', goal: 'goal', ac: 'acceptance_criteria', plan: 'plan', interview: 'interview', scenario: 'consumer_scenario', scope: 'scope', needs: 'needs' };
-const JSON_FIELDS = { meta: 'metadata' };
+const FIELDS = { title: 'title', goal: 'goal', ac: 'acceptance_criteria', plan: 'plan', interview: 'interview', scenario: 'consumer_scenario', scope: 'scope', needs: 'needs', meta: 'metadata' };
 
-async function createTask(q, input, ctx) {
+async function createTask(s, input, ctx) {
   if (!input.title) refuse('a new task needs --title (or pass --id to update one)');
   const status = input.status ?? 'open';
   if (!['open', 'proposed'].includes(status)) refuse('a new task starts as open or proposed');
-  const parent = input.parent ? await load(q, input.parent) : null;
+  capped({ title: input.title });
+  const parent = input.parent ? await load(s, input.parent) : null;
   if (parent?.status === 'archived') refuse(`${parent.id} is archived`);
   if (!input.confirm) {
-    const similar = await similarTasks(q, input.title, parent?.root ?? null, ctx.project);
+    const similar = await s.similarTasks({ title: input.title, root: parent?.root ?? null, project: ctx.project });
     if (similar.length) return { created: false, similar, hint: 'repeat with --confirm to create anyway' };
   }
-  for (const needs of input.needs ?? []) await load(q, needs);
+  for (const needs of input.needs ?? []) await load(s, needs);
   const taskId = id('T');
-  await q(`insert into tasks(id, project, parent, root, title, status) values ($1, $2, $3, $4, $5, $6)`,
-    [taskId, parent?.project ?? ctx.project, parent?.id ?? null, parent?.root ?? taskId, input.title, status]);
+  await s.insertTask({ id: taskId, project: parent?.project ?? ctx.project, parent: parent?.id ?? null, root: parent?.root ?? taskId, title: input.title, status });
   return taskId;
 }
 
@@ -200,29 +185,25 @@ export const OPS = [
       meta: { type: 'json', desc: 'free-form JSON: branch, worktree, URLs — stored, never interpreted' },
       confirm: { type: 'bool', desc: 'create even when similar live tasks exist' },
     },
-    run: async (q, input, ctx) => {
+    run: async (s, input, ctx) => {
       let taskId = input.id;
       if (!taskId) {
-        const made = await createTask(q, input, ctx);
+        const made = await createTask(s, input, ctx);
         if (typeof made !== 'string') return made;
         taskId = made;
       }
-      const sets = []; const params = [taskId];
-      for (const [flag, column] of Object.entries(FIELDS)) {
-        if (input[flag] !== undefined) { params.push(input[flag]); sets.push(`${column} = $${params.length}`); }
-      }
-      for (const [flag, column] of Object.entries(JSON_FIELDS)) {
-        if (input[flag] !== undefined) { params.push(JSON.stringify(input[flag])); sets.push(`${column} = $${params.length}::jsonb`); }
-      }
-      await load(q, taskId);
-      if (input.id) for (const needed of input.needs ?? []) await load(q, needed);
-      if (sets.length) await q(`update tasks set ${sets.join(', ')}, updated_at = now() where id = $1`, params);
-      for (const field of ['feedback', 'verdict']) if (input[field]) await append(q, taskId, field, input[field], ctx.by);
+      const fields = {};
+      for (const [flag, column] of Object.entries(FIELDS)) if (input[flag] !== undefined) fields[column] = input[flag];
+      capped(fields);
+      await load(s, taskId);
+      if (input.id) for (const needed of input.needs ?? []) await load(s, needed);
+      await s.update(taskId, fields);
+      for (const field of ['feedback', 'verdict']) if (input[field]) await append(s, taskId, field, input[field], ctx.by);
       if (input.id && input.status) {
-        const task = await load(q, taskId);
-        if (task.status !== input.status || ['claimed', 'submitted'].includes(input.status)) await move(q, task, input.status, input, ctx);
+        const task = await load(s, taskId);
+        if (task.status !== input.status || ['claimed', 'submitted'].includes(input.status)) await move(s, task, input.status, input, ctx);
       }
-      return input.status ? settle(q, taskId) : load(q, taskId);
+      return input.status ? settle(s, taskId) : load(s, taskId);
     },
   },
   {
@@ -237,32 +218,29 @@ export const OPS = [
       'superseded-by': { type: 'string', desc: 'the decision that replaces this one' },
       confirm: { type: 'bool', desc: 'record even when similar active decisions exist' },
     },
-    run: async (q, input, ctx) => {
-      const get = async (decisionId) => (await q(`select * from decisions where id = $1`, [decisionId]))[0] ?? refuse(`no decision ${decisionId}`);
+    run: async (s, input, ctx) => {
+      const get = async (decisionId) => (await s.decision(decisionId)) ?? refuse(`no decision ${decisionId}`);
       let decisionId = input.id;
       if (!decisionId) {
         if (!input.task || !input.statement) refuse('a new decision needs --task and --statement');
-        const task = await load(q, input.task);
+        capped({ statement: input.statement, rationale: input.rationale });
+        const task = await load(s, input.task);
         if (!input.confirm) {
-          const similar = await q(
-            `select id, statement from decisions where root = $1 and status = 'active'
-             and similarity(statement, $2) > ${SIMILAR} limit 5`,
-            [task.root, input.statement]);
+          const similar = await s.similarDecisions(task.root, input.statement);
           if (similar.length) return { created: false, similar, hint: 'repeat with --confirm to record anyway' };
         }
         decisionId = id('D');
-        await q(`insert into decisions(id, project, root, task, statement, rationale, by) values ($1, $2, $3, $4, $5, $6, $7)`,
-          [decisionId, task.project, task.root, task.id, input.statement, input.rationale ?? null, ctx.by]);
+        await s.insertDecision({ id: decisionId, project: task.project, root: task.root, task: task.id, statement: input.statement, rationale: input.rationale ?? null, by: ctx.by });
         input.bind = [task.id, ...(input.bind ?? [])];
       }
       await get(decisionId);
       for (const bound of new Set(input.bind ?? [])) {
-        await load(q, bound);
-        await q(`update tasks set decision_refs = array_append(decision_refs, $2) where id = $1 and not ($2 = any(decision_refs))`, [bound, decisionId]);
+        await load(s, bound);
+        await s.bindDecision(bound, decisionId);
       }
       if (input['superseded-by']) {
         await get(input['superseded-by']);
-        await q(`update decisions set status = 'superseded', superseded_by = $2 where id = $1`, [decisionId, input['superseded-by']]);
+        await s.updateDecision(decisionId, { status: 'superseded', superseded_by: input['superseded-by'] });
       }
       return get(decisionId);
     },
@@ -275,16 +253,16 @@ export const OPS = [
       brief: { type: 'bool', desc: 'the task as a brief: goal, what it is for, plan, decisions in force, why it came back' },
       state: { type: 'bool', desc: 'the tree this task belongs to: what needs attention, feedback, tree, ready, claims, recently done' },
     },
-    run: async (q, { id: shown, ...input }) => {
-      if (shown.startsWith('D-')) return (await q(`select * from decisions where id = $1`, [shown]))[0] ?? refuse(`no decision ${shown}`);
-      const task = await load(q, shown);
-      if (input.brief) return brief(q, task);
-      if (input.state) return state(q, await load(q, task.root));
+    run: async (s, { id: shown, ...input }) => {
+      if (shown.startsWith('D-')) return (await s.decision(shown)) ?? refuse(`no decision ${shown}`);
+      const task = await load(s, shown);
+      if (input.brief) return brief(s, task);
+      if (input.state) return state(s, await load(s, task.root));
       return {
         task,
-        needs: await q(`select id, title, status from tasks where id = any($1)`, [task.needs]),
-        children: await q(`select id, title, status from tasks where parent = $1 order by created_at`, [shown]),
-        decisions: await q(`select id, statement, status from decisions where id = any($1)`, [task.decision_refs]),
+        needs: glance(await s.tasks(task.needs)),
+        children: glance(await s.children(shown)),
+        decisions: (await s.decisions(task.decision_refs)).map(({ id: d, statement, status }) => ({ id: d, statement, status })),
       };
     },
   },
@@ -299,32 +277,24 @@ export const OPS = [
       archived: { type: 'bool', desc: 'include archived roots of this project' },
       all: { type: 'bool', desc: 'every project, archived roots too' },
     },
-    run: async (q, input, ctx) => {
-      const root = input.root ? (await load(q, input.root)).root : null;
+    run: async (s, input, ctx) => {
+      const root = input.root ? (await load(s, input.root)).root : null;
       if (input.decisions) {
         if (!root) refuse('--decisions needs --root');
-        return q(`select id, task, statement, rationale, by, status, superseded_by, at from decisions
-                  where root = $1 and ($2::timestamptz is null or at >= $2) order by at desc`, [root, input.since ?? null]);
+        return (await s.decisionsInRoot(root, { since: input.since ?? null }))
+          .map(({ id: d, task, statement, rationale, by, status, superseded_by, at }) => ({ id: d, task, statement, rationale, by, status, superseded_by, at }));
       }
-      if (input.ready) {
-        return q(`select t.id, t.root, t.title, t.scope from tasks t
-                  where ${READY} and t.project = $1 and ($2::text is null or t.root = $2) order by t.created_at`, [ctx.project, root]);
-      }
-      if (!root) {
-        return q(`select t.id, t.project, t.title, t.status,
-                         (select max(c.updated_at) from tasks c where c.root = t.id) as touched
-                  from tasks t where t.parent is null
-                  and ($1 or (t.project = $2 and ($3 or t.status <> 'archived'))) order by touched desc`, [!!input.all, ctx.project, !!input.archived]);
-      }
-      return tree(await q(`select id, parent, title, status, claimed_by from tasks where root = $1 order by created_at`, [root]));
+      if (input.ready) return s.ready({ project: ctx.project, root });
+      if (!root) return s.roots({ project: ctx.project, all: input.all, archived: input.archived });
+      return tree(await s.treeRows(root));
     },
   },
   {
     // For the human at a shell; not one of the operations an agent is offered.
     name: 'doctor', cliOnly: true, summary: 'Which mode this machine is on, where the data lives, and whether it is reachable.',
-    run: async (q, input, ctx) => ({
-      mode: mode(), home: home(), project: ctx.project, checks: checksFor(ctx.project), review: !!config().review, schema: await version(q),
-      tasks: Number((await q(`select count(*) n from tasks`))[0].n),
+    run: async (s, input, ctx) => ({
+      mode: mode(), home: home(), project: ctx.project, checks: checksFor(ctx.project), review: !!config().review, schema: await s.version(),
+      tasks: await s.count(),
     }),
   },
 ];
@@ -346,23 +316,21 @@ function runChecks(task, worktree) {
 // One call = one transaction. A task left in `submitted` is then verified by the
 // system itself, outside any transaction, and moved on or sent back — no agent's word.
 export async function runOp(op, input, ctx) {
-  const result = await withTx((q) => op.run(q, input, ctx));
+  const result = await withStore((s) => op.run(s, input, ctx));
   if (op.name !== 'task' || input.status !== 'submitted' || result?.status !== 'submitted') return result;
   // The worktree is usually recorded once, on the root; a task may name its own.
-  const [where] = await withTx((q) => q(
-    `with recursive up as (select id, parent, metadata, 0 as depth from tasks where id = $1
-       union all select t.id, t.parent, t.metadata, up.depth + 1 from tasks t join up on t.id = up.parent)
-     select metadata->>'worktree' as worktree from up where metadata ? 'worktree' order by depth limit 1`, [result.id]));
-  const failed = runChecks(result, where?.worktree);
-  return withTx(async (q) => {
-    const task = await load(q, result.id);
+  const lineage = await withStore((s) => s.lineage(result.id));
+  const where = lineage.reverse().find((t) => Object.hasOwn(t.metadata ?? {}, 'worktree'));
+  const failed = runChecks(result, where?.metadata.worktree);
+  return withStore(async (s) => {
+    const task = await load(s, result.id);
     if (task.status !== 'submitted') return task;
     if (failed) {
-      await append(q, task.id, 'verdict', `checks failed — ${failed}`, 'idle');
-      await setStatus(q, task.id, 'open', ', claimed_by = null');
-      return load(q, task.id);
+      await append(s, task.id, 'verdict', `checks failed — ${failed}`, 'idle');
+      await s.update(task.id, { status: 'open', claimed_by: null });
+      return load(s, task.id);
     }
-    await setStatus(q, task.id, 'verified');
-    return settle(q, task.id);
+    await s.update(task.id, { status: 'verified' });
+    return settle(s, task.id);
   });
 }
