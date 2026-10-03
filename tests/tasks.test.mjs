@@ -263,4 +263,5 @@ test('every place that starts the published server names exactly the version in 
   for (const file of ['idle-tasks/.claude-plugin/plugin.json', 'idle-tasks/.codex-plugin/plugin.json', 'idle-tasks/.cursor-plugin/plugin.json', 'idle-tasks/plugin.json']) {
     assert.equal(JSON.parse(readFileSync(join(repo, file), 'utf8')).version, version, file);
   }
+  assert.equal(readFileSync(join(repo, 'idle-tasks/apm.yml'), 'utf8').match(/^version:\s*(\S+)/m)?.[1], version, 'idle-tasks/apm.yml');
 });
