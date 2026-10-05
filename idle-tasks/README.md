@@ -42,10 +42,10 @@ As an MCP server (stdio), in any harness:
 ### Linear
 
 ```json
-{ "backend": "linear", "linear": { "team": "ENG", "apiKeyEnv": "LINEAR_API_KEY" } }
+{ "backend": "linear", "linear": { "team": "ENG", "apiKey": "lin_api_…" } }
 ```
 
-The tasks live in that Linear team instead, with a Linear project per project label, created on first use. The API key is read from the environment variable named by `apiKeyEnv` (default `LINEAR_API_KEY`), never from the file. Everything else is unchanged: the same operations and refusals, and the checks still run on this machine when a task is submitted.
+The tasks live in that Linear team instead, with a Linear project per project label, created on first use. The API key is a personal Linear API key; like a database URL it stays in this file, in your home folder, and `IDLE_LINEAR_API_KEY` overrides it. Everything else is unchanged: the same operations and refusals, and the checks still run on this machine when a task is submitted.
 
 - A task is an issue, its children are sub-issues. The description holds the goal, then `## Signs the goal is reached`, `## Plan`, `## Interview` and `## How it is used`.
 - States map onto the team's workflow: proposed → Triage (or Backlog), open → Todo, claimed → In Progress, submitted and verified → In Review, done → Done, archived → Canceled; blocked is Todo with a `blocked` label.

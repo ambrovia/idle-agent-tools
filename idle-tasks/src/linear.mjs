@@ -6,7 +6,8 @@
 // only the rows it changed. A refused operation writes nothing. Two machines are not serialised:
 // the later write wins.
 //
-// Config (~/.idle/config.json): { "backend": "linear", "linear": { "team": "ENG", "apiKeyEnv": "LINEAR_API_KEY" } }
+// Config (~/.idle/config.json): { "backend": "linear", "linear": { "team": "ENG", "apiKey": "lin_api_…" } }
+// The key sits with the rest of this machine's settings, as a database URL does; IDLE_LINEAR_API_KEY overrides it.
 
 import { config, withLock } from './store.mjs';
 import { memoryStore } from './memory-store.mjs';
@@ -197,8 +198,8 @@ async function flush(client, snap) {
 function client() {
   const cfg = config().linear ?? {};
   if (process.env.IDLE_LINEAR_FAKE) return fakeClient(process.env.IDLE_LINEAR_FAKE);
-  const key = process.env[cfg.apiKeyEnv ?? 'LINEAR_API_KEY'];
-  if (!key) throw new Error(`no Linear API key: set ${cfg.apiKeyEnv ?? 'LINEAR_API_KEY'}`);
+  const key = process.env.IDLE_LINEAR_API_KEY || cfg.apiKey;
+  if (!key) throw new Error('no Linear API key: set linear.apiKey in ~/.idle/config.json');
   return graphqlClient(key);
 }
 

@@ -14,7 +14,7 @@ idle-skills does not change: it only uses the four operations.
 - **A snapshot store.** `memory-store.mjs` answers the same questions over an in-memory snapshot of every task and decision, including pg_trgm's similarity for near-duplicates.
 - **Linear.** `linear.mjs` runs each operation under the machine's lock: it loads the team's issues into a snapshot, runs the operation in memory, and writes back only the rows that changed. A refused operation writes nothing — the transaction Linear does not have. `linear-client.mjs` is the GraphQL API reduced to nine calls; `linear-fake.mjs` answers the same calls from a JSON file for tests.
 
-Config: `{ "backend": "linear", "linear": { "team": "ENG", "apiKeyEnv": "LINEAR_API_KEY" } }`.
+Config: `{ "backend": "linear", "linear": { "team": "ENG", "apiKey": "lin_api_…" } }` — the key beside the rest of the machine's settings, as a database URL is (Tobi, 5 October).
 
 ## The mapping
 
