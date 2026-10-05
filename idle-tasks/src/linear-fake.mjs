@@ -32,10 +32,10 @@ export function fakeClient(file) {
     async projects(teamId) { return workspace().projects.filter((p) => p.teamId === teamId).map(({ id, name }) => ({ id, name })); },
     async createProject(name, teamId) { return change((ws) => { const p = { id: randomUUID(), name, teamId }; ws.projects.push(p); return { id: p.id, name }; }); },
     async createLabel(teamId, name) { return change((ws) => { const l = { id: randomUUID(), name, teamId }; ws.labels.push(l); return { id: l.id, name }; }); },
-    async issues(teamId) {
+    async issues(teamId, projectId) {
       const ws = workspace();
       const team = ws.teams.find((t) => t.id === teamId);
-      return ws.issues.filter((i) => i.teamId === teamId && i.projectId).map((i) => ({
+      return ws.issues.filter((i) => i.teamId === teamId && i.projectId === projectId).map((i) => ({
         ...i, meta: i.attachments.find((a) => a.url.startsWith('https://idle.invalid/'))?.metadata ?? null, key: team.key,
       }));
     },

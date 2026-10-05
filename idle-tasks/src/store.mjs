@@ -6,17 +6,45 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { migrate } from './schema.mjs';
+import { workdir } from './context.mjs';
 import { pgStore } from './pg-store.mjs';
 
 export function home() {
   return process.env.IDLE_HOME || join(homedir(), '.idle');
 }
 
+// Where a repository's tasks live is the repository's own setting, committed as .idle.json at its
+// root: { "backend": "linear", "linear": { "team": "ENG", "project": "Shop" } }. Only that is read
+// from it — never checks, a database or a key, which stay on the machine.
+const repoSettings = new Map();
+export function repoConfig() {
+  const dir = workdir();
+  if (!repoSettings.has(dir)) {
+    const top = spawnSync('git', ['rev-parse', '--show-toplevel'], { cwd: dir, encoding: 'utf8' });
+    const file = top.status === 0 ? join(top.stdout.trim(), '.idle.json') : null;
+    let repo = {};
+    if (file && existsSync(file)) {
+      const raw = JSON.parse(readFileSync(file, 'utf8'));
+      if (raw.backend) repo.backend = raw.backend;
+      if (raw.linear) repo.linear = { team: raw.linear.team, project: raw.linear.project };
+    }
+    repoSettings.set(dir, repo);
+  }
+  return repoSettings.get(dir);
+}
+
 export function config() {
   const file = join(home(), 'config.json');
   const cfg = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+  const repo = repoConfig();
+  if (repo.backend) cfg.backend = repo.backend;
+  if (repo.linear) {
+    const mine = cfg.linear ?? {};
+    cfg.linear = { ...mine, team: repo.linear.team ?? mine.team, project: repo.linear.project ?? mine.project };
+  }
   if (process.env.IDLE_DATABASE_URL) cfg.database = process.env.IDLE_DATABASE_URL;
   return cfg;
 }

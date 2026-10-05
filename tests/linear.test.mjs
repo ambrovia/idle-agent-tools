@@ -13,15 +13,22 @@ const bin = resolve(new URL('..', import.meta.url).pathname, 'idle-tasks/bin/idl
 const homes = [];
 process.on('exit', () => homes.forEach((home) => rmSync(home, { recursive: true, force: true })));
 
-function sandbox() {
+function sandbox({ home: homeConfig = { backend: 'linear', linear: { team: 'ENG' } }, repo } = {}) {
   const home = mkdtempSync(join(tmpdir(), 'idle-linear-'));
   homes.push(home);
   const fake = join(home, 'linear.json');
-  writeFileSync(join(home, 'config.json'), JSON.stringify({ backend: 'linear', linear: { team: 'ENG' } }));
+  writeFileSync(join(home, 'config.json'), JSON.stringify(homeConfig));
+  // A repository of its own, when the test gives it an .idle.json.
+  const cwd = repo ? join(home, 'repo') : undefined;
+  if (repo) {
+    spawnSync('git', ['init', '-q', cwd]);
+    writeFileSync(join(cwd, '.idle.json'), JSON.stringify(repo));
+  }
   const env = { ...process.env, IDLE_HOME: home, IDLE_PROJECT: 'shop', IDLE_LINEAR_FAKE: fake };
   delete env.IDLE_DATABASE_URL;
+  delete env.IDLE_PROJECT_DIR; delete env.CLAUDE_PROJECT_DIR;
   const run = (...args) => {
-    const r = spawnSync(process.execPath, [bin, ...args], { env, encoding: 'utf8' });
+    const r = spawnSync(process.execPath, [bin, ...args], { env, cwd, encoding: 'utf8' });
     let json; try { json = JSON.parse(r.stdout); } catch { /* text */ }
     return { code: r.status, out: r.stdout, err: r.stderr, json };
   };
@@ -102,4 +109,22 @@ test('a refused operation writes nothing to Linear', () => {
   const refused = run('task', '--id', root, '--title', 'Renamed', '--status', 'submitted');
   assert.equal(refused.code, 1);
   assert.equal(JSON.stringify(workspace().issues), before);
+});
+
+test('the repository says where its tasks live; the machine only holds the key', () => {
+  const { run, workspace } = sandbox({ home: { linear: { apiKey: 'unused-by-the-fake' } }, repo: { backend: 'linear', linear: { team: 'Shop', project: 'Storefront' } } });
+  assert.equal(run('doctor').json.mode, 'linear');
+  const id = run('task', '--title', 'Wishlist').json.id;
+  const ws = workspace();
+  const issue = ws.issues.find((i) => i.attachments[0].metadata.id === id);
+  assert.equal(ws.teams.find((t) => t.id === issue.teamId).key, 'Shop');
+  assert.equal(ws.projects.find((p) => p.id === issue.projectId).name, 'Storefront');
+  assert.deepEqual(run('list').json.map((t) => t.id), [id]);
+});
+
+test('without a team for the repository, Linear is refused with what to add', () => {
+  const { run } = sandbox({ home: { backend: 'linear', linear: { apiKey: 'k' } } });
+  const r = run('list');
+  assert.equal(r.code, 2);
+  assert.match(r.err, /\.idle\.json/);
 });

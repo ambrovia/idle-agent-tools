@@ -6,10 +6,13 @@
 // only the rows it changed. A refused operation writes nothing. Two machines are not serialised:
 // the later write wins.
 //
-// Config (~/.idle/config.json): { "backend": "linear", "linear": { "team": "ENG", "apiKey": "lin_api_…" } }
-// The key sits with the rest of this machine's settings, as a database URL does; IDLE_LINEAR_API_KEY overrides it.
+// Where a repository's tasks live is the repository's setting, .idle.json at its root:
+//   { "backend": "linear", "linear": { "team": "ENG", "project": "Shop" } }   (project defaults to the repository's name)
+// The key is the machine's, in ~/.idle/config.json: { "linear": { "apiKey": "lin_api_…" } }; IDLE_LINEAR_API_KEY overrides it.
+// Each repository is one Linear project; a snapshot holds that project's issues only.
 
 import { config, withLock } from './store.mjs';
+import { project } from './context.mjs';
 import { memoryStore } from './memory-store.mjs';
 import { graphqlClient } from './linear-client.mjs';
 import { fakeClient } from './linear-fake.mjs';
@@ -83,13 +86,15 @@ export function statusFrom(state, labels, recorded) {
 
 const date = (v) => (v ? new Date(v) : null);
 
-async function load(client, cfg) {
+// One repository's tasks: the Linear project it names, or the one named after its label.
+async function load(client, cfg, label) {
   const team = await client.team(cfg.team);
   const states = stateMap(team.states);
   const labels = new Map(team.labels.map((l) => [l.name, l.id]));
   const labelNames = new Map(team.labels.map((l) => [l.id, l.name]));
-  const projects = new Map((await client.projects(team.id)).map((p) => [p.id, p.name]));
-  const issues = await client.issues(team.id);
+  const project = { name: cfg.project ?? label, id: null };
+  project.id = (await client.projects(team.id)).find((p) => p.name === project.name)?.id ?? null;
+  const issues = project.id ? await client.issues(team.id, project.id) : [];
   const ids = new Map(issues.map((i) => [i.id, i.meta?.id ?? i.identifier])); // Linear uuid → idle id
   const data = { tasks: [], decisions: [] };
   const linked = new Map(); // row → { issue, sent }
@@ -100,7 +105,7 @@ async function load(client, cfg) {
     const state = states.byId.get(issue.stateId);
     if (names.includes(LABELS.decision)) {
       const row = {
-        id: ids.get(issue.id), project: projects.get(issue.projectId), root: meta.root ?? null, task: meta.task ?? null,
+        id: ids.get(issue.id), project: label, root: meta.root ?? null, task: meta.task ?? null,
         statement: issue.title, rationale: issue.description || null, by: meta.by ?? null,
         status: state?.type === 'canceled' ? 'superseded' : 'active', superseded_by: meta.superseded_by ?? null,
         at: date(meta.at) ?? date(issue.createdAt),
@@ -110,7 +115,7 @@ async function load(client, cfg) {
       continue;
     }
     const row = {
-      id: ids.get(issue.id), project: projects.get(issue.projectId),
+      id: ids.get(issue.id), project: label,
       parent: issue.parentId ? ids.get(issue.parentId) ?? null : null, root: null,
       title: issue.title, ...parseDescription(issue.description),
       scope: meta.scope ?? [], needs: meta.needs ?? [], decision_refs: meta.decision_refs ?? [],
@@ -129,7 +134,7 @@ async function load(client, cfg) {
     for (const seen = new Set(); top.parent && byId.has(top.parent) && !seen.has(top.id); seen.add(top.id)) top = byId.get(top.parent);
     t.root = top.id;
   }
-  return { team, states, labels, projects, data, linked };
+  return { team, states, labels, project, data, linked };
 }
 
 function taskMeta(t) {
@@ -145,17 +150,15 @@ function decisionMeta(d) {
 }
 
 async function flush(client, snap) {
-  const { team, states, labels, projects, data, linked } = snap;
+  const { team, states, labels, project, data, linked } = snap;
   const uuidOf = new Map([...linked].map(([row, { issue }]) => [row.id, issue.id]));
   const label = async (name) => {
     if (!labels.has(name)) labels.set(name, (await client.createLabel(team.id, name)).id);
     return labels.get(name);
   };
-  const project = async (name) => {
-    for (const [id, n] of projects) if (n === name) return id;
-    const made = await client.createProject(name, team.id);
-    projects.set(made.id, made.name);
-    return made.id;
+  const projectId = async () => {
+    project.id ??= (await client.createProject(project.name, team.id)).id;
+    return project.id;
   };
   const withLabel = async (current, name, on) => {
     const id = await label(name);
@@ -176,7 +179,7 @@ async function flush(client, snap) {
 
     let uuid = was?.id;
     if (!uuid) {
-      const made = await client.createIssue({ teamId: team.id, projectId: await project(row.project), parentId, labelIds, ...fields });
+      const made = await client.createIssue({ teamId: team.id, projectId: await projectId(), parentId, labelIds, ...fields });
       uuid = made.id;
       uuidOf.set(row.id, uuid);
       linked.set(row, { issue: { id: uuid, labelIds }, kind });
@@ -205,10 +208,10 @@ function client() {
 
 export async function withLinear(fn) {
   const cfg = config().linear ?? {};
-  if (!cfg.team) throw new Error('backend "linear" needs linear.team in ~/.idle/config.json');
+  if (!cfg.team) throw new Error('this repository keeps its tasks in Linear but names no team: add { "linear": { "team": "…" } } to .idle.json at its root');
   const linear = client();
   return withLock(async () => {
-    const snap = await load(linear, cfg);
+    const snap = await load(linear, cfg, project());
     const result = await fn(memoryStore(snap.data, { version: () => 'linear' }));
     await flush(linear, snap);
     return result;

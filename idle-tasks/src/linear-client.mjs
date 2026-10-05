@@ -45,11 +45,11 @@ export function graphqlClient(apiKey) {
       }`, { name, teamId });
       return data.issueLabelCreate.issueLabel;
     },
-    async issues(teamId) {
+    async issues(teamId, projectId) {
       const all = [];
       for (let after = null; ;) {
-        const data = await gql(`query($teamId: ID!, $after: String) {
-          issues(first: 50, after: $after, filter: { team: { id: { eq: $teamId } }, project: { null: false } }) {
+        const data = await gql(`query($teamId: ID!, $projectId: ID!, $after: String) {
+          issues(first: 50, after: $after, filter: { team: { id: { eq: $teamId } }, project: { id: { eq: $projectId } } }) {
             nodes {
               id identifier title description createdAt updatedAt
               parent { id } state { id } project { id } labels { nodes { id } }
@@ -57,7 +57,7 @@ export function graphqlClient(apiKey) {
             }
             pageInfo { hasNextPage endCursor }
           }
-        }`, { teamId, after });
+        }`, { teamId, projectId, after });
         for (const i of data.issues.nodes) {
           all.push({
             id: i.id, identifier: i.identifier, title: i.title, description: i.description ?? '',
