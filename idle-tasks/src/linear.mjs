@@ -79,7 +79,7 @@ export function statusFrom(state, labels, recorded) {
       if (/review/i.test(state.name)) return ['submitted', 'verified'].includes(recorded) ? recorded : 'submitted';
       return 'claimed';
     case 'completed': return 'done';
-    case 'canceled': return 'archived';
+    case 'canceled': case 'duplicate': return 'archived';
     default: return recorded ?? 'open';
   }
 }
