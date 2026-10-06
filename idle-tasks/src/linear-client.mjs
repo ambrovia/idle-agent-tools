@@ -21,7 +21,7 @@ export function graphqlClient(apiKey) {
   return {
     async team(keyOrName) {
       const data = await gql(`query($v: String!) {
-        teams(filter: { or: [{ key: { eq: $v } }, { name: { eq: $v } }] }) {
+        teams(first: 1, filter: { or: [{ key: { eq: $v } }, { name: { eq: $v } }] }) {
           nodes { id states { nodes { id name type position } } labels(first: 250) { nodes { id name } } }
         }
       }`, { v: keyOrName });

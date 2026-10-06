@@ -1,6 +1,6 @@
 # Linear as a backend
 
-*3 October 2026. Linear as a third storage backend for idle-tasks, beside PGlite and Postgres. Built; the GraphQL client has not yet been run against a live workspace.*
+*3 October 2026. Linear as a third storage backend for idle-tasks, beside PGlite and Postgres. Built; smoke-tested against a live workspace on 6 October.*
 
 ## The decision
 
@@ -37,4 +37,9 @@ What people change in Linear counts: title, description, state and parent are re
 
 ## Tested
 
-`IDLE_TEST_BACKEND=linear` runs the whole operations journey (`tests/tasks.test.mjs`) against the fake workspace, and `tests/linear.test.mjs` covers the mapping and human edits. Both are in `npm run verify`. The GraphQL client itself is untested: this sandbox cannot reach api.linear.app and holds no key.
+`IDLE_TEST_BACKEND=linear` runs the whole operations journey (`tests/tasks.test.mjs`) against the fake workspace, and `tests/linear.test.mjs` covers the mapping and human edits. Both are in `npm run verify`.
+
+On 6 October the CLI and the MCP server ran against a live workspace (team Touchstone, repository `touchstone`): drop, sub-tasks, needs, claim, submit with passing and failing checks, review, block, supersede, and a title edit, a state move and a sub-issue made in Linear, all read back. The team lookup was too complex for Linear's API until it asked for one team. Two things only a live workspace shows:
+
+- Linear rewrites what it stores: a bare hostname in a description comes back as a Markdown link, and idle reads it back that way.
+- An issue moved to In Progress by hand is claimed by nobody, with no lease. An agent can still claim it.
