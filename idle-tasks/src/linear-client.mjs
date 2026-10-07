@@ -1,8 +1,3 @@
-// Linear's GraphQL API, reduced to the calls linear.mjs makes. linear-fake.mjs answers the same
-// calls from a file, for tests. An issue comes back as
-// { id, identifier, title, description, parentId, stateId, labelIds, projectId, createdAt, updatedAt, meta }
-// where meta is the metadata of idle's own attachment on it, or null.
-
 const ENDPOINT = 'https://api.linear.app/graphql';
 const META_URL = 'https://idle.invalid/';
 
@@ -79,7 +74,6 @@ export function graphqlClient(apiKey) {
     async updateIssue(id, input) {
       await gql(`mutation($id: String!, $input: IssueUpdateInput!) { issueUpdate(id: $id, input: $input) { success } }`, { id, input });
     },
-    // Linear updates an attachment in place when one with the same url is already on the issue.
     async saveAttachment({ issueId, url, title, metadata }) {
       await gql(`mutation($input: AttachmentCreateInput!) { attachmentCreate(input: $input) { success } }`,
         { input: { issueId, url, title, metadata } });

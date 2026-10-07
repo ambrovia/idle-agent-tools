@@ -1,7 +1,6 @@
 // Operations — as few as possible: task and decision each create-or-update,
 // show and list read. Defined once; the CLI, the MCP server and the help text
 // are all generated from this list. run(s, input, ctx) → a plain object or a string.
-// s is the store (pg-store.mjs); nothing here speaks SQL.
 // ctx: { by, project }. A Refused error is an expected "no", not a crash.
 
 import { randomBytes } from 'node:crypto';
@@ -20,7 +19,7 @@ const ALPHABET = 'abcdefghjkmnpqrstvwxyz23456789';
 const id = (prefix) => `${prefix}-${[...randomBytes(6)].map((b) => ALPHABET[b % ALPHABET.length]).join('')}`;
 
 async function load(s, taskId) {
-  return (await s.task(taskId)) ?? refuse(`no task ${taskId}`);
+  return (await s.tasks([taskId]))[0] ?? refuse(`no task ${taskId}`);
 }
 
 // The caps, refused here so every store keeps them; Postgres also holds them as CHECK constraints.
@@ -68,7 +67,6 @@ function lease(input) {
 }
 
 async function claim(s, task, input, ctx) {
-  await s.lockTree(task.root);
   const ready = (await s.ready({ root: task.root })).some((t) => t.id === task.id);
   if (!ready) {
     const waiting = (await s.tasks(task.needs)).filter((n) => n.status !== 'done');
@@ -91,7 +89,7 @@ async function move(s, task, to, input, ctx) {
   const from = task.status;
   const mine = from === 'claimed' && task.claimed_by === ctx.by;
   // Asked of the store, not this machine's clock: on a shared database they differ.
-  const live = await s.isLive(task.id);
+  const live = (await s.liveClaims(task.root)).some((c) => c.id === task.id);
   const why = (field, what) => input[field] || refuse(`${from} → ${to} needs --${field}: ${what}`);
   const FREE = { claimed_by: null, claim_expires: null };
 
@@ -102,7 +100,9 @@ async function move(s, task, to, input, ctx) {
   }
   if (to === 'archived') {
     // A task is archived with everything under it — never while the system is verifying any of it.
-    const down = await s.subtree(task.id);
+    const rows = await s.treeRows(task.root);
+    const down = [task];
+    for (let i = 0; i < down.length; i++) down.push(...rows.filter((t) => t.parent === down[i].id));
     const busy = down.find((t) => t.status === 'submitted');
     if (busy) refuse(`${busy.id} is being verified — submit it again if its checks never finished`);
     for (const t of down) await s.update(t.id, { status: 'archived' });
@@ -219,7 +219,7 @@ export const OPS = [
       confirm: { type: 'bool', desc: 'record even when similar active decisions exist' },
     },
     run: async (s, input, ctx) => {
-      const get = async (decisionId) => (await s.decision(decisionId)) ?? refuse(`no decision ${decisionId}`);
+      const get = async (decisionId) => (await s.decisions([decisionId]))[0] ?? refuse(`no decision ${decisionId}`);
       let decisionId = input.id;
       if (!decisionId) {
         if (!input.task || !input.statement) refuse('a new decision needs --task and --statement');
@@ -235,8 +235,8 @@ export const OPS = [
       }
       await get(decisionId);
       for (const bound of new Set(input.bind ?? [])) {
-        await load(s, bound);
-        await s.bindDecision(bound, decisionId);
+        const refs = (await load(s, bound)).decision_refs;
+        if (!refs.includes(decisionId)) await s.update(bound, { decision_refs: [...refs, decisionId] });
       }
       if (input['superseded-by']) {
         await get(input['superseded-by']);
@@ -254,7 +254,7 @@ export const OPS = [
       state: { type: 'bool', desc: 'the tree this task belongs to: what needs attention, feedback, tree, ready, claims, recently done' },
     },
     run: async (s, { id: shown, ...input }) => {
-      if (shown.startsWith('D-')) return (await s.decision(shown)) ?? refuse(`no decision ${shown}`);
+      if (shown.startsWith('D-')) return (await s.decisions([shown]))[0] ?? refuse(`no decision ${shown}`);
       const task = await load(s, shown);
       if (input.brief) return brief(s, task);
       if (input.state) return state(s, await load(s, task.root));
@@ -293,8 +293,8 @@ export const OPS = [
     // For the human at a shell; not one of the operations an agent is offered.
     name: 'doctor', cliOnly: true, summary: 'Which mode this machine is on, where the data lives, and whether it is reachable.',
     run: async (s, input, ctx) => ({
-      mode: mode(), home: home(), project: ctx.project, checks: checksFor(ctx.project), review: !!config().review, schema: await s.version(),
-      tasks: await s.count(),
+      mode: mode(), home: home(), project: ctx.project, checks: checksFor(ctx.project), review: !!config().review,
+      tasks: s.count(),
     }),
   },
 ];

@@ -1,52 +1,33 @@
-// Storage — one verb: run a function against the store, inside a transaction.
-// Local: PGlite in the user's home, one process at a time, so every call is
-// lock → open → transaction → close. Shared: any Postgres the config names.
-// Same SQL either way; the operations see only the store (pg-store.mjs), never SQL.
-// Linear: the tasks live in a Linear team (linear.mjs), behind the same store.
 
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
-import { migrate } from './schema.mjs';
 import { workdir } from './context.mjs';
-import { pgStore } from './pg-store.mjs';
+import { records } from './records.mjs';
 
 export function home() {
   return process.env.IDLE_HOME || join(homedir(), '.idle');
 }
 
-// Where a repository's tasks live is the repository's own setting, committed as .idle.json at its
-// root: { "backend": "linear", "linear": { "team": "ENG", "project": "Shop" } }. Only that is read
-// from it — never checks, a database or a key, which stay on the machine.
-const repoSettings = new Map();
-export function repoConfig() {
-  const dir = workdir();
-  if (!repoSettings.has(dir)) {
-    const top = spawnSync('git', ['rev-parse', '--show-toplevel'], { cwd: dir, encoding: 'utf8' });
-    const file = top.status === 0 ? join(top.stdout.trim(), '.idle.json') : null;
-    let repo = {};
-    if (file && existsSync(file)) {
-      const raw = JSON.parse(readFileSync(file, 'utf8'));
-      if (raw.backend) repo.backend = raw.backend;
-      if (raw.linear) repo.linear = { team: raw.linear.team, project: raw.linear.project };
-    }
-    repoSettings.set(dir, repo);
-  }
-  return repoSettings.get(dir);
-}
-
 export function config() {
   const file = join(home(), 'config.json');
   const cfg = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
-  const repo = repoConfig();
+  const repo = repoSetting();
   if (repo.backend) cfg.backend = repo.backend;
-  if (repo.linear) {
-    const mine = cfg.linear ?? {};
-    cfg.linear = { ...mine, team: repo.linear.team ?? mine.team, project: repo.linear.project ?? mine.project };
-  }
+  if (repo.linear) cfg.linear = { ...cfg.linear, team: repo.linear.team, project: repo.linear.project };
   if (process.env.IDLE_DATABASE_URL) cfg.database = process.env.IDLE_DATABASE_URL;
   return cfg;
+}
+
+let setting;
+function repoSetting() {
+  if (!setting) {
+    const top = spawnSync('git', ['rev-parse', '--show-toplevel'], { cwd: workdir(), encoding: 'utf8' }).stdout?.trim();
+    const file = top && join(top, '.idle.json');
+    setting = file && existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+  }
+  return setting;
 }
 
 // The shell commands that verify a project's work — configured on this machine,
@@ -61,15 +42,9 @@ export function mode() {
   return cfg.backend === 'linear' ? 'linear' : cfg.database ? 'shared' : 'local';
 }
 
-// fn receives the store: every question the operations ask of storage.
 export async function withStore(fn) {
-  if (config().backend === 'linear') return (await import('./linear.mjs')).withLinear(fn);
-  return withTx((q) => fn(pgStore(q)));
-}
-
-// fn receives q(sql, params) → rows.
-export async function withTx(fn) {
-  return config().database ? shared(fn) : local(fn);
+  const storage = await import(config().backend === 'linear' ? './linear.mjs' : './sql.mjs');
+  return storage.withData((data) => fn(records(data)));
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -119,42 +94,5 @@ export async function withLock(fn) {
     let holder = 0;
     try { holder = Number(readFileSync(join(lock, 'pid'), 'utf8')); } catch { /* already gone */ }
     if (holder === process.pid) rmSync(lock, { recursive: true, force: true });
-  }
-}
-
-async function local(fn) {
-  const { PGlite } = await import('@electric-sql/pglite');
-  const { pg_trgm } = await import('@electric-sql/pglite/contrib/pg_trgm');
-  return withLock(async () => {
-    let db;
-    try {
-      db = new PGlite(join(home(), 'db'), { extensions: { pg_trgm } });
-      return await db.transaction(async (tx) => {
-        const q = async (sql, params = []) => (await tx.query(sql, params)).rows;
-        await migrate(q);
-        return fn(q);
-      });
-    } finally {
-      if (db) await db.close().catch(() => {});
-    }
-  });
-}
-
-async function shared(fn) {
-  const { default: pg } = await import('pg');
-  const client = new pg.Client({ connectionString: config().database });
-  await client.connect();
-  const q = async (sql, params = []) => (await client.query(sql, params)).rows;
-  try {
-    await q('begin');
-    await migrate(q);
-    const result = await fn(q);
-    await q('commit');
-    return result;
-  } catch (err) {
-    await q('rollback').catch(() => {});
-    throw err;
-  } finally {
-    await client.end();
   }
 }

@@ -14,7 +14,7 @@
 | 6 | `backend-program-plan.md` | How the backend works in plain words, what is deliberately simple, and the build order. | awaiting confirmation |
 | 7 | `skill-adaptation-plan.md` | How every skill, persona and hook changes, in three stages that each keep the pipeline working. | awaiting confirmation |
 | 8 | `swarm-operations-patterns.md` | The full 33-pattern catalog with sources. Reference only; consult by P-number when a plan decision needs its evidence. | reference |
-| 9 | `linear-backend.md` | Linear as a third storage backend for idle-tasks: the decision, how it is built, the mapping, what is weaker. | built |
+| 9 | `linear-backend.md` | Linear as a storage adapter for idle-tasks: the decision, the shape, the limits. | built |
 
 If a fresh session has budget for one file, it's #1. If two, #1 and #2.
 

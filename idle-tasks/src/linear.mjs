@@ -1,83 +1,62 @@
-// Linear as the store. Tasks and decisions are issues in one Linear team, one Linear project
-// per idle project; what Linear has no field for rides in an attachment idle owns on each issue.
-//
-// Linear has no transactions, so every operation runs against a snapshot: under the machine's
-// lock, load the team's issues, run the operation in memory (memory-store.mjs), then write back
-// only the rows it changed. A refused operation writes nothing. Two machines are not serialised:
-// the later write wins.
-//
-// Where a repository's tasks live is the repository's setting, .idle.json at its root:
-//   { "backend": "linear", "linear": { "team": "ENG", "project": "Shop" } }   (project defaults to the repository's name)
-// The key is the machine's, in ~/.idle/config.json: { "linear": { "apiKey": "lin_api_…" } }; IDLE_LINEAR_API_KEY overrides it.
-// Each repository is one Linear project; a snapshot holds that project's issues only.
 
 import { config, withLock } from './store.mjs';
 import { project } from './context.mjs';
-import { memoryStore } from './memory-store.mjs';
 import { graphqlClient } from './linear-client.mjs';
 import { fakeClient } from './linear-fake.mjs';
 
-// Where idle keeps its own fields on an issue. A reserved domain, so the URL never resolves.
+export async function withData(fn) {
+  const cfg = config().linear ?? {};
+  if (!cfg.team) throw new Error('this repository keeps its tasks in Linear but names no team: add { "linear": { "team": "…" } } to .idle.json at its root');
+  const key = process.env.IDLE_LINEAR_API_KEY || cfg.apiKey;
+  if (!key && !process.env.IDLE_LINEAR_FAKE) throw new Error('no Linear API key: set linear.apiKey in ~/.idle/config.json');
+  const linear = process.env.IDLE_LINEAR_FAKE ? fakeClient(process.env.IDLE_LINEAR_FAKE) : graphqlClient(key);
+  return withLock(async () => {
+    const data = await load(linear, cfg, project());
+    const result = await fn(data);
+    await save(linear, data);
+    return result;
+  });
+}
+
 const META_URL = 'https://idle.invalid/';
-const metaUrl = (id) => `${META_URL}${id}`;
-
-export const LABELS = { blocked: 'blocked', decision: 'decision' };
-
-// The description carries what a human reads; the goal is everything before the first known heading.
 const SECTIONS = [
   ['acceptance_criteria', 'Signs the goal is reached'],
   ['plan', 'Plan'],
   ['interview', 'Interview'],
   ['consumer_scenario', 'How it is used'],
 ];
+const describe = (t) => [t.goal, ...SECTIONS.filter(([f]) => t[f]).map(([f, h]) => `## ${h}\n\n${t[f]}`)].filter(Boolean).join('\n\n');
 
-export function renderDescription(task) {
-  return [task.goal || '', ...SECTIONS.filter(([field]) => task[field]).map(([field, heading]) => `## ${heading}\n\n${task[field]}`)]
-    .filter(Boolean).join('\n\n');
-}
-
-export function parseDescription(text = '') {
-  const fields = Object.fromEntries(SECTIONS.map(([field]) => [field, null]));
-  const known = new Map(SECTIONS.map(([field, heading]) => [heading.toLowerCase(), field]));
+function parse(text) {
+  const fields = { goal: [] };
   let current = 'goal';
-  const parts = { goal: [] };
   for (const line of (text ?? '').split('\n')) {
-    const heading = line.match(/^##\s+(.+?)\s*$/);
-    if (heading && known.has(heading[1].toLowerCase())) { current = known.get(heading[1].toLowerCase()); parts[current] = []; continue; }
-    parts[current].push(line);
+    const field = SECTIONS.find(([, h]) => line.match(/^##\s+(.+?)\s*$/)?.[1].toLowerCase() === h.toLowerCase())?.[0];
+    if (field) fields[(current = field)] = [];
+    else fields[current].push(line);
   }
-  for (const [field, lines] of Object.entries(parts)) {
-    const body = lines.join('\n').trim();
-    fields[field] = field === 'goal' ? body : (body || null);
-  }
-  return fields;
+  const out = { goal: fields.goal.join('\n').trim() };
+  for (const [f] of SECTIONS) out[f] = fields[f]?.join('\n').trim() || null;
+  return out;
 }
-
-// Workflow states by type, so a team's own names work. Review is the started state named like it.
-export function stateMap(states) {
-  const of = (type) => states.filter((s) => s.type === type).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-  const started = of('started');
-  const review = started.find((s) => /review/i.test(s.name));
-  const working = started.find((s) => !/review/i.test(s.name)) ?? started[0];
+function states(all) {
+  const of = (type) => all.filter((s) => s.type === type).sort((a, b) => a.position - b.position);
+  const review = of('started').find((s) => /review/i.test(s.name));
+  const working = of('started').find((s) => s !== review) ?? review;
   const todo = of('unstarted').find((s) => /^todo$/i.test(s.name)) ?? of('unstarted')[0];
-  const byStatus = {
-    proposed: (of('triage')[0] ?? of('backlog')[0] ?? todo),
-    open: todo, blocked: todo,
+  const to = {
+    proposed: of('triage')[0] ?? of('backlog')[0] ?? todo, open: todo, blocked: todo,
     claimed: working, submitted: review ?? working, verified: review ?? working,
     done: of('completed')[0], archived: of('canceled')[0],
   };
-  for (const [status, state] of Object.entries(byStatus)) if (!state) throw new Error(`the Linear team has no workflow state for "${status}"`);
-  return { byStatus, byId: new Map(states.map((s) => [s.id, s])) };
+  for (const [status, state] of Object.entries(to)) if (!state) throw new Error(`the Linear team has no workflow state for "${status}"`);
+  return to;
 }
-
-// Linear's state wins when a human moved the issue; idle's own finer status when it agrees.
-export function statusFrom(state, labels, recorded) {
+function status(state, blocked, recorded) {
   switch (state?.type) {
     case 'triage': case 'backlog': return 'proposed';
-    case 'unstarted': return labels.includes(LABELS.blocked) ? 'blocked' : 'open';
-    case 'started':
-      if (/review/i.test(state.name)) return ['submitted', 'verified'].includes(recorded) ? recorded : 'submitted';
-      return 'claimed';
+    case 'unstarted': return blocked ? 'blocked' : 'open';
+    case 'started': return /review/i.test(state.name) ? (recorded === 'verified' ? 'verified' : 'submitted') : 'claimed';
     case 'completed': return 'done';
     case 'canceled': case 'duplicate': return 'archived';
     default: return recorded ?? 'open';
@@ -86,134 +65,60 @@ export function statusFrom(state, labels, recorded) {
 
 const date = (v) => (v ? new Date(v) : null);
 
-// One repository's tasks: the Linear project it names, or the one named after its label.
-async function load(client, cfg, label) {
-  const team = await client.team(cfg.team);
-  const states = stateMap(team.states);
+async function load(linear, cfg, label) {
+  const team = await linear.team(cfg.team);
   const labels = new Map(team.labels.map((l) => [l.name, l.id]));
-  const labelNames = new Map(team.labels.map((l) => [l.id, l.name]));
-  const project = { name: cfg.project ?? label, id: null };
-  project.id = (await client.projects(team.id)).find((p) => p.name === project.name)?.id ?? null;
-  const issues = project.id ? await client.issues(team.id, project.id) : [];
-  const ids = new Map(issues.map((i) => [i.id, i.meta?.id ?? i.identifier])); // Linear uuid → idle id
-  const data = { tasks: [], decisions: [] };
-  const linked = new Map(); // row → { issue, sent }
-
-  for (const issue of issues) {
-    const meta = issue.meta ?? {};
-    const names = issue.labelIds.map((id) => labelNames.get(id)).filter(Boolean);
-    const state = states.byId.get(issue.stateId);
-    if (names.includes(LABELS.decision)) {
-      const row = {
-        id: ids.get(issue.id), project: label, root: meta.root ?? null, task: meta.task ?? null,
-        statement: issue.title, rationale: issue.description || null, by: meta.by ?? null,
-        status: state?.type === 'canceled' ? 'superseded' : 'active', superseded_by: meta.superseded_by ?? null,
-        at: date(meta.at) ?? date(issue.createdAt),
-      };
-      data.decisions.push(row);
-      linked.set(row, { issue, kind: 'decision' });
+  const name = cfg.project ?? label;
+  const projectId = (await linear.projects(team.id)).find((p) => p.name === name)?.id;
+  const issues = projectId ? await linear.issues(team.id, projectId) : [];
+  const idOf = new Map(issues.map((i) => [i.id, i.meta?.id ?? i.identifier]));
+  const tasks = []; const decisions = [];
+  for (const i of issues) {
+    const m = i.meta ?? {};
+    const state = team.states.find((s) => s.id === i.stateId);
+    const base = { id: idOf.get(i.id), project: label };
+    if (i.labelIds.includes(labels.get('decision'))) {
+      decisions.push({ ...base, root: m.root ?? null, task: m.task ?? null, statement: i.title, rationale: i.description || null, by: m.by ?? null,
+        status: state?.type === 'canceled' ? 'superseded' : 'active', superseded_by: m.superseded_by ?? null, at: date(m.at ?? i.createdAt) });
       continue;
     }
-    const row = {
-      id: ids.get(issue.id), project: label,
-      parent: issue.parentId ? ids.get(issue.parentId) ?? null : null, root: null,
-      title: issue.title, ...parseDescription(issue.description),
-      scope: meta.scope ?? [], needs: meta.needs ?? [], decision_refs: meta.decision_refs ?? [],
-      status: statusFrom(state, names, meta.status),
-      claimed_by: meta.claimed_by ?? null, claim_expires: date(meta.claim_expires),
-      feedback: meta.feedback ?? '', verdict: meta.verdict ?? '', metadata: meta.metadata ?? {},
-      created_at: date(issue.createdAt), updated_at: date(issue.updatedAt),
-    };
-    data.tasks.push(row);
-    linked.set(row, { issue, kind: 'task' });
+    tasks.push({ ...base, parent: idOf.get(i.parentId) ?? null, title: i.title, ...parse(i.description),
+      scope: m.scope ?? [], needs: m.needs ?? [], decision_refs: m.decision_refs ?? [],
+      status: status(state, i.labelIds.includes(labels.get('blocked')), m.status),
+      claimed_by: m.claimed_by ?? null, claim_expires: date(m.claim_expires), feedback: m.feedback ?? '', verdict: m.verdict ?? '',
+      metadata: m.metadata ?? {}, created_at: date(i.createdAt), updated_at: date(i.updatedAt) });
   }
-  // The root is wherever the parent chain ends.
-  const byId = new Map(data.tasks.map((t) => [t.id, t]));
-  for (const t of data.tasks) {
-    let top = t;
-    for (const seen = new Set(); top.parent && byId.has(top.parent) && !seen.has(top.id); seen.add(top.id)) top = byId.get(top.parent);
-    t.root = top.id;
-  }
-  return { team, states, labels, project, data, linked };
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const rootOf = (t, seen = new Set()) => (byId.has(t.parent) && !seen.has(t.id) ? rootOf(byId.get(t.parent), seen.add(t.id)) : t.id);
+  for (const t of tasks) t.root = rootOf(t);
+  return { team, labels, project: { name, id: projectId }, issues: new Map(issues.map((i) => [idOf.get(i.id), i])), tasks, decisions };
 }
 
-function taskMeta(t) {
-  return {
-    id: t.id, status: t.status, scope: t.scope, needs: t.needs, decision_refs: t.decision_refs,
-    claimed_by: t.claimed_by, claim_expires: t.claim_expires?.toISOString() ?? null,
-    feedback: t.feedback, verdict: t.verdict, metadata: t.metadata,
-  };
-}
-
-function decisionMeta(d) {
-  return { id: d.id, root: d.root, task: d.task, by: d.by, superseded_by: d.superseded_by, at: d.at?.toISOString() ?? null };
-}
-
-async function flush(client, snap) {
-  const { team, states, labels, project, data, linked } = snap;
-  const uuidOf = new Map([...linked].map(([row, { issue }]) => [row.id, issue.id]));
-  const label = async (name) => {
-    if (!labels.has(name)) labels.set(name, (await client.createLabel(team.id, name)).id);
-    return labels.get(name);
-  };
-  const projectId = async () => {
-    project.id ??= (await client.createProject(project.name, team.id)).id;
-    return project.id;
-  };
-  const withLabel = async (current, name, on) => {
-    const id = await label(name);
-    const rest = current.filter((l) => l !== id);
-    return on ? [...rest, id] : rest;
-  };
-
-  for (const row of data.dirty) {
-    const kind = 'statement' in row ? 'decision' : 'task';
-    const was = linked.get(row)?.issue;
-    const fields = kind === 'task'
-      ? { title: row.title, description: renderDescription(row), stateId: states.byStatus[row.status].id }
-      : { title: row.statement, description: row.rationale ?? '', stateId: states.byStatus[row.status === 'superseded' ? 'archived' : 'done'].id };
-    const labelIds = kind === 'task'
-      ? await withLabel(was?.labelIds ?? [], LABELS.blocked, row.status === 'blocked')
-      : await withLabel(was?.labelIds ?? [], LABELS.decision, true);
-    const parentId = kind === 'task' && row.parent ? uuidOf.get(row.parent) ?? null : null;
-
-    let uuid = was?.id;
-    if (!uuid) {
-      const made = await client.createIssue({ teamId: team.id, projectId: await projectId(), parentId, labelIds, ...fields });
-      uuid = made.id;
-      uuidOf.set(row.id, uuid);
-      linked.set(row, { issue: { id: uuid, labelIds }, kind });
+async function save(linear, { team, labels, project, issues, dirty }) {
+  const to = states(team.states);
+  const label = async (name) => labels.get(name) ?? labels.set(name, (await linear.createLabel(team.id, name)).id).get(name);
+  for (const row of dirty) {
+    const was = issues.get(row.id);
+    const decision = 'statement' in row;
+    const on = decision ? 'decision' : 'blocked';
+    const labelIds = [...(was?.labelIds ?? []).filter((l) => l !== labels.get(on)), ...(decision || row.status === 'blocked' ? [await label(on)] : [])];
+    const fields = decision
+      ? { title: row.statement, description: row.rationale ?? '', stateId: to[row.status === 'superseded' ? 'archived' : 'done'].id, labelIds }
+      : { title: row.title, description: describe(row), stateId: to[row.status].id, labelIds, parentId: issues.get(row.parent)?.id ?? null };
+    const meta = decision
+      ? { id: row.id, root: row.root, task: row.task, by: row.by, superseded_by: row.superseded_by, at: row.at }
+      : { id: row.id, status: row.status, scope: row.scope, needs: row.needs, decision_refs: row.decision_refs, claimed_by: row.claimed_by,
+          claim_expires: row.claim_expires, feedback: row.feedback, verdict: row.verdict, metadata: row.metadata };
+    let id = was?.id;
+    if (!id) {
+      project.id ??= (await linear.createProject(project.name, team.id)).id;
+      id = (await linear.createIssue({ teamId: team.id, projectId: project.id, ...fields })).id;
+      issues.set(row.id, { id, labelIds });
     } else {
-      const changed = Object.fromEntries(Object.entries({ ...fields, labelIds }).filter(([k, v]) => JSON.stringify(was[k]) !== JSON.stringify(v)));
-      if (Object.keys(changed).length) await client.updateIssue(uuid, changed);
+      const changed = Object.fromEntries(Object.entries(fields).filter(([k, v]) => JSON.stringify(was[k] ?? null) !== JSON.stringify(v)));
+      if (Object.keys(changed).length) await linear.updateIssue(id, changed);
     }
-    const meta = kind === 'task' ? taskMeta(row) : decisionMeta(row);
-    await client.saveAttachment({ issueId: uuid, url: metaUrl(row.id), title: `idle ${row.id}`, metadata: meta });
-    if (kind === 'task') {
-      // Mirrored for whoever reads the issue in Linear; idle reads needs from its own field.
-      for (const need of row.needs.filter((n) => !(was?.meta?.needs ?? []).includes(n))) {
-        if (uuidOf.has(need)) await client.blocks(uuidOf.get(need), uuid);
-      }
-    }
+    await linear.saveAttachment({ issueId: id, url: META_URL + row.id, title: `idle ${row.id}`, metadata: meta });
+    for (const need of decision ? [] : row.needs.filter((n) => !was?.meta?.needs?.includes(n) && issues.has(n))) await linear.blocks(issues.get(need).id, id);
   }
-}
-
-function client() {
-  const cfg = config().linear ?? {};
-  if (process.env.IDLE_LINEAR_FAKE) return fakeClient(process.env.IDLE_LINEAR_FAKE);
-  const key = process.env.IDLE_LINEAR_API_KEY || cfg.apiKey;
-  if (!key) throw new Error('no Linear API key: set linear.apiKey in ~/.idle/config.json');
-  return graphqlClient(key);
-}
-
-export async function withLinear(fn) {
-  const cfg = config().linear ?? {};
-  if (!cfg.team) throw new Error('this repository keeps its tasks in Linear but names no team: add { "linear": { "team": "…" } } to .idle.json at its root');
-  const linear = client();
-  return withLock(async () => {
-    const snap = await load(linear, cfg, project());
-    const result = await fn(memoryStore(snap.data, { version: () => 'linear' }));
-    await flush(linear, snap);
-    return result;
-  });
 }

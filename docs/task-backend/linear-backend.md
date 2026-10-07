@@ -1,45 +1,19 @@
 # Linear as a backend
 
-*3 October 2026. Linear as a third storage backend for idle-tasks, beside PGlite and Postgres. Built; smoke-tested against a live workspace on 6 October.*
+*Built 3 October 2026, reworked 7 October, smoke-tested against a live workspace on 6 October.*
 
-## The decision
+Linear replaces the storage behind idle-tasks, not idle-tasks: the lifecycle, the refusals and the checks on submit stay in idle-tasks. idle-skills does not change. (A version that let the skills talk to Linear directly, PR #58, lost the checks and was dropped.)
 
-Tobi, 3 October: Linear replaces the *storage* behind idle-tasks, not idle-tasks itself. idle-tasks keeps the lifecycle, the refusals, and — the point — running the project's checks itself when a task is submitted. No agent verifies. An attempt that let idle-skills talk to Linear directly (closed PR #58) lost exactly that and was dropped.
+## Shape
 
-idle-skills does not change: it only uses the four operations.
+Tools (CLI, MCP) → idle-tasks (`ops.mjs`, `views.mjs`, `records.mjs`) → storage. Storage is an adapter with one verb, `withData(fn)`: load the rows, let idle-tasks change them, save the changed ones. Two adapters, nothing shared: `sql.mjs` (PGlite or Postgres) and `linear.mjs`. Everything idle-tasks asks of its records is answered once, in `records.mjs`.
 
-## How it is built
+Where a repository's tasks live is the repository's setting, `.idle.json`; the key is the machine's, in `~/.idle/config.json`.
 
-- **A store interface.** The operations and views ask a store (`idle-tasks/src/pg-store.mjs`) instead of writing SQL. Caps are refused in JS as well, so a store without `CHECK` constraints keeps them.
-- **A snapshot store.** `memory-store.mjs` answers the same questions over an in-memory snapshot of every task and decision, including pg_trgm's similarity for near-duplicates.
-- **Linear.** `linear.mjs` runs each operation under the machine's lock: it loads the team's issues into a snapshot, runs the operation in memory, and writes back only the rows that changed. A refused operation writes nothing — the transaction Linear does not have. `linear-client.mjs` is the GraphQL API reduced to nine calls; `linear-fake.mjs` answers the same calls from a JSON file for tests.
+## Limits
 
-Config, per Tobi on 5 October: where a repository's tasks live is a project setting, committed as `.idle.json` at its root (`{ "backend": "linear", "linear": { "team": "ENG", "project": "Shop" } }`); the API key is the machine's, in `~/.idle/config.json` (`{ "linear": { "apiKey": "…" } }`). Each repository is one Linear project, and a snapshot loads only that project's issues.
-
-## The mapping
-
-| idle | Linear |
-|---|---|
-| task, children | issue, sub-issues |
-| repository | the Linear project `.idle.json` names, or one named after the repository; created on first use |
-| `goal`, `acceptance_criteria`, `plan`, `interview`, `consumer_scenario` | the description: the goal, then `## Signs the goal is reached`, `## Plan`, `## Interview`, `## How it is used` |
-| status | proposed → Triage (or Backlog), open → Todo, claimed → In Progress, submitted/verified → In Review, done → Done, archived → Canceled; blocked = Todo + label `blocked` |
-| decision | issue labelled `decision`: Done while in force, Canceled when superseded |
-| scope, needs, claims, feedback, verdict, decision refs, `meta`, idle's own id | metadata of an attachment idle keeps on each issue (`https://idle.invalid/<id>`); needs also shown as blocked-by relations |
-
-What people change in Linear counts: title, description, state and parent are read back on every call. An issue created in the project from Linear is a task, with its Linear identifier as id.
-
-## What is weaker than Postgres
-
-- **Two machines.** One machine is serialised by its lock. Two machines writing the same tree at the same moment are not: the later write wins, and two claims can both succeed.
-- **Speed.** Every call loads the repository's whole Linear project. Fine for a hobby project; slow for a very large one.
-- **Leases** are compared against this machine's clock, not the database's.
-
-## Tested
-
-`IDLE_TEST_BACKEND=linear` runs the whole operations journey (`tests/tasks.test.mjs`) against the fake workspace, and `tests/linear.test.mjs` covers the mapping and human edits. Both are in `npm run verify`.
-
-On 6 October the CLI and the MCP server ran against a live workspace (team Touchstone, repository `touchstone`): drop, sub-tasks, needs, claim, submit with passing and failing checks, review, block, supersede, and a title edit, a state move and a sub-issue made in Linear, all read back. The team lookup was too complex for Linear's API until it asked for one team. Two things only a live workspace shows:
-
-- Linear rewrites what it stores: a bare hostname in a description comes back as a Markdown link, and idle reads it back that way.
-- An issue moved to In Progress by hand is claimed by nobody, with no lease. An agent can still claim it.
+- Two machines writing the same Linear tree at once are not serialised: the later write wins.
+- Every call loads the whole Linear project.
+- Leases are compared against the caller's clock.
+- Linear rewrites what it stores (a bare hostname comes back as a Markdown link), and idle reads it back that way.
+- An issue moved to In Progress by hand is claimed by nobody; an agent can still claim it.
