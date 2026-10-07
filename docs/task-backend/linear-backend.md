@@ -14,6 +14,6 @@ Where a repository's tasks live is the repository's setting, `.idle.json`; the k
 
 - Two machines writing the same Linear tree at once are not serialised: the later write wins.
 - Every call loads the whole Linear project.
-- Leases are compared against the caller's clock.
+- Leases are compared against the clock of the machine making the call, in every mode.
 - Linear rewrites what it stores (a bare hostname comes back as a Markdown link), and idle reads it back that way.
 - An issue moved to In Progress by hand is claimed by nobody; an agent can still claim it.

@@ -1,5 +1,5 @@
 const ENDPOINT = 'https://api.linear.app/graphql';
-const META_URL = 'https://idle.invalid/';
+export const META_URL = 'https://idle.invalid/';
 
 export function graphqlClient(apiKey) {
   async function gql(query, variables = {}) {
@@ -24,9 +24,9 @@ export function graphqlClient(apiKey) {
       if (!team) throw new Error(`Linear: no team "${keyOrName}"`);
       return { id: team.id, states: team.states.nodes, labels: team.labels.nodes };
     },
-    async projects(teamId) {
-      const data = await gql(`query($id: String!) { team(id: $id) { projects(first: 250) { nodes { id name } } } }`, { id: teamId });
-      return data.team.projects.nodes;
+    async project(teamId, name) {
+      const data = await gql(`query($id: String!, $name: String!) { team(id: $id) { projects(first: 1, filter: { name: { eq: $name } }) { nodes { id } } } }`, { id: teamId, name });
+      return data.team.projects.nodes[0] ?? null;
     },
     async createProject(name, teamId) {
       const data = await gql(`mutation($name: String!, $teamId: String!) {
@@ -44,16 +44,16 @@ export function graphqlClient(apiKey) {
       const all = [];
       for (let after = null; ;) {
         const data = await gql(`query($teamId: ID!, $projectId: ID!, $after: String) {
-          issues(first: 50, after: $after, filter: { team: { id: { eq: $teamId } }, project: { id: { eq: $projectId } } }) {
+          issues(first: 50, after: $after, includeArchived: true, filter: { team: { id: { eq: $teamId } }, project: { id: { eq: $projectId } } }) {
             nodes {
-              id identifier title description createdAt updatedAt
+              id identifier title description createdAt updatedAt trashed
               parent { id } state { id } project { id } labels { nodes { id } }
               attachments { nodes { url metadata } }
             }
             pageInfo { hasNextPage endCursor }
           }
         }`, { teamId, projectId, after });
-        for (const i of data.issues.nodes) {
+        for (const i of data.issues.nodes.filter((n) => !n.trashed)) {
           all.push({
             id: i.id, identifier: i.identifier, title: i.title, description: i.description ?? '',
             parentId: i.parent?.id ?? null, stateId: i.state?.id ?? null, projectId: i.project?.id ?? null,

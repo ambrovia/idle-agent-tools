@@ -21,7 +21,7 @@ export function records(data) {
   const touch = (row) => { row.updated_at = new Date(); data.dirty.add(row); };
   const live = (t) => t.status === 'claimed' && t.claim_expires > new Date();
   const ready = (t) => (t.status === 'open' || (t.status === 'claimed' && !live(t)))
-    && t.needs.every((n) => find(n)?.status === 'done') && !tasks.some((c) => c.parent === t.id);
+    && t.needs.every((n) => (find(n)?.status ?? 'done') === 'done') && !tasks.some((c) => c.parent === t.id);
   const byCreated = (a, b) => a.created_at - b.created_at;
   const similar = (rows, text, field) => rows.map((r) => [r, similarity(r[field], text)]).filter(([, score]) => score > SIMILAR)
     .sort((a, b) => b[1] - a[1]).slice(0, 5).map(([r]) => r);

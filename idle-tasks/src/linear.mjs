@@ -1,7 +1,6 @@
-
 import { config, withLock } from './store.mjs';
 import { project } from './context.mjs';
-import { graphqlClient } from './linear-client.mjs';
+import { graphqlClient, META_URL } from './linear-client.mjs';
 import { fakeClient } from './linear-fake.mjs';
 
 export async function withData(fn) {
@@ -18,7 +17,6 @@ export async function withData(fn) {
   });
 }
 
-const META_URL = 'https://idle.invalid/';
 const SECTIONS = [
   ['acceptance_criteria', 'Signs the goal is reached'],
   ['plan', 'Plan'],
@@ -69,7 +67,7 @@ async function load(linear, cfg, label) {
   const team = await linear.team(cfg.team);
   const labels = new Map(team.labels.map((l) => [l.name, l.id]));
   const name = cfg.project ?? label;
-  const projectId = (await linear.projects(team.id)).find((p) => p.name === name)?.id;
+  const projectId = (await linear.project(team.id, name))?.id;
   const issues = projectId ? await linear.issues(team.id, projectId) : [];
   const idOf = new Map(issues.map((i) => [i.id, i.meta?.id ?? i.identifier]));
   const tasks = []; const decisions = [];
@@ -78,6 +76,7 @@ async function load(linear, cfg, label) {
     const state = team.states.find((s) => s.id === i.stateId);
     const base = { id: idOf.get(i.id), project: label };
     if (i.labelIds.includes(labels.get('decision'))) {
+      i.loaded = { status: state?.type === 'canceled' ? 'superseded' : 'active' };
       decisions.push({ ...base, root: m.root ?? null, task: m.task ?? null, statement: i.title, rationale: i.description || null, by: m.by ?? null,
         status: state?.type === 'canceled' ? 'superseded' : 'active', superseded_by: m.superseded_by ?? null, at: date(m.at ?? i.createdAt) });
       continue;
@@ -87,6 +86,7 @@ async function load(linear, cfg, label) {
       status: status(state, i.labelIds.includes(labels.get('blocked')), m.status),
       claimed_by: m.claimed_by ?? null, claim_expires: date(m.claim_expires), feedback: m.feedback ?? '', verdict: m.verdict ?? '',
       metadata: m.metadata ?? {}, created_at: date(i.createdAt), updated_at: date(i.updatedAt) });
+    i.loaded = { status: tasks.at(-1).status, parent: tasks.at(-1).parent };
   }
   const byId = new Map(tasks.map((t) => [t.id, t]));
   const rootOf = (t, seen = new Set()) => (byId.has(t.parent) && !seen.has(t.id) ? rootOf(byId.get(t.parent), seen.add(t.id)) : t.id);
@@ -101,7 +101,9 @@ async function save(linear, { team, labels, project, issues, dirty }) {
     const was = issues.get(row.id);
     const decision = 'statement' in row;
     const on = decision ? 'decision' : 'blocked';
-    const labelIds = [...(was?.labelIds ?? []).filter((l) => l !== labels.get(on)), ...(decision || row.status === 'blocked' ? [await label(on)] : [])];
+    const want = decision || row.status === 'blocked';
+    const labelIds = want === !!was?.labelIds.includes(labels.get(on)) ? was?.labelIds ?? []
+      : want ? [...was?.labelIds ?? [], await label(on)] : was.labelIds.filter((l) => l !== labels.get(on));
     const fields = decision
       ? { title: row.statement, description: row.rationale ?? '', stateId: to[row.status === 'superseded' ? 'archived' : 'done'].id, labelIds }
       : { title: row.title, description: describe(row), stateId: to[row.status].id, labelIds, parentId: issues.get(row.parent)?.id ?? null };
@@ -109,6 +111,8 @@ async function save(linear, { team, labels, project, issues, dirty }) {
       ? { id: row.id, root: row.root, task: row.task, by: row.by, superseded_by: row.superseded_by, at: row.at }
       : { id: row.id, status: row.status, scope: row.scope, needs: row.needs, decision_refs: row.decision_refs, claimed_by: row.claimed_by,
           claim_expires: row.claim_expires, feedback: row.feedback, verdict: row.verdict, metadata: row.metadata };
+    if (was?.loaded?.status === row.status) delete fields.stateId;
+    if (was?.loaded && was.loaded.parent === row.parent) delete fields.parentId;
     let id = was?.id;
     if (!id) {
       project.id ??= (await linear.createProject(project.name, team.id)).id;

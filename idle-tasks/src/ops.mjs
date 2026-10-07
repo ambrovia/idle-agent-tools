@@ -88,7 +88,6 @@ async function claim(s, task, input, ctx) {
 async function move(s, task, to, input, ctx) {
   const from = task.status;
   const mine = from === 'claimed' && task.claimed_by === ctx.by;
-  // Asked of the store, not this machine's clock: on a shared database they differ.
   const live = (await s.liveClaims(task.root)).some((c) => c.id === task.id);
   const why = (field, what) => input[field] || refuse(`${from} → ${to} needs --${field}: ${what}`);
   const FREE = { claimed_by: null, claim_expires: null };
