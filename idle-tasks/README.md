@@ -7,7 +7,7 @@ A shared record of work for coding agents. Agents do not talk to each other; the
 - **Anyone can drop a task.** A title is enough. It is searched for near-duplicates first.
 - **Claims are leases**, refused when the scope overlaps another live claim in the same tree.
 - **The system verifies, not an agent.** Submitting a task runs your project's configured shell commands where the work is, and sends a failing task back to `open` with the output.
-- **Storage lives in your home folder:** PGlite by default, or any Postgres you bring. Same SQL either way.
+- **Storage lives in your home folder:** PGlite by default, or any Postgres you bring — or in **Linear**, where humans see and edit them as issues.
 
 Bring your own workflow — or use [idle-skills](https://github.com/ambrovia/idle-agent-tools), a multi-agent development workflow built on it.
 
@@ -38,6 +38,27 @@ As an MCP server (stdio), in any harness:
 ```
 
 `checks` are run by the system when a task in that project is submitted. `review` makes a verified task wait for someone who did not do the work. `database` switches from the local PGlite folder to a shared Postgres. The project label is the repository's name, so every clone and worktree lands on the same tasks.
+
+### Linear
+
+Where a repository's tasks live is its own setting. Commit `.idle.json` at its root, and keep your Linear API key in `~/.idle/config.json` (or `IDLE_LINEAR_API_KEY`):
+
+```json
+{ "backend": "linear", "linear": { "team": "ENG", "project": "Shop" } }
+```
+
+```json
+{ "linear": { "apiKey": "lin_api_…" } }
+```
+
+The project defaults to the repository's name and is created on first use. Same operations, same refusals, and checks still run on this machine.
+
+- A task is an issue, its children sub-issues, its goal and sections the description. A decision is an issue labelled `decision`.
+- States map onto the team's workflow by type; blocked is Todo plus a `blocked` label.
+- What Linear has no field for rides in an attachment idle keeps on each issue.
+- Edits made in Linear count, and an issue created there is a task.
+
+Linear has no transactions: one machine is serialised by its lock, two machines writing the same tree at once are not.
 
 The `idle` skill in `skills/idle/SKILL.md` tells an agent everything above.
 
