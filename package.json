@@ -20,10 +20,11 @@
   ],
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "test:linear": "IDLE_TEST_BACKEND=linear node --test tests/tasks.test.mjs",
     "check:opencode-plugin": "node --check idle-skills/.opencode/plugins/pipeline.js",
     "check:codex-installer": "bash -n scripts/install-codex.sh",
     "check:installers": "bash -n scripts/install-codex.sh scripts/install-cursor.sh scripts/install-opencode.sh scripts/install-antigravity.sh",
-    "verify": "npm run check:opencode-plugin && npm run check:installers && npm run check:agents && npm test",
+    "verify": "npm run check:opencode-plugin && npm run check:installers && npm run check:agents && npm test && npm run test:linear",
     "check:agents": "node scripts/generate-agents.mjs --check"
   },
   "keywords": [
