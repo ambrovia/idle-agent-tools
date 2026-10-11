@@ -14,6 +14,8 @@ function similarity(a, b) {
   return shared / (x.size + y.size - shared || 1);
 }
 
+const pick = (...keys) => (row) => Object.fromEntries(keys.map((k) => [k, row[k]]));
+
 export function records(data) {
   const { tasks, decisions } = data;
   data.dirty = new Set();
@@ -37,10 +39,10 @@ export function records(data) {
         touched: new Date(Math.max(...tasks.filter((c) => c.root === t.id).map((c) => c.updated_at))) }))
       .sort((a, b) => b.touched - a.touched),
     ready: ({ project = null, root = null }) => tasks
-      .filter((t) => ready(t) && (project === null || t.project === project) && (root === null || t.root === root)).sort(byCreated),
-    liveClaims: (root) => tasks.filter((t) => t.root === root && live(t)),
+      .filter((t) => ready(t) && (project === null || t.project === project) && (root === null || t.root === root)).sort(byCreated).map(pick('id', 'root', 'title', 'scope')),
+    liveClaims: (root) => tasks.filter((t) => t.root === root && live(t)).map(pick('id', 'title', 'claimed_by', 'scope', 'claim_expires')),
     similarTasks: ({ title, root, project }) => similar(tasks.filter((t) => !['done', 'archived'].includes(t.status)
-      && (root !== null ? t.root === root : t.project === project && !t.parent)), title, 'title'),
+      && (root !== null ? t.root === root : t.project === project && !t.parent)), title, 'title').map(pick('id', 'title', 'status')),
     insertTask: (fields) => {
       const now = new Date();
       const row = Object.assign({ id: null, project: null, parent: null, root: null, title: '', goal: '', acceptance_criteria: null,
@@ -56,7 +58,7 @@ export function records(data) {
     decisions: (ids) => decisions.filter((d) => ids.includes(d.id)).sort((a, b) => a.at - b.at),
     decisionsInRoot: (root, { since = null } = {}) => decisions
       .filter((d) => d.root === root && (since === null || d.at >= new Date(since))).sort((a, b) => b.at - a.at),
-    similarDecisions: (root, statement) => similar(decisions.filter((d) => d.root === root && d.status === 'active'), statement, 'statement'),
+    similarDecisions: (root, statement) => similar(decisions.filter((d) => d.root === root && d.status === 'active'), statement, 'statement').map(pick('id', 'statement')),
     insertDecision: (fields) => {
       const row = Object.assign({ id: null, project: null, root: null, task: null, statement: '', rationale: null, by: null, status: 'active', superseded_by: null, at: new Date() }, fields);
       decisions.push(row);

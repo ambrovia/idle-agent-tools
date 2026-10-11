@@ -1,6 +1,6 @@
 # Linear as a backend
 
-*Built 3 October 2026, reworked 7 October, smoke-tested against a live workspace on 6 October.*
+*Built 3 October 2026, reworked 7 October, smoke-tested against a live workspace on 11 October.*
 
 Linear replaces the storage behind idle-tasks, not idle-tasks: the lifecycle, the refusals and the checks on submit stay in idle-tasks. idle-skills does not change. (A version that let the skills talk to Linear directly, PR #58, lost the checks and was dropped.)
 
