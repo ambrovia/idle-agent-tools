@@ -1,5 +1,6 @@
 // The happy journey and the basic refusals, through the CLI, against local PGlite.
-// Set IDLE_TEST_DATABASE_URL to run the same journey against a Postgres.
+// Set IDLE_TEST_DATABASE_URL to run the same journey against a Postgres, or
+// IDLE_TEST_BACKEND=linear to run it against the Linear backend over a fake Linear workspace.
 
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
@@ -17,7 +18,9 @@ process.on('exit', () => homes.forEach((home) => rmSync(home, { recursive: true,
 function sandbox(config) {
   const env = { ...process.env, IDLE_HOME: mkdtempSync(join(tmpdir(), 'idle-')), IDLE_PROJECT: `test-${Date.now()}` };
   homes.push(env.IDLE_HOME);
-  if (config) writeFileSync(join(env.IDLE_HOME, 'config.json'), JSON.stringify(config(env.IDLE_PROJECT)));
+  const linear = process.env.IDLE_TEST_BACKEND === 'linear' ? { backend: 'linear', linear: { team: 'ENG' } } : {};
+  if (linear.backend) env.IDLE_LINEAR_FAKE = join(env.IDLE_HOME, 'linear.json');
+  if (config || linear.backend) writeFileSync(join(env.IDLE_HOME, 'config.json'), JSON.stringify({ ...linear, ...config?.(env.IDLE_PROJECT) }));
   delete env.IDLE_DATABASE_URL;
   if (process.env.IDLE_TEST_DATABASE_URL) env.IDLE_DATABASE_URL = process.env.IDLE_TEST_DATABASE_URL;
   const run = (...args) => {
@@ -263,6 +266,7 @@ test('every place that starts the published server names exactly the version in 
   for (const file of ['idle-tasks/.claude-plugin/plugin.json', 'idle-tasks/.codex-plugin/plugin.json', 'idle-tasks/.cursor-plugin/plugin.json', 'idle-tasks/plugin.json']) {
     assert.equal(JSON.parse(readFileSync(join(repo, file), 'utf8')).version, version, file);
   }
+  assert.equal(readFileSync(join(repo, 'idle-tasks/apm.yml'), 'utf8').match(/^version:\s*(\S+)/m)?.[1], version, 'idle-tasks/apm.yml');
 });
 
 test('project memory, assumptions, retro, outcome, mechanical counters, glob scopes, and search', () => {

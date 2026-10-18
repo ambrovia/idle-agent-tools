@@ -3,7 +3,6 @@
 
 import { checksFor } from './store.mjs';
 
-const LIVE = `status = 'claimed' and claim_expires > now()`;
 const firstLine = (text, max = 200) => { const line = (text || '').split('\n')[0]; return line.length > max ? `${line.slice(0, max)}…` : line; };
 const section = (title, body) => (body && body.trim() ? `\n## ${title}\n\n${body.trim()}\n` : '');
 const bullets = (rows, fn) => rows.map((r) => `- ${fn(r)}`).join('\n');
@@ -18,29 +17,20 @@ export function tree(rows) {
   return lines.join('\n');
 }
 
-// Root first, the task itself last.
-async function lineage(q, taskId) {
-  return q(
-    `with recursive up as (
-       select t.*, 0 as depth from tasks t where id = $1
-       union all select t.*, up.depth + 1 from tasks t join up on t.id = up.parent)
-     select * from up order by depth desc`, [taskId]);
-}
-
 const kindTag = (d) => (d.kind && d.kind !== 'decision' ? ` [${d.kind}]` : '');
 const formatBriefDecision = (d) => `${d.id}${kindTag(d)}: ${d.statement}${d.rationale ? ` — ${firstLine(d.rationale)}` : ''}`;
 const formatStateDecision = (d) => `${d.id}${kindTag(d)}: ${d.statement} (${d.by})`;
 
-export async function brief(q, task) {
-  const line = await lineage(q, task.id);
+export async function brief(s, task) {
+  const line = await s.lineage(task.id); // root first, the task itself last
   const root = line[0];
   const ancestors = line.slice(0, -1);
   const planned = [...line].reverse().find((t) => t.plan);
   const interviewed = [...line].reverse().find((t) => t.interview);
   const refs = [...new Set(line.flatMap((t) => t.decision_refs))];
-  const decisions = await q(`select id, kind, statement, rationale from decisions where id = any($1) and status = 'active' order by at`, [refs]);
-  const projectMemory = await q(`select id, kind, statement, rationale from decisions where project = $1 and root is null and status = 'active' order by at`, [task.project]);
-  const needs = await q(`select id, title, status, goal from tasks where id = any($1)`, [task.needs]);
+  const decisions = (await s.decisions(refs)).filter((d) => d.status === 'active');
+  const projectMemory = (await s.projectDecisions(task.project)).filter((d) => d.status === 'active').reverse();
+  const needs = await s.tasks(task.needs);
   const where = Object.assign({}, ...line.map((t) => t.metadata)); // root first, so a task's own entries win
   return [
     // Stable project and root context first (maximises prompt-cache prefix hits across spawns and retries).
@@ -63,17 +53,15 @@ export async function brief(q, task) {
   ].join('').trimStart();
 }
 
-export async function state(q, root) {
-  const rows = await q(`select * from tasks where root = $1 order by created_at`, [root.id]);
-  const superseded = (await q(`select id from decisions where project = $1 and (root = $2 or root is null) and status = 'superseded'`, [root.project, root.id])).map((d) => d.id);
-  const ready = await q(
-    `select t.id, t.title from tasks t where t.root = $1
-       and (t.status = 'open' or (t.status = 'claimed' and t.claim_expires <= now()))
-       and not exists (select 1 from tasks n where n.id = any(t.needs) and n.status <> 'done')
-       and not exists (select 1 from tasks c where c.parent = t.id)`, [root.id]);
-  const claims = await q(`select id, title, claimed_by, scope, claim_expires from tasks where root = $1 and ${LIVE}`, [root.id]);
-  const decisions = await q(`select id, kind, statement, by from decisions where root = $1 and status = 'active' order by at desc limit 10`, [root.id]);
-  const projectMemory = await q(`select id, kind, statement, by from decisions where project = $1 and root is null and status = 'active' order by at desc limit 20`, [root.project]);
+export async function state(s, root) {
+  const rows = await s.treeRows(root.id);
+  const made = await s.decisionsInRoot(root.id); // newest first
+  const proj = await s.projectDecisions(root.project); // newest first
+  const superseded = [...made, ...proj].filter((d) => d.status === 'superseded').map((d) => d.id);
+  const ready = await s.ready({ root: root.id });
+  const claims = await s.liveClaims(root.id);
+  const decisions = made.filter((d) => d.status === 'active').slice(0, 10);
+  const projectMemory = proj.filter((d) => d.status === 'active').slice(0, 20);
   const open = (t) => !['done', 'archived'].includes(t.status);
   const kids = (t) => rows.filter((c) => c.parent === t.id);
 
