@@ -244,8 +244,13 @@ function findLore(root) {
 function findSince(root, activeId) {
   try {
     const shown = JSON.parse(idle(root, 'show', activeId) ?? '{}');
-    const activeChildren = (shown.children ?? []).filter((c) => ['claimed', 'submitted', 'verified'].includes(c.status));
-    for (const child of activeChildren) {
+    const nodes = JSON.parse(idle(root, 'list', '--root', activeId) ?? '[]');
+    const flat = (list) => (Array.isArray(list) ? list.flatMap((n) => [n, ...flat(n.children ?? [])]) : []);
+    const candidates = [
+      ...(shown.children ?? []),
+      ...flat(nodes).filter((n) => n.id !== activeId),
+    ].filter((c, i, a) => ['claimed', 'submitted', 'verified'].includes(c.status) && a.findIndex((x) => x.id === c.id) === i);
+    for (const child of candidates) {
       const childTask = JSON.parse(idle(root, 'show', child.id) ?? '{}').task;
       if (childTask?.metadata?.since) return childTask.metadata.since;
     }

@@ -411,7 +411,9 @@ function runChecks(task, worktree) {
         logNote = `\n(full log: ${logPath})`;
       } catch { /* best effort */ }
     }
-    const snippet = [...highlights, ...(highlights.length ? ['…'] : []), ...tailLines].join('\n').slice(-600);
+    const snippet = highlights.length
+      ? `${highlights.join('\n').slice(0, 240)}\n…\n${tailLines.join('\n').slice(-350)}`
+      : tailLines.join('\n').slice(-600);
     return `\`${command}\` ${run.error ? `did not run (${run.error.code ?? run.error.message})` : `exited ${run.status}`}\n${snippet}${logNote}`;
   }
   return null;
