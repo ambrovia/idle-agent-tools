@@ -22,3 +22,33 @@ jobs:
       - run: npm ci
         working-directory: idle-tasks
       - run: npm run verify
+
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: idle-tasks/package-lock.json
+      - name: Publish idle-agent-tasks if version is new
+        working-directory: idle-tasks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "idle-agent-tasks@$VERSION" version 2>/dev/null || true)
+          if [ "$PUBLISHED" = "$VERSION" ]; then
+            echo "idle-agent-tasks@$VERSION is already published on npm."
+            exit 0
+          fi
+          npm ci
+          npm publish --provenance --access public || npm publish --access public
