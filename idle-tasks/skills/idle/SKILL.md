@@ -1,6 +1,6 @@
 ---
 name: idle
-description: "Read and write the shared record of work: tasks that nest into trees, and decisions. Use whenever work is coordinated through the task backend — to drop a task, structure one into a tree, claim a task, give feedback, record a decision, submit, or see where a piece of work stands. Workflow-neutral."
+description: "Read and write the shared record of work: tasks that nest into trees, and memories (decisions, assumptions, taste, and retros). Use whenever work is coordinated through the task backend — to drop a task, structure one into a tree, claim a task, give feedback, record a memory, submit, or see where a piece of work stands. Workflow-neutral."
 persona: any
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: true
@@ -28,17 +28,17 @@ at the same time.
 A task's `plan` is the condensed, worker-facing plan; its `interview` is the Q&A progression it came from.
 Both sit on the root once it has been refined, and on any deeper task that needed its own.
 
-A **decision** is one line anyone may record when they had to choose, or when they relied on an
-unverified premise (`--kind assumption`), or when the human stated a standing repository-wide preference
-(`--kind taste`). With `--task`, it binds the task it was made on and any task named with it. Without
-`--task`, it is standing **project memory** that every task in the repository sees (use for general
-project-wide facts and preferences, never for a choice localized to a single question). Decisions and
-assumptions are searched before they are recorded, and superseded rather than edited.
+A **memory** (`--summary`, `--details`, optional `--rejected`) is a structured entry anyone may record:
+- `--kind decision` (default): a choice made where the plan was silent (`--summary` what was chosen, `--details` why, `--rejected` alternatives rejected);
+- `--kind assumption`: an unverified premise relied on without asking (`--summary` the assumption, `--details` why / what breaks if wrong);
+- `--kind taste`: a standing preference (`--summary` the preference, `--details` context);
+- `--kind retro`: a self-reflection observation after work completes (`success`, `friction`, `divergence`, or `cost`).
+
+With `--task`, a decision, assumption, or taste binds the task it was made on and any task named with `--bind` (and `retro` attaches to that root's tree). Without `--task`, it is standing **project memory** that every task in the repository sees (use for general project-wide facts and preferences, never for a choice localized to a single question). Memories are searched before they are recorded, and superseded (`--superseded-by`) rather than edited.
 
 `feedback` on a task is for whoever plans the tree: the goal is wrong, the approach will not work, a
 decision conflicts, what you learned by doing. `verdict` is why a task came back: a failed check,
-blocking findings, the reason it was reopened. `retro` is self-reflection recorded on the root after the
-work completes (`success`, `friction`, `divergence`, `cost`). `outcome` is outer feedback recorded at any
+blocking findings, the reason it was reopened. `outcome` is outer feedback recorded at any
 time, including after `done` or `archived`: human PR review comments, user feedback, business KPIs, or
 runtime signals.
 
@@ -68,10 +68,10 @@ when the session has them.
 
 | | |
 |---|---|
-| `task` | Create or update. Without `id` it creates — after searching: if similar live tasks exist it returns them instead, and `confirm` creates anyway. With `id` it changes fields, moves the task with `status`, appends `feedback`, `verdict`, `retro` or `outcome`. |
-| `decision` | Create or update, the same way (`--kind decision\|assumption\|taste`; omit `--task` for standing project-wide memory). `superseded-by` retires one. |
-| `show` | One task or decision. `brief`: what a worker starts from. `state`: the whole tree it belongs to — what needs attention, feedback, tree, ready, claims, recently done, project memory, decisions & assumptions, retro, outcome. |
-| `list` | Root tasks of this project; with `root` one of them as a tree; with `ready` what can be claimed; with `decisions` project-wide memory (or with `root` a tree's decisions, with `all` every decision in the project); with `search` matching tasks, retros, outcomes and decisions across the project. |
+| `task` | Create or update. Without `id` it creates — after searching: if similar live tasks exist it returns them instead, and `confirm` creates anyway. With `id` it changes fields, moves the task with `status`, appends `feedback`, `verdict`, or `outcome`. |
+| `memory` | Create or update, the same way (`--kind decision\|assumption\|taste\|retro`, `--summary`, `--details`, `--rejected`; omit `--task` for standing project-wide memory). `superseded-by` retires one. |
+| `show` | One task or memory. `brief`: what a worker starts from. `state`: the whole tree it belongs to — what needs attention, feedback, tree, ready, claims, recently done, project memory, decisions & assumptions, retro, outcome. |
+| `list` | Root tasks of this project; with `root` one of them as a tree; with `ready` what can be claimed; with `memories` project-wide memory (or with `root` a tree's memories, with `all` or `kind` memories across the project); with `search` matching tasks, outcomes and memories across the project. |
 
 `idle help <operation>` lists every input.
 
@@ -84,9 +84,9 @@ the worker is refused.
 | You are | You may |
 |---|---|
 | anyone | drop a task |
-| doing a task | claim it; extend the lease; record decisions; append feedback; create `proposed` children when it is bigger than it looked; then exactly one of: submit, block with feedback, or release |
+| doing a task | claim it; extend the lease; record memories (`decision`, `assumption`); append feedback; create `proposed` children when it is bigger than it looked; then exactly one of: submit, block with feedback, or release |
 | reviewing | move `verified` to `done`, or back to `open` with the blocking findings — never for work you did, and never leave it where it was: what needs it waits for `done` |
-| planning a tree | create and edit tasks; accept a proposal (`open`) or decline it (`archived`); unblock; mark a parent `done`; supersede decisions; archive |
+| planning a tree | create and edit tasks; accept a proposal (`open`) or decline it (`archived`); unblock; mark a parent `done`; record `retro` memories; supersede memories; archive |
 | the human | everything above, and alone: decide what a task is for and how far it goes, contradict a `done` |
 
 Read before you move: `show --brief` before working a task, `show --state` before planning a tree.

@@ -5,11 +5,11 @@ import { migrate } from './schema.mjs';
 export async function withData(fn) {
   return (config().database ? shared : local)(async (q) => {
     await q(`select pg_advisory_xact_lock(hashtext('idle'))`);
-    const data = { tasks: await q('select * from tasks'), decisions: await q('select * from decisions') };
+    const data = { tasks: await q('select * from tasks'), memories: await q('select * from memories') };
     const result = await fn(data);
     const rows = [...data.dirty];
-    await upsert(q, 'tasks', rows.filter((r) => !('statement' in r)));
-    await upsert(q, 'decisions', rows.filter((r) => 'statement' in r));
+    await upsert(q, 'tasks', rows.filter((r) => !('summary' in r)));
+    await upsert(q, 'memories', rows.filter((r) => 'summary' in r));
     return result;
   });
 }

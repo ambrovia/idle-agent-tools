@@ -2,8 +2,8 @@
 
 A shared record of work for coding agents. Agents do not talk to each other; they read and write this.
 
-- **Two things are stored:** tasks — goals that nest into trees, need each other, carry scope, and record their own retro and outer outcomes — and decisions (choices, assumptions, and standing project memory).
-- **Four operations**, the same over the `idle` CLI and over MCP: `task` and `decision` create or update, `show` and `list` read. Everything else is a state: `proposed → open → claimed → submitted → verified → done`, plus `blocked` and `archived`.
+- **Two things are stored:** **tasks** — goals that nest into trees, need each other, carry scope, and record outer outcomes — and **memories** (`decision`, `assumption`, standing `taste`, and `retro` observations).
+- **Four operations**, the same over the `idle` CLI and over MCP: `task` and `memory` create or update, `show` and `list` read. Everything else is a state: `proposed → open → claimed → submitted → verified → done`, plus `blocked` and `archived`.
 - **Anyone can drop a task.** A title is enough. It is searched for near-duplicates first.
 - **Claims are leases**, refused when the scope overlaps another live claim in the same tree.
 - **The system verifies, not an agent.** Submitting a task runs your project's configured shell commands where the work is, and sends a failing task back to `open` with the output.
@@ -53,7 +53,7 @@ Where a repository's tasks live is its own setting. Commit `.idle.json` at its r
 
 The project defaults to the repository's name and is created on first use. Same operations, same refusals, and checks still run on this machine.
 
-- A task is an issue, its children sub-issues, its goal and sections the description. A decision is an issue labelled `decision`.
+- A task is an issue, its children sub-issues, its goal and sections the description. A memory is an issue labelled `memory`.
 - States map onto the team's workflow by type; blocked is Todo plus a `blocked` label.
 - What Linear has no field for rides in an attachment idle keeps on each issue.
 - Edits made in Linear count, and an issue created there is a task.

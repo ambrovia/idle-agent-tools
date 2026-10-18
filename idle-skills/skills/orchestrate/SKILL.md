@@ -183,8 +183,8 @@ exists, and never respond by discarding work products wholesale.
 
 When the root's children are done and its goal and `consumer_scenario` are shown reached, run `/ship`,
 which commits, verifies from a clean tree, opens or updates the PR, and waits for CI. Any later mutation
-re-enters ship. Stop at a CI-green merge-ready PR; a human merges. Then run `/retro`, which writes its
-observations to `retro` on the root task in the record of work — never to the git working tree, so it
+re-enters ship. Stop at a CI-green merge-ready PR; a human merges. Then run `/retro`, which records its
+observations as `retro` memories on the root task in the record of work — never to the git working tree, so it
 cannot dirty the shipped branch or race with CI. Mark the root done then, and archive it once it is
 merged or abandoned — the repository, not the record, is the truth about what was built. Post-merge
 feedback, PR review notes, user feedback, or business KPIs can be appended to the root's `outcome` at

@@ -25,11 +25,11 @@ async function load(s, taskId) {
 }
 
 // The caps, refused here so every store keeps them; Postgres also holds them as CHECK constraints.
-const CAPPED = { title: CAPS.title, goal: CAPS.goal, acceptance_criteria: CAPS.acceptance, consumer_scenario: CAPS.scenario, plan: CAPS.plan, interview: CAPS.interview, statement: CAPS.statement, rationale: CAPS.rationale };
+const CAPPED = { title: CAPS.title, goal: CAPS.goal, acceptance_criteria: CAPS.acceptance, consumer_scenario: CAPS.scenario, plan: CAPS.plan, interview: CAPS.interview, summary: CAPS.summary, details: CAPS.details };
 function capped(fields) {
   for (const [field, value] of Object.entries(fields)) {
     if (!Object.hasOwn(CAPPED, field) || typeof value !== 'string') continue;
-    if (field === 'title' || field === 'statement') { if (!value) refuse(`--${field} cannot be empty`); }
+    if (field === 'title' || field === 'summary') { if (!value) refuse(`--${field} cannot be empty`); }
     if (value.length > CAPPED[field]) refuse(`${field} too long: ${value.length} characters, the cap is ${CAPPED[field]}`);
   }
   return fields;
@@ -37,7 +37,7 @@ function capped(fields) {
 
 const glance = (rows) => rows.map(({ id, title, status }) => ({ id, title, status }));
 
-// feedback, verdict, retro, and outcome are fields that grow by one capped line.
+// feedback, verdict, and outcome are fields that grow by one capped line.
 async function append(s, task, field, body, by) {
   while (body.startsWith(`${by}:`) || body.startsWith(`- ${by}:`)) body = body.slice(body.indexOf(':') + 1).trimStart();
   if (!body) refuse('nothing to append');
@@ -155,6 +155,7 @@ async function move(s, task, to, input, ctx) {
 }
 
 const FIELDS = { title: 'title', goal: 'goal', ac: 'acceptance_criteria', plan: 'plan', interview: 'interview', scenario: 'consumer_scenario', scope: 'scope', needs: 'needs', meta: 'metadata' };
+const KINDS = ['decision', 'assumption', 'taste', 'retro'];
 
 async function createTask(s, input, ctx) {
   if (!input.title) refuse('a new task needs --title (or pass --id to update one)');
@@ -176,7 +177,7 @@ async function createTask(s, input, ctx) {
 export const OPS = [
   {
     name: 'task',
-    summary: 'Create or update a task. A title is enough — drop it now, structure it later. No --id: create (searches first, returns similar live tasks instead unless --confirm). With --id: change fields, move it with --status, add --feedback, --verdict, --retro or --outcome.',
+    summary: 'Create or update a task. A title is enough — drop it now, structure it later. No --id: create (searches first, returns similar live tasks instead unless --confirm). With --id: change fields, move it with --status, add --feedback, --verdict, or --outcome.',
     flags: {
       id: { type: 'string', desc: 'the task to update; omit to create' },
       title: { type: 'string' },
@@ -187,7 +188,6 @@ export const OPS = [
       ttl: { type: 'string', desc: 'lease in minutes when claiming (default 30)' },
       feedback: { type: 'string', desc: 'append for whoever plans the tree: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
       verdict: { type: 'string', desc: 'append why it is not done: blocking findings, the reason for reopening. Required when moving back to open' },
-      retro: { type: 'string', desc: 'append a self-reflection observation (success, friction, divergence, cost) after work completes' },
       outcome: { type: 'string', desc: 'append outer feedback or real-world impact: PR review comments, user feedback, business KPIs, runtime/analytics signals' },
       scope: { type: 'list', desc: 'path, module or system this task touches; repeatable. Overlapping scopes cannot be claimed at once' },
       needs: { type: 'list', desc: 'task id that must be done first; repeatable' },
@@ -210,7 +210,7 @@ export const OPS = [
       await load(s, taskId);
       if (input.id) for (const needed of input.needs ?? []) await load(s, needed);
       await s.update(taskId, fields);
-      for (const field of ['feedback', 'verdict', 'retro', 'outcome']) if (input[field]) await append(s, taskId, field, input[field], ctx.by);
+      for (const field of ['feedback', 'verdict', 'outcome']) if (input[field]) await append(s, taskId, field, input[field], ctx.by);
       if (input.id && input.status) {
         const task = await load(s, taskId);
         if (task.status !== input.status || ['claimed', 'submitted'].includes(input.status)) await move(s, task, input.status, input, ctx);
@@ -219,63 +219,71 @@ export const OPS = [
     },
   },
   {
-    name: 'decision',
-    summary: 'Create or update a decision, assumption, or project-wide memory/taste. No --id: record one (with --task on a tree, or omit --task for standing project-wide memory; searches first unless --confirm). With --id: supersede or update it.',
+    name: 'memory',
+    summary: 'Create or update a memory entry: a decision, assumption, standing taste, or retro observation. No --id: record one (with --task on a tree, or omit --task for standing project-wide memory; searches first unless --confirm). With --id: supersede or update it.',
     flags: {
-      id: { type: 'string', desc: 'the decision to update; omit to create' },
-      kind: { type: 'string', desc: 'decision | assumption | taste (default decision). Use assumption for an unverified premise; taste for a standing preference or in-session steering nudge' },
-      statement: { type: 'string', desc: 'one line' },
-      rationale: { type: 'string' },
-      task: { type: 'string', desc: 'where it was made, on create; omit to record standing project-wide memory' },
-      bind: { type: 'list', desc: 'task id bound by this decision; repeatable (the task it was made on always is)' },
-      'superseded-by': { type: 'string', desc: 'the decision that replaces this one' },
-      confirm: { type: 'bool', desc: 'record even when similar active decisions exist' },
+      id: { type: 'string', desc: 'the memory to update; omit to create' },
+      kind: { type: 'string', desc: 'decision | assumption | taste | retro (default decision). Use decision for a settled choice, assumption for an unverified premise, taste for a standing preference, retro for a self-reflection observation (success, friction, divergence, cost)' },
+      summary: { type: 'string', desc: 'one line: what was decided, assumed, preferred, or observed' },
+      details: { type: 'string', desc: 'rationale, evidence, mechanism, or what breaks if an assumption is false' },
+      rejected: { type: 'list', desc: 'alternative that was rejected; repeatable' },
+      task: { type: 'string', desc: 'where it was recorded, on create; omit to record standing project-wide memory' },
+      bind: { type: 'list', desc: 'task id bound by this memory; repeatable (the task a decision, assumption, or taste was made on always is)' },
+      'superseded-by': { type: 'string', desc: 'the memory that replaces this one' },
+      confirm: { type: 'bool', desc: 'record even when similar active memories exist' },
     },
     run: async (s, input, ctx) => {
-      const get = async (decisionId) => (await s.decisions([decisionId]))[0] ?? refuse(`no decision ${decisionId}`);
-      let decisionId = input.id;
-      if (!decisionId) {
-        if (!input.statement) refuse('a new decision needs --statement');
+      const get = async (memoryId) => (await s.memories([memoryId]))[0] ?? refuse(`no memory ${memoryId}`);
+      let memoryId = input.id;
+      if (!memoryId) {
+        if (!input.summary) refuse('a new memory needs --summary');
         const kind = input.kind ?? 'decision';
-        if (!['decision', 'assumption', 'taste'].includes(kind)) refuse(`--kind must be decision, assumption, or taste, not "${kind}"`);
-        capped({ statement: input.statement, rationale: input.rationale });
+        if (!KINDS.includes(kind)) refuse(`--kind must be ${KINDS.join(', ')}, not "${kind}"`);
+        capped({ summary: input.summary, details: input.details });
+        for (const r of input.rejected ?? []) capped({ summary: r });
         const task = input.task ? await load(s, input.task) : null;
         const project = task?.project ?? ctx.project;
         const root = task?.root ?? null;
         if (!input.confirm) {
-          const similar = await s.similarDecisions({ project, root }, input.statement);
+          const similar = await s.similarMemories({ project, root, kind: kind === 'retro' ? 'retro' : null }, input.summary);
           if (similar.length) return { created: false, similar, hint: 'repeat with --confirm to record anyway' };
         }
-        decisionId = id('D');
-        await s.insertDecision({ id: decisionId, project, root, task: task?.id ?? null, kind, statement: input.statement, rationale: input.rationale ?? null, by: ctx.by });
-        if (task) input.bind = [task.id, ...(input.bind ?? [])];
-      } else if (input.kind) {
-        if (!['decision', 'assumption', 'taste'].includes(input.kind)) refuse(`--kind must be decision, assumption, or taste, not "${input.kind}"`);
-        await get(decisionId);
-        await s.updateDecision(decisionId, { kind: input.kind });
+        memoryId = id('M');
+        await s.insertMemory({ id: memoryId, project, root, task: task?.id ?? null, kind, summary: input.summary, details: input.details ?? null, rejected: input.rejected ?? [], by: ctx.by });
+        if (task && kind !== 'retro') input.bind = [task.id, ...(input.bind ?? [])];
+      } else {
+        await get(memoryId);
+        const updates = {};
+        if (input.kind) {
+          if (!KINDS.includes(input.kind)) refuse(`--kind must be ${KINDS.join(', ')}, not "${input.kind}"`);
+          updates.kind = input.kind;
+        }
+        if (input.details !== undefined) { capped({ details: input.details }); updates.details = input.details; }
+        if (input.rejected !== undefined) { for (const r of input.rejected) capped({ summary: r }); updates.rejected = input.rejected; }
+        if (Object.keys(updates).length) await s.updateMemory(memoryId, updates);
       }
-      await get(decisionId);
+      await get(memoryId);
       for (const bound of new Set(input.bind ?? [])) {
-        const refs = (await load(s, bound)).decision_refs;
-        if (!refs.includes(decisionId)) await s.update(bound, { decision_refs: [...refs, decisionId] });
+        const refs = (await load(s, bound)).memory_refs;
+        if (!refs.includes(memoryId)) await s.update(bound, { memory_refs: [...refs, memoryId] });
       }
       if (input['superseded-by']) {
         await get(input['superseded-by']);
-        await s.updateDecision(decisionId, { status: 'superseded', superseded_by: input['superseded-by'] });
+        await s.updateMemory(memoryId, { status: 'superseded', superseded_by: input['superseded-by'] });
       }
-      return get(decisionId);
+      return get(memoryId);
     },
   },
   {
     name: 'show',
-    summary: 'One task or one decision. --brief: what a worker starts from. --state: the whole tree it belongs to, for whoever plans it and for the human.',
+    summary: 'One task or one memory. --brief: what a worker starts from. --state: the whole tree it belongs to, for whoever plans it and for the human.',
     args: ['id'],
     flags: {
       brief: { type: 'bool', desc: 'the task as a brief: goal, what it is for, plan, interview, project memory, decisions & assumptions in force, why it came back' },
       state: { type: 'bool', desc: 'the tree this task belongs to: what needs attention, feedback, tree, ready, claims, recently done, retro, outcome' },
     },
     run: async (s, { id: shown, ...input }) => {
-      if (shown.startsWith('D-')) return (await s.decisions([shown]))[0] ?? refuse(`no decision ${shown}`);
+      if (shown.startsWith('M-') || shown.startsWith('D-')) return (await s.memories([shown]))[0] ?? refuse(`no memory ${shown}`);
       const task = await load(s, shown);
       if (input.brief) return brief(s, task);
       if (input.state) return state(s, await load(s, task.root));
@@ -283,21 +291,22 @@ export const OPS = [
         task,
         needs: glance(await s.tasks(task.needs)),
         children: glance(await s.children(shown)),
-        decisions: (await s.decisions(task.decision_refs)).map(({ id: d, kind, statement, status }) => ({ id: d, kind, statement, status })),
+        memories: (await s.memories(task.memory_refs)).map(({ id: m, kind, summary, status }) => ({ id: m, kind, summary, status })),
       };
     },
   },
   {
     name: 'list',
-    summary: 'The root tasks of this project, most recently touched first. --root: one of them as a tree. --ready: what can be claimed now. --decisions: project-wide memory (or with --root: a tree\'s decisions; with --all: every decision in the project). --search: search tasks, retros, outcomes, and decisions across the project.',
+    summary: 'The root tasks of this project, most recently touched first. --root: one of them as a tree. --ready: what can be claimed now. --memories: project-wide memory (or with --root: a tree\'s memories; with --all or --kind: memories across the project). --search: search tasks, outcomes, and memories across the project.',
     flags: {
       root: { type: 'string', desc: 'a root task (any task id in its tree will do)' },
       ready: { type: 'bool', desc: 'open, everything it needs is done, no children of its own' },
-      decisions: { type: 'bool', desc: 'without --root: standing project-wide memory; with --root: that tree\'s decisions; with --all: all decisions in the project' },
-      search: { type: 'string', desc: 'search across tasks (title, goal, interview, feedback, verdict, retro, outcome) and decisions (including archived)' },
-      since: { type: 'string', desc: 'with --decisions: ISO time' },
+      memories: { type: 'bool', desc: 'without --root: standing project-wide memory; with --root: that tree\'s memories; with --all or --kind: memories across the project' },
+      kind: { type: 'string', desc: 'with --memories: filter by kind (decision | assumption | taste | retro)' },
+      search: { type: 'string', desc: 'search across tasks (title, goal, interview, feedback, verdict, outcome) and memories (summary, details, rejected)' },
+      since: { type: 'string', desc: 'with --memories: ISO time' },
       archived: { type: 'bool', desc: 'include archived roots of this project' },
-      all: { type: 'bool', desc: 'every project (or with --decisions: all decisions across roots in this project)' },
+      all: { type: 'bool', desc: 'every project (or with --memories: all memories across roots in this project)' },
     },
     run: async (s, input, ctx) => {
       const root = input.root ? (await load(s, input.root)).root : null;
@@ -306,13 +315,14 @@ export const OPS = [
         if (!query) refuse('--search needs a query');
         return s.search({ project: ctx.project, root, all: !!input.all, query });
       }
-      if (input.decisions) {
+      if (input.memories) {
+        if (input.kind && !KINDS.includes(input.kind)) refuse(`--kind must be ${KINDS.join(', ')}, not "${input.kind}"`);
         if (root) {
-          return (await s.decisionsInRoot(root, { since: input.since ?? null }))
-            .map(({ id: d, task, kind, statement, rationale, by, status, superseded_by, at }) => ({ id: d, task, kind, statement, rationale, by, status, superseded_by, at }));
+          return (await s.memoriesInRoot(root, { kind: input.kind ?? null, since: input.since ?? null }))
+            .map(({ id: m, task, kind, summary, details, rejected, by, status, superseded_by, at }) => ({ id: m, task, kind, summary, details, rejected, by, status, superseded_by, at }));
         }
-        return (await s.projectDecisions(ctx.project, { all: !!input.all, since: input.since ?? null }))
-          .map(({ id: d, root: r, task, kind, statement, rationale, by, status, superseded_by, at }) => ({ id: d, root: r, task, kind, statement, rationale, by, status, superseded_by, at }));
+        return (await s.projectMemories(ctx.project, { all: !!input.all || !!input.kind, kind: input.kind ?? null, since: input.since ?? null }))
+          .map(({ id: m, root: r, task, kind, summary, details, rejected, by, status, superseded_by, at }) => ({ id: m, root: r, task, kind, summary, details, rejected, by, status, superseded_by, at }));
       }
       if (input.ready) return s.ready({ project: ctx.project, root });
       if (!root) return s.roots({ project: ctx.project, all: input.all, archived: input.archived });

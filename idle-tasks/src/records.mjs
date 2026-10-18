@@ -17,7 +17,7 @@ function similarity(a, b) {
 const pick = (...keys) => (row) => Object.fromEntries(keys.map((k) => [k, row[k]]));
 
 export function records(data) {
-  const { tasks, decisions } = data;
+  const { tasks, memories } = data;
   data.dirty = new Set();
   const find = (id) => tasks.find((t) => t.id === id);
   const touch = (row) => { row.updated_at = new Date(); data.dirty.add(row); };
@@ -46,8 +46,8 @@ export function records(data) {
     insertTask: (fields) => {
       const now = new Date();
       const row = Object.assign({ id: null, project: null, parent: null, root: null, title: '', goal: '', acceptance_criteria: null,
-        scope: [], needs: [], decision_refs: [], status: 'open', claimed_by: null, claim_expires: null, feedback: '', verdict: '',
-        retro: '', outcome: '', plan: null, interview: null, consumer_scenario: null, metadata: {}, created_at: now, updated_at: now }, fields);
+        scope: [], needs: [], memory_refs: [], status: 'open', claimed_by: null, claim_expires: null, feedback: '', verdict: '',
+        outcome: '', plan: null, interview: null, consumer_scenario: null, metadata: {}, created_at: now, updated_at: now }, fields);
       tasks.push(row);
       data.dirty.add(row);
     },
@@ -56,20 +56,20 @@ export function records(data) {
     bump: (id, key) => { const t = find(id); t.metadata = { ...t.metadata, [key]: Number(t.metadata?.[key] ?? 0) + 1 }; touch(t); },
     lease: (id, by, minutes) => touch(Object.assign(find(id), { status: 'claimed', claimed_by: by, claim_expires: new Date(Date.now() + minutes * 60_000) })),
 
-    decisions: (ids) => decisions.filter((d) => ids.includes(d.id)).sort((a, b) => a.at - b.at),
-    decisionsInRoot: (root, { since = null } = {}) => decisions
-      .filter((d) => d.root === root && (since === null || d.at >= new Date(since))).sort((a, b) => b.at - a.at),
-    projectDecisions: (project, { all = false, since = null } = {}) => decisions
-      .filter((d) => d.project === project && (all || d.root === null) && (since === null || d.at >= new Date(since))).sort((a, b) => b.at - a.at),
-    similarDecisions: ({ project, root }, statement) => similar(
-      decisions.filter((d) => d.project === project && d.root === root && d.status === 'active'), statement, 'statement',
-    ).map(pick('id', 'kind', 'statement')),
-    insertDecision: (fields) => {
-      const row = Object.assign({ id: null, project: null, root: null, task: null, kind: 'decision', statement: '', rationale: null, by: null, status: 'active', superseded_by: null, at: new Date() }, fields);
-      decisions.push(row);
+    memories: (ids) => memories.filter((m) => ids.includes(m.id)).sort((a, b) => a.at - b.at),
+    memoriesInRoot: (root, { kind = null, since = null } = {}) => memories
+      .filter((m) => m.root === root && (kind === null || m.kind === kind) && (since === null || m.at >= new Date(since))).sort((a, b) => b.at - a.at),
+    projectMemories: (project, { all = false, kind = null, since = null } = {}) => memories
+      .filter((m) => m.project === project && (all || m.root === null) && (kind === null || m.kind === kind) && (since === null || m.at >= new Date(since))).sort((a, b) => b.at - a.at),
+    similarMemories: ({ project, root, kind = null }, summary) => similar(
+      memories.filter((m) => m.project === project && m.root === root && m.status === 'active' && (kind === null || m.kind === kind)), summary, 'summary',
+    ).map(pick('id', 'kind', 'summary')),
+    insertMemory: (fields) => {
+      const row = Object.assign({ id: null, project: null, root: null, task: null, kind: 'decision', summary: '', details: null, rejected: [], by: null, status: 'active', superseded_by: null, at: new Date() }, fields);
+      memories.push(row);
       data.dirty.add(row);
     },
-    updateDecision: (id, fields) => { data.dirty.add(Object.assign(decisions.find((d) => d.id === id), fields)); },
+    updateMemory: (id, fields) => { data.dirty.add(Object.assign(memories.find((m) => m.id === id), fields)); },
 
     search: ({ project, root = null, all = false, query }) => {
       const q = String(query).toLowerCase();
@@ -78,14 +78,14 @@ export function records(data) {
       return {
         tasks: tasks
           .filter((t) => (all || t.project === project) && (root === null || t.root === root)
-            && has([t.title, t.goal, t.interview, t.feedback, t.verdict, t.retro, t.outcome]))
+            && has([t.title, t.goal, t.interview, t.feedback, t.verdict, t.outcome]))
           .sort((a, b) => b.updated_at - a.updated_at).slice(0, 20)
-          .map(pick('id', 'root', 'parent', 'title', 'status', 'goal', 'feedback', 'verdict', 'retro', 'outcome', 'updated_at')),
-        decisions: decisions
-          .filter((d) => (all || d.project === project) && (root === null || d.root === root)
-            && has([d.statement, d.rationale]))
+          .map(pick('id', 'root', 'parent', 'title', 'status', 'goal', 'feedback', 'verdict', 'outcome', 'updated_at')),
+        memories: memories
+          .filter((m) => (all || m.project === project) && (root === null || m.root === root)
+            && has([m.summary, m.details, ...(m.rejected ?? [])]))
           .sort((a, b) => b.at - a.at).slice(0, 20)
-          .map(pick('id', 'root', 'task', 'kind', 'statement', 'rationale', 'by', 'status', 'superseded_by', 'at')),
+          .map(pick('id', 'root', 'task', 'kind', 'summary', 'details', 'rejected', 'by', 'status', 'superseded_by', 'at')),
       };
     },
 

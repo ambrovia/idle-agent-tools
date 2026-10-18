@@ -11,14 +11,15 @@ user-invocable: false
 Read the tree's state when the record of work is present — what came back and why, what was blocked,
 feedback from the work, superseded decisions and assumptions, outer `outcome` entries, and the
 mechanical bounce counters (`check_failures`, `review_bounces`, `reopens`) — then VCS history,
-verification/review output, lore, and session trajectories. Append terse observations to the root task's
-`retro` in the record of work when present (or report them directly in the session when run standalone
-without a task record), never to the git working tree. Because `retro` lives outside the repository, it
-runs after `/ship` without dirtying the branch or racing with CI.
+verification/review output, lore, and session trajectories. Record terse observations as `retro`
+memories on the root task in the record of work (`memory` with `--task <root> --kind retro --summary "…" --details "…"`)
+when present (or report them directly in the session when run standalone without a task record), never to
+the git working tree. Because `retro` memories live outside the repository, `/retro` runs after `/ship`
+without dirtying the branch or racing with CI.
 
-Each entry records kind (`success`, `friction`, `divergence`, or `cost`), source, the concrete
-observation, its evidence, and optionally a related known pattern. Record what worked so later cleanup
-does not remove it.
+Each `retro` memory records observation kind (`success`, `friction`, `divergence`, or `cost`) and concise
+observation in `summary`, and its source, concrete evidence, and optional related known pattern in `details`.
+Record what worked so later cleanup does not remove it.
 
 A `divergence` entry records where the agent's choice was not what the maintainer wanted — read them
 out of what they reopened, the decisions or assumptions they superseded, in-session `taste` nudges, and

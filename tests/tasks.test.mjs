@@ -133,16 +133,17 @@ test('while the system is verifying a task, nothing else moves it or runs its ch
   assert.equal(readFileSync(join(env.IDLE_HOME, 'check-runs'), 'utf8').trim().split('\n').length, 1, 'the checks ran exactly once');
 });
 
-test('decisions are searched before they are recorded, and can be superseded', () => {
+test('memories are searched before they are recorded, carry rejected alternatives, and can be superseded', () => {
   const { run, create } = sandbox();
-  const root = create('Decisions');
-  const first = run('decision', '--task', root, '--statement', 'PGlite locally, any Postgres when shared', '--rationale', 'one dialect').json;
+  const root = create('Memories');
+  const first = run('memory', '--task', root, '--summary', 'PGlite locally, any Postgres when shared', '--details', 'one dialect', '--rejected', 'SQLite').json;
   assert.equal(first.status, 'active');
-  assert.equal(run('decision', '--task', root, '--statement', 'PGlite locally and any Postgres when shared').json.created, false);
-  const second = run('decision', '--task', root, '--statement', 'Postgres everywhere, no embedded database', '--confirm').json;
-  assert.equal(run('decision', '--id', first.id, '--superseded-by', second.id).json.status, 'superseded');
-  assert.equal(run('list', '--root', root, '--decisions').json.length, 2);
-  assert.deepEqual(run('show', root).json.decisions.map((d) => d.id).sort(), [first.id, second.id].sort());
+  assert.deepEqual(first.rejected, ['SQLite']);
+  assert.equal(run('memory', '--task', root, '--summary', 'PGlite locally and any Postgres when shared').json.created, false);
+  const second = run('memory', '--task', root, '--summary', 'Postgres everywhere, no embedded database', '--confirm').json;
+  assert.equal(run('memory', '--id', first.id, '--superseded-by', second.id).json.status, 'superseded');
+  assert.equal(run('list', '--root', root, '--memories').json.length, 2);
+  assert.deepEqual(run('show', root).json.memories.map((m) => m.id).sort(), [first.id, second.id].sort());
 });
 
 test('many processes race for one claim: one winner, no hang', async () => {
@@ -162,7 +163,7 @@ test('the brief carries what the task is for; the state shows what needs attenti
   const root = create('Checkout survives a payment outage', '--goal', 'A customer can still place an order when the payment provider is down',
     '--plan', 'Queue the charge, confirm the order, settle later.');
   const queue = create('Charge queue', '--parent', root, '--goal', 'Charges wait safely until the provider is back', '--ac', 'a queued charge survives a restart');
-  run('decision', '--task', root, '--statement', 'Orders are confirmed before the charge settles');
+  run('memory', '--task', root, '--summary', 'Orders are confirmed before the charge settles');
 
   const brief = run('show', queue, '--brief').out;
   for (const expected of ['Charges wait safely', 'A customer can still place an order', 'Queue the charge', 'Orders are confirmed before', 'survives a restart']) {
@@ -217,7 +218,7 @@ test('the same operations over MCP', async () => {
   const hello = await ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test-harness', version: '0' } });
   assert.equal(hello.result.serverInfo.name, 'idle');
   const { tools } = (await ask('tools/list')).result;
-  assert.deepEqual(tools.map((t) => t.name), ['task', 'decision', 'show', 'list']);
+  assert.deepEqual(tools.map((t) => t.name), ['task', 'memory', 'show', 'list']);
 
   const made = await ask('tools/call', { name: 'task', arguments: { title: 'A task dropped over MCP' } });
   const id = JSON.parse(made.result.content[0].text).id;
@@ -276,10 +277,10 @@ test('project memory, assumptions, retro, outcome, mechanical counters, glob sco
   }));
 
   // Standing project memory (no --task) is visible across every root in the project.
-  const taste = run('decision', '--kind', 'taste', '--statement', 'Keep CLI flags flat and orthogonal', '--by', 'human').json;
+  const taste = run('memory', '--kind', 'taste', '--summary', 'Keep CLI flags flat and orthogonal', '--by', 'human').json;
   assert.equal(taste.root, null);
   assert.equal(taste.kind, 'taste');
-  assert.equal(run('list', '--decisions').json.length, 1);
+  assert.equal(run('list', '--memories').json.length, 1);
 
   const root = create('Webhook settlement',
     '--goal', 'Settlements reconcile without double-charging',
@@ -291,8 +292,8 @@ test('project memory, assumptions, retro, outcome, mechanical counters, glob sco
   const a = create('Webhook handler', '--parent', root, '--scope', 'src/webhooks/*');
   const b = create('Webhook signature', '--parent', root, '--scope', 'src/webhooks/verify.ts');
 
-  const assumption = run('decision', '--task', a, '--kind', 'assumption',
-    '--statement', 'Provider sends X-Idempotency-Key on every retry', '--by', 'builder').json;
+  const assumption = run('memory', '--task', a, '--kind', 'assumption',
+    '--summary', 'Provider sends X-Idempotency-Key on every retry', '--details', 'No retry docs found', '--by', 'builder').json;
   assert.equal(assumption.kind, 'assumption');
 
   const brief = run('show', a, '--brief').out;
@@ -321,11 +322,11 @@ test('project memory, assumptions, retro, outcome, mechanical counters, glob sco
   assert.equal(bounced.metadata.review_bounces, 1);
 
   // Supersede the false assumption -> flags bound open task in state
-  const corrected = run('decision', '--task', a, '--statement', 'Deduplicate by payload hash', '--by', 'planner').json;
-  run('decision', '--id', assumption.id, '--superseded-by', corrected.id);
-  assert.match(run('show', root, '--state').out, new RegExp(`${a} is bound by a superseded decision`));
+  const corrected = run('memory', '--task', a, '--summary', 'Deduplicate by payload hash', '--rejected', 'X-Idempotency-Key header', '--by', 'planner').json;
+  run('memory', '--id', assumption.id, '--superseded-by', corrected.id);
+  assert.match(run('show', root, '--state').out, new RegExp(`${a} is bound by a superseded memory`));
 
-  // Finish tasks, write retro and post-archive outcome, and search across archived trees
+  // Finish tasks, write retro memory and post-archive outcome, and search across archived trees
   task('--id', a, '--status', 'claimed', '--by', 'alice');
   task('--id', a, '--status', 'submitted', '--by', 'alice');
   task('--id', a, '--status', 'done', '--by', 'reviewer');
@@ -337,14 +338,17 @@ test('project memory, assumptions, retro, outcome, mechanical counters, glob sco
   task('--id', b, '--status', 'archived');
   task('--id', root, '--status', 'done');
 
-  task('--id', root, '--retro', 'divergence: builder assumed X-Idempotency-Key existed', '--by', 'planner');
+  const retro = run('memory', '--task', root, '--kind', 'retro',
+    '--summary', 'divergence: builder assumed X-Idempotency-Key existed',
+    '--details', 'check_failures: 1, review_bounces: 1, reopens: 1', '--by', 'planner').json;
+  assert.equal(retro.kind, 'retro');
   task('--id', root, '--status', 'archived');
   const withOutcome = task('--id', root, '--outcome', 'kpi: duplicate charge rate dropped to 0%', '--by', 'human').json;
-  assert.match(withOutcome.retro, /assumed X-Idempotency-Key/);
   assert.match(withOutcome.outcome, /duplicate charge rate dropped to 0%/);
   assert.match(run('show', root, '--state').out, /## Retro[\s\S]*assumed X-Idempotency-Key[\s\S]*## Outcome[\s\S]*duplicate charge rate/);
 
   const found = run('list', '--search', 'duplicate charge rate').json;
   assert.equal(found.tasks[0].id, root);
-  assert.equal(run('list', '--decisions', '--all').json.length, 3);
+  assert.equal(run('list', '--memories', '--kind', 'retro').json.length, 1);
+  assert.equal(run('list', '--memories', '--all').json.length, 4);
 });
