@@ -5,7 +5,9 @@
 
 import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { checksFor, config, home, mode, withTx } from './store.mjs';
 import { CAPS, version } from './schema.mjs';
 import { brief, state, tree } from './views.mjs';
@@ -33,7 +35,7 @@ async function load(q, taskId) {
   return task ?? refuse(`no task ${taskId}`);
 }
 
-// feedback (worker → planner) and verdict (why it came back) are fields that grow by one capped line.
+// feedback, verdict, retro, and outcome are fields that grow by one capped line.
 async function append(q, task, field, body, by) {
   while (body.startsWith(`${by}:`) || body.startsWith(`- ${by}:`)) body = body.slice(body.indexOf(':') + 1).trimStart();
   if (!body) refuse('nothing to append');
@@ -45,9 +47,18 @@ async function setStatus(q, taskId, status, extra = '') {
   await q(`update tasks set status = $2, updated_at = now() ${extra} where id = $1`, [taskId, status]);
 }
 
-const trim = (s) => s.replace(/\/+$/, '');
+async function bump(q, taskId, key) {
+  await q(
+    `update tasks set metadata = jsonb_set(metadata, array[$2], to_jsonb(coalesce((metadata->>$2)::int, 0) + 1)) where id = $1`,
+    [taskId, key],
+  );
+}
+
+const trim = (s) => s.replace(/(?:\/\*\*?|\/)+$/, '');
 export function overlaps(a, b) {
+  if (!a || !b) return false;
   const [x, y] = [trim(a), trim(b)];
+  if (!x || !y || x === '*' || y === '*' || x === '**' || y === '**') return true;
   return x === y || x.startsWith(`${y}/`) || y.startsWith(`${x}/`);
 }
 
@@ -150,8 +161,12 @@ async function move(q, task, to, input, ctx) {
       return setStatus(q, task.id, 'done');
     }
     case 'verified → open':
+      why('verdict', 'say why it is not done');
+      await bump(q, task.id, 'review_bounces');
+      return setStatus(q, task.id, 'open', FREE);
     case 'done → open':
       why('verdict', 'say why it is not done');
+      await bump(q, task.id, 'reopens');
       return setStatus(q, task.id, 'open', FREE);
     default:
       return refuse(`cannot move ${task.id} from ${from} to ${to}`);
@@ -181,7 +196,7 @@ async function createTask(q, input, ctx) {
 export const OPS = [
   {
     name: 'task',
-    summary: 'Create or update a task. A title is enough — drop it now, structure it later. No --id: create (searches first, returns similar live tasks instead unless --confirm). With --id: change fields, move it with --status, add --feedback or --verdict.',
+    summary: 'Create or update a task. A title is enough — drop it now, structure it later. No --id: create (searches first, returns similar live tasks instead unless --confirm). With --id: change fields, move it with --status, add --feedback, --verdict, --retro or --outcome.',
     flags: {
       id: { type: 'string', desc: 'the task to update; omit to create' },
       title: { type: 'string' },
@@ -192,10 +207,12 @@ export const OPS = [
       ttl: { type: 'string', desc: 'lease in minutes when claiming (default 30)' },
       feedback: { type: 'string', desc: 'append for whoever plans the tree: the goal is wrong, the approach will not work, what you learned by doing. Required when blocking' },
       verdict: { type: 'string', desc: 'append why it is not done: blocking findings, the reason for reopening. Required when moving back to open' },
+      retro: { type: 'string', desc: 'append a self-reflection observation (success, friction, divergence, cost) after work completes' },
+      outcome: { type: 'string', desc: 'append outer feedback or real-world impact: PR review comments, user feedback, business KPIs, runtime/analytics signals' },
       scope: { type: 'list', desc: 'path, module or system this task touches; repeatable. Overlapping scopes cannot be claimed at once' },
       needs: { type: 'list', desc: 'task id that must be done first; repeatable' },
       plan: { type: 'string', desc: 'the condensed, worker-facing plan' },
-      interview: { type: 'string', desc: 'curated Q&A from the planning interview — not a transcript' },
+      interview: { type: 'string', desc: 'the planning interview Q&A progression' },
       scenario: { type: 'string', desc: 'how the result is used from the outside' },
       meta: { type: 'json', desc: 'free-form JSON: branch, worktree, URLs — stored, never interpreted' },
       confirm: { type: 'bool', desc: 'create even when similar live tasks exist' },
@@ -217,7 +234,7 @@ export const OPS = [
       await load(q, taskId);
       if (input.id) for (const needed of input.needs ?? []) await load(q, needed);
       if (sets.length) await q(`update tasks set ${sets.join(', ')}, updated_at = now() where id = $1`, params);
-      for (const field of ['feedback', 'verdict']) if (input[field]) await append(q, taskId, field, input[field], ctx.by);
+      for (const field of ['feedback', 'verdict', 'retro', 'outcome']) if (input[field]) await append(q, taskId, field, input[field], ctx.by);
       if (input.id && input.status) {
         const task = await load(q, taskId);
         if (task.status !== input.status || ['claimed', 'submitted'].includes(input.status)) await move(q, task, input.status, input, ctx);
@@ -227,12 +244,13 @@ export const OPS = [
   },
   {
     name: 'decision',
-    summary: 'Create or update a decision. No --id: record one (searches first, returns similar active decisions instead unless --confirm). With --id: supersede it.',
+    summary: 'Create or update a decision, assumption, or project-wide memory/taste. No --id: record one (with --task on a tree, or omit --task for standing project-wide memory; searches first unless --confirm). With --id: supersede or update it.',
     flags: {
       id: { type: 'string', desc: 'the decision to update; omit to create' },
+      kind: { type: 'string', desc: 'decision | assumption | taste (default decision). Use assumption for an unverified premise; taste for a standing preference or in-session steering nudge' },
       statement: { type: 'string', desc: 'one line' },
       rationale: { type: 'string' },
-      task: { type: 'string', desc: 'where it was made, on create' },
+      task: { type: 'string', desc: 'where it was made, on create; omit to record standing project-wide memory' },
       bind: { type: 'list', desc: 'task id bound by this decision; repeatable (the task it was made on always is)' },
       'superseded-by': { type: 'string', desc: 'the decision that replaces this one' },
       confirm: { type: 'bool', desc: 'record even when similar active decisions exist' },
@@ -241,19 +259,27 @@ export const OPS = [
       const get = async (decisionId) => (await q(`select * from decisions where id = $1`, [decisionId]))[0] ?? refuse(`no decision ${decisionId}`);
       let decisionId = input.id;
       if (!decisionId) {
-        if (!input.task || !input.statement) refuse('a new decision needs --task and --statement');
-        const task = await load(q, input.task);
+        if (!input.statement) refuse('a new decision needs --statement');
+        const kind = input.kind ?? 'decision';
+        if (!['decision', 'assumption', 'taste'].includes(kind)) refuse(`--kind must be decision, assumption, or taste, not "${kind}"`);
+        const task = input.task ? await load(q, input.task) : null;
+        const project = task?.project ?? ctx.project;
+        const root = task?.root ?? null;
         if (!input.confirm) {
           const similar = await q(
-            `select id, statement from decisions where root = $1 and status = 'active'
-             and similarity(statement, $2) > ${SIMILAR} limit 5`,
-            [task.root, input.statement]);
+            `select id, kind, statement from decisions where project = $1 and root is not distinct from $2 and status = 'active'
+             and similarity(statement, $3) > ${SIMILAR} limit 5`,
+            [project, root, input.statement]);
           if (similar.length) return { created: false, similar, hint: 'repeat with --confirm to record anyway' };
         }
         decisionId = id('D');
-        await q(`insert into decisions(id, project, root, task, statement, rationale, by) values ($1, $2, $3, $4, $5, $6, $7)`,
-          [decisionId, task.project, task.root, task.id, input.statement, input.rationale ?? null, ctx.by]);
-        input.bind = [task.id, ...(input.bind ?? [])];
+        await q(`insert into decisions(id, project, root, task, kind, statement, rationale, by) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [decisionId, project, root, task?.id ?? null, kind, input.statement, input.rationale ?? null, ctx.by]);
+        if (task) input.bind = [task.id, ...(input.bind ?? [])];
+      } else if (input.kind) {
+        if (!['decision', 'assumption', 'taste'].includes(input.kind)) refuse(`--kind must be decision, assumption, or taste, not "${input.kind}"`);
+        await get(decisionId);
+        await q(`update decisions set kind = $2 where id = $1`, [decisionId, input.kind]);
       }
       await get(decisionId);
       for (const bound of new Set(input.bind ?? [])) {
@@ -272,8 +298,8 @@ export const OPS = [
     summary: 'One task or one decision. --brief: what a worker starts from. --state: the whole tree it belongs to, for whoever plans it and for the human.',
     args: ['id'],
     flags: {
-      brief: { type: 'bool', desc: 'the task as a brief: goal, what it is for, plan, decisions in force, why it came back' },
-      state: { type: 'bool', desc: 'the tree this task belongs to: what needs attention, feedback, tree, ready, claims, recently done' },
+      brief: { type: 'bool', desc: 'the task as a brief: goal, what it is for, plan, interview, project memory, decisions & assumptions in force, why it came back' },
+      state: { type: 'bool', desc: 'the tree this task belongs to: what needs attention, feedback, tree, ready, claims, recently done, retro, outcome' },
     },
     run: async (q, { id: shown, ...input }) => {
       if (shown.startsWith('D-')) return (await q(`select * from decisions where id = $1`, [shown]))[0] ?? refuse(`no decision ${shown}`);
@@ -284,27 +310,59 @@ export const OPS = [
         task,
         needs: await q(`select id, title, status from tasks where id = any($1)`, [task.needs]),
         children: await q(`select id, title, status from tasks where parent = $1 order by created_at`, [shown]),
-        decisions: await q(`select id, statement, status from decisions where id = any($1)`, [task.decision_refs]),
+        decisions: await q(`select id, kind, statement, status from decisions where id = any($1)`, [task.decision_refs]),
       };
     },
   },
   {
     name: 'list',
-    summary: 'The root tasks of this project, most recently touched first. --root: one of them as a tree. --ready: what can be claimed now. --decisions: the decisions made in a tree.',
+    summary: 'The root tasks of this project, most recently touched first. --root: one of them as a tree. --ready: what can be claimed now. --decisions: project-wide memory (or with --root: a tree\'s decisions; with --all: every decision in the project). --search: search tasks, retros, outcomes, and decisions across the project.',
     flags: {
       root: { type: 'string', desc: 'a root task (any task id in its tree will do)' },
       ready: { type: 'bool', desc: 'open, everything it needs is done, no children of its own' },
-      decisions: { type: 'bool', desc: 'with --root: its decisions, newest first' },
+      decisions: { type: 'bool', desc: 'without --root: standing project-wide memory; with --root: that tree\'s decisions; with --all: all decisions in the project' },
+      search: { type: 'string', desc: 'search across tasks (title, goal, interview, feedback, verdict, retro, outcome) and decisions (including archived)' },
       since: { type: 'string', desc: 'with --decisions: ISO time' },
       archived: { type: 'bool', desc: 'include archived roots of this project' },
-      all: { type: 'bool', desc: 'every project, archived roots too' },
+      all: { type: 'bool', desc: 'every project (or with --decisions: all decisions across roots in this project)' },
     },
     run: async (q, input, ctx) => {
       const root = input.root ? (await load(q, input.root)).root : null;
+      if (input.search !== undefined) {
+        const term = String(input.search).trim();
+        if (!term) refuse('--search needs a query');
+        const pattern = `%${term}%`;
+        const tasks = await q(
+          `select id, root, parent, title, status, goal, feedback, verdict, retro, outcome, updated_at
+           from tasks
+           where ($1 or project = $2)
+             and ($3::text is null or root = $3)
+             and (title ilike $4 or goal ilike $4 or coalesce(interview, '') ilike $4
+                  or feedback ilike $4 or verdict ilike $4 or retro ilike $4 or outcome ilike $4
+                  or word_similarity($5, title || ' ' || goal || ' ' || retro || ' ' || outcome) > 0.35)
+           order by updated_at desc limit 20`,
+          [!!input.all, ctx.project, root, pattern, term],
+        );
+        const decisions = await q(
+          `select id, root, task, kind, statement, rationale, by, status, superseded_by, at
+           from decisions
+           where ($1 or project = $2)
+             and ($3::text is null or root = $3)
+             and (statement ilike $4 or coalesce(rationale, '') ilike $4
+                  or word_similarity($5, statement || ' ' || coalesce(rationale, '')) > 0.35)
+           order by at desc limit 20`,
+          [!!input.all, ctx.project, root, pattern, term],
+        );
+        return { tasks, decisions };
+      }
       if (input.decisions) {
-        if (!root) refuse('--decisions needs --root');
-        return q(`select id, task, statement, rationale, by, status, superseded_by, at from decisions
-                  where root = $1 and ($2::timestamptz is null or at >= $2) order by at desc`, [root, input.since ?? null]);
+        if (root) {
+          return q(`select id, task, kind, statement, rationale, by, status, superseded_by, at from decisions
+                    where root = $1 and ($2::timestamptz is null or at >= $2) order by at desc`, [root, input.since ?? null]);
+        }
+        return q(`select id, root, task, kind, statement, rationale, by, status, superseded_by, at from decisions
+                  where project = $1 and ($2 or root is null) and ($3::timestamptz is null or at >= $3) order by at desc`,
+          [ctx.project, !!input.all, input.since ?? null]);
       }
       if (input.ready) {
         return q(`select t.id, t.root, t.title, t.scope from tasks t
@@ -330,15 +388,31 @@ export const OPS = [
 ];
 
 const CHECK_TIMEOUT_MS = Number(process.env.IDLE_CHECK_TIMEOUT_MS) || 15 * 60_000;
+const FAIL_LINE = /^(?:FAIL\b|not ok\b|--- FAIL:|.*(?:AssertionError|Error:|panic:|ERR!))/i;
 
 // The configured commands, run where the work is. → null when green, else what failed.
 function runChecks(task, worktree) {
   const cwd = worktree && existsSync(worktree) ? worktree : workdir();
+  const env = { ...process.env, IDLE_TASK_ID: task.id, IDLE_TASK_SCOPE: (task.scope ?? []).join(' ') };
   for (const command of checksFor(task.project)) {
-    const run = spawnSync(command, { shell: true, cwd, encoding: 'utf8', timeout: CHECK_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
+    const run = spawnSync(command, { shell: true, cwd, env, encoding: 'utf8', timeout: CHECK_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
     if (run.status === 0) continue;
-    const tail = `${run.stdout ?? ''}${run.stderr ?? ''}`.trim().split('\n').slice(-12).join('\n').slice(-600);
-    return `\`${command}\` ${run.error ? `did not run (${run.error.code ?? run.error.message})` : `exited ${run.status}`}\n${tail}`;
+    const raw = `${run.stdout ?? ''}${run.stderr ?? ''}`.trim();
+    const lines = raw ? raw.split('\n') : [];
+    const tailLines = lines.slice(-12);
+    const highlights = lines.slice(0, -12).filter((l) => FAIL_LINE.test(l.trim())).slice(-6);
+    let logNote = '';
+    if (lines.length > 12) {
+      try {
+        const dir = join(tmpdir(), 'idle-checks');
+        mkdirSync(dir, { recursive: true });
+        const logPath = join(dir, `${task.id}.log`);
+        writeFileSync(logPath, `${raw}\n`);
+        logNote = `\n(full log: ${logPath})`;
+      } catch { /* best effort */ }
+    }
+    const snippet = [...highlights, ...(highlights.length ? ['…'] : []), ...tailLines].join('\n').slice(-600);
+    return `\`${command}\` ${run.error ? `did not run (${run.error.code ?? run.error.message})` : `exited ${run.status}`}\n${snippet}${logNote}`;
   }
   return null;
 }
@@ -359,6 +433,7 @@ export async function runOp(op, input, ctx) {
     if (task.status !== 'submitted') return task;
     if (failed) {
       await append(q, task.id, 'verdict', `checks failed — ${failed}`, 'idle');
+      await bump(q, task.id, 'check_failures');
       await setStatus(q, task.id, 'open', ', claimed_by = null');
       return load(q, task.id);
     }

@@ -2,7 +2,7 @@
 
 A shared record of work for coding agents. Agents do not talk to each other; they read and write this.
 
-- **Two things are stored:** tasks — goals that nest into trees, need each other, and carry scope — and decisions.
+- **Two things are stored:** tasks — goals that nest into trees, need each other, carry scope, and record their own retro and outer outcomes — and decisions (choices, assumptions, and standing project memory).
 - **Four operations**, the same over the `idle` CLI and over MCP: `task` and `decision` create or update, `show` and `list` read. Everything else is a state: `proposed → open → claimed → submitted → verified → done`, plus `blocked` and `archived`.
 - **Anyone can drop a task.** A title is enough. It is searched for near-duplicates first.
 - **Claims are leases**, refused when the scope overlaps another live claim in the same tree.

@@ -201,3 +201,21 @@ test('an unknown agent type injects nothing', () => {
   assert.equal(result.status, 0);
   assert.equal(result.stdout.trim(), '');
 });
+
+test('tracked @lore annotations and active child worktree since are injected', () => {
+  const { root, id } = fixture();
+  writeFileSync(join(root, 'hazard.js'), '// @lore: PGlite — lock required before opening dir\nexport const x = 1;\n');
+  git(root, 'add', 'hazard.js');
+  git(root, '-c', 'user.email=t@t.t', '-c', 'user.name=t', 'commit', '-qm', 'add lore');
+  const childSince = git(root, 'rev-parse', 'HEAD');
+  writeFileSync(join(root, 'hazard.js'), '// @lore: PGlite — lock required before opening dir\nexport const x = 2;\n');
+
+  const child = idle(root, 'task', '--title', 'Child worktree task', '--parent', id,
+    '--meta', JSON.stringify({ since: childSince }));
+  idle(root, 'task', '--id', child.id, '--status', 'claimed', '--by', 'builder');
+
+  const context = claudeContext(run(root, 'claude', spawnPayload('pipeline-reviewer')));
+  assert.match(context, /## lore[\s\S]*@lore: PGlite — lock required before opening dir/);
+  assert.match(context, new RegExp(`## diff since ${childSince.slice(0, 7)}|## diff since ${childSince}`));
+  assert.match(context, /\+export const x = 2;/);
+});

@@ -31,6 +31,12 @@ say at that level. The higher in the tree, the more it is theirs.
 
 ## How to interview
 
+**Your questions are how the maintainer judges whether you understand.** Generic or checklist questions
+show you have not read enough yet; sharp questions that expose a concrete tension between the request
+and the existing codebase or domain show you have grasped the boundary. Before asking a round, read
+enough code to name the specific tension that forces each question and state what you currently assume.
+If the maintainer says your questions are still too vague, stop asking and read deeper first.
+
 **Ask in rounds.** Each round asks every open question whose prerequisites are settled — not one
 question at a time, and not a wall of everything. Number them and give each a recommended answer.
 
@@ -41,11 +47,12 @@ maintainer's attention or your own context on it. Only ask what genuinely requir
 **Their taste is only what they tell you here.** When you need to know how they want something and
 this task's plan does not say, ask. Do not infer it from another task's plan, another conversation,
 or a standing rule written for a different question — an answer carried in from elsewhere is your own
-taste wearing a citation.
+taste wearing a citation. When the maintainer overrides a recommendation or states a standing preference
+during the interview, record it immediately as a `taste` decision in the record of work so later tasks
+and `/compound` do not lose it when the task succeeds without friction.
 
-`{{rules.taste}}` is a short list of hard facts that hold across the whole repository — ten or twenty
-of them, not a reference work. Follow it, and expect it to answer almost nothing: nearly all of what
-you need is specific to this task and comes from this conversation.
+`{{rules.taste}}` and project memory in the record of work hold hard facts that apply across the
+repository — follow them, and expect them to answer almost nothing specific to this task.
 
 **Is it worth doing at all?** Settle this before anything else, with evidence rather than a guess:
 
@@ -58,8 +65,9 @@ you need is specific to this task and comes from this conversation.
 If the beneficiary or the delta is not credible, or it duplicates live work, say so and what smallest
 decision would settle it. Do not invent the answer to keep the task alive.
 
-**Stop at confirmation.** End the interview by reflecting back what you understood and getting
-agreement. Do not treat agreement as permission to start building.
+**Stop at confirmation.** End the interview by reflecting back what you understood — including any
+load-bearing assumptions you are making — and getting agreement. Record those load-bearing assumptions
+with `decision --kind assumption`. Do not treat agreement as permission to start building.
 
 ## What to write
 
@@ -72,8 +80,10 @@ In plain language the maintainer would recognise as their own:
   should be done, wherever they gave one. `/program-design` owns `## How it works`;
 - **how it is used** — on the root: how someone outside would use the result, written now, before
   anything is built;
-- **interview** — the questions that mattered and their answers, close to their wording. Curated, not
-  a transcript: leave out what the conversation wandered through.
+- **interview** — the full Q&A progression that sharpened the understanding: the questions, the
+  recommended answers, and the maintainer's answers in their own wording, including where they redirected
+  the framing. Cold sessions read this to recover the exact state of understanding; leave out only
+  unrelated chitchat.
 
 Write acceptance criteria only where they sharpen the goal. They are signs of it, never a substitute;
 agents that work to a list miss what the list was for.

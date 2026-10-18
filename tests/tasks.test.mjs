@@ -264,3 +264,83 @@ test('every place that starts the published server names exactly the version in 
     assert.equal(JSON.parse(readFileSync(join(repo, file), 'utf8')).version, version, file);
   }
 });
+
+test('project memory, assumptions, retro, outcome, mechanical counters, glob scopes, and search', () => {
+  const { env, run, task, create } = sandbox((project) => ({
+    checks: { [project]: ['test -f pass-now || (echo "AssertionError: expected 200 got 500"; seq 1 15; exit 1)'] },
+    review: true,
+  }));
+
+  // Standing project memory (no --task) is visible across every root in the project.
+  const taste = run('decision', '--kind', 'taste', '--statement', 'Keep CLI flags flat and orthogonal', '--by', 'human').json;
+  assert.equal(taste.root, null);
+  assert.equal(taste.kind, 'taste');
+  assert.equal(run('list', '--decisions').json.length, 1);
+
+  const root = create('Webhook settlement',
+    '--goal', 'Settlements reconcile without double-charging',
+    '--plan', 'Verify signature, enqueue, settle.',
+    '--interview', 'Q1: Does the provider retry? A: Yes, up to 5 times without idempotency headers.',
+    '--scenario', 'POST /webhooks/settle with a duplicate payload returns 200 and settles once.',
+    '--meta', JSON.stringify({ worktree: env.IDLE_HOME }));
+
+  const a = create('Webhook handler', '--parent', root, '--scope', 'src/webhooks/*');
+  const b = create('Webhook signature', '--parent', root, '--scope', 'src/webhooks/verify.ts');
+
+  const assumption = run('decision', '--task', a, '--kind', 'assumption',
+    '--statement', 'Provider sends X-Idempotency-Key on every retry', '--by', 'builder').json;
+  assert.equal(assumption.kind, 'assumption');
+
+  const brief = run('show', a, '--brief').out;
+  assert.match(brief, /## Project memory[\s\S]*\[taste\]: Keep CLI flags flat/);
+  assert.match(brief, /## Interview \(from T-[a-z0-9]+\)[\s\S]*Does the provider retry/);
+  assert.match(brief, /## How it is used[\s\S]*POST \/webhooks\/settle/);
+  assert.match(brief, /## Decisions in force[\s\S]*\[assumption\]: Provider sends X-Idempotency-Key/);
+  assert.ok(brief.indexOf('## Plan') < brief.indexOf(`# ${a}`), 'stable root context precedes volatile task section');
+
+  // Glob scope src/webhooks/* overlaps src/webhooks/verify.ts
+  task('--id', a, '--status', 'claimed', '--by', 'alice');
+  assert.match(task('--id', b, '--status', 'claimed', '--by', 'bob').err, /overlaps/);
+
+  // Failed check captures highlighted failure line, writes full log, and increments check_failures
+  const failed = task('--id', a, '--status', 'submitted', '--by', 'alice').json;
+  assert.equal(failed.status, 'open');
+  assert.equal(failed.metadata.check_failures, 1);
+  assert.match(failed.verdict, /AssertionError: expected 200 got 500/);
+  assert.match(failed.verdict, /full log:/);
+
+  // Pass checks, bounce in review, then pass review and reopen from done
+  writeFileSync(join(env.IDLE_HOME, 'pass-now'), '');
+  task('--id', a, '--status', 'claimed', '--by', 'alice');
+  assert.equal(task('--id', a, '--status', 'submitted', '--by', 'alice').json.status, 'verified');
+  const bounced = task('--id', a, '--status', 'open', '--verdict', 'assumption was false', '--by', 'reviewer').json;
+  assert.equal(bounced.metadata.review_bounces, 1);
+
+  // Supersede the false assumption -> flags bound open task in state
+  const corrected = run('decision', '--task', a, '--statement', 'Deduplicate by payload hash', '--by', 'planner').json;
+  run('decision', '--id', assumption.id, '--superseded-by', corrected.id);
+  assert.match(run('show', root, '--state').out, new RegExp(`${a} is bound by a superseded decision`));
+
+  // Finish tasks, write retro and post-archive outcome, and search across archived trees
+  task('--id', a, '--status', 'claimed', '--by', 'alice');
+  task('--id', a, '--status', 'submitted', '--by', 'alice');
+  task('--id', a, '--status', 'done', '--by', 'reviewer');
+  const reopened = task('--id', a, '--status', 'open', '--verdict', 'missed edge case', '--by', 'human').json;
+  assert.equal(reopened.metadata.reopens, 1);
+  task('--id', a, '--status', 'claimed', '--by', 'alice');
+  task('--id', a, '--status', 'submitted', '--by', 'alice');
+  task('--id', a, '--status', 'done', '--by', 'reviewer');
+  task('--id', b, '--status', 'archived');
+  task('--id', root, '--status', 'done');
+
+  task('--id', root, '--retro', 'divergence: builder assumed X-Idempotency-Key existed', '--by', 'planner');
+  task('--id', root, '--status', 'archived');
+  const withOutcome = task('--id', root, '--outcome', 'kpi: duplicate charge rate dropped to 0%', '--by', 'human').json;
+  assert.match(withOutcome.retro, /assumed X-Idempotency-Key/);
+  assert.match(withOutcome.outcome, /duplicate charge rate dropped to 0%/);
+  assert.match(run('show', root, '--state').out, /## Retro[\s\S]*assumed X-Idempotency-Key[\s\S]*## Outcome[\s\S]*duplicate charge rate/);
+
+  const found = run('list', '--search', 'duplicate charge rate').json;
+  assert.equal(found.tasks[0].id, root);
+  assert.equal(run('list', '--decisions', '--all').json.length, 3);
+});

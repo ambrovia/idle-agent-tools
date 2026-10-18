@@ -67,7 +67,9 @@ Adversarial lenses — what would break this?
 
 ## Review method
 
-Read the relevant contracts and every affected implementation path. Trace claims end to end, inspect
+Read the relevant contracts and every affected implementation path. Trace claims end to end, audit the
+builder's recorded (`[assumption]`) and unstated assumptions against the real consuming path (and
+`consumer_scenario` on root or integrate tasks), inspect
 test meaning rather than test presence, and verify rendered behavior when visual judgment matters.
 Mechanical check results injected at skill load or with the brief are evidence: judge them, and re-run
 only when disputing them — record that in the finding. Calibrate concrete checks where they occur:

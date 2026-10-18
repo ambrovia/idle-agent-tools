@@ -38,7 +38,8 @@ redesign silently.
   what you tried, what it did, and what you now believe the root cause is.
 
 Ambiguity has two shapes. An implementation choice you can decide — a shape, a location, an
-interpretation — you resolve: pick the option you can defend, record it as a decision — a decision in the
+interpretation — you resolve: pick the option you can defend, record it as a decision (or
+`decision --kind assumption` when relying on an unverified premise) — in the
 record, not a sentence in your feedback — and keep moving. A
 plan that contradicts repository reality you do not resolve: block the task with the evidence.
 

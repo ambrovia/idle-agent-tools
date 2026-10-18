@@ -25,6 +25,10 @@ that answer and stop.
 
 ## How to interview
 
+**Question sharpness is the readiness signal.** Every question must name the concrete tension in the
+codebase or domain that forces it and state what you currently assume. Generic questions mean you have
+not read enough of the existing system yet.
+
 **Ask in rounds**, numbered, each with a recommendation, over the questions whose prerequisites are
 settled.
 
@@ -39,18 +43,20 @@ them — fix that and try again rather than accepting a bad answer.
 
 **Their taste is only what they tell you here.** As in `/refine`: when the approach question is
 unanswered for this task, ask. Never import it from another task or another conversation.
-`{{rules.taste}}` holds a handful of repository-wide facts; assume the answer you need is not in
-there.
+`{{rules.taste}}` and project memory hold repository-wide facts; assume the answer you need is not in
+there. When the maintainer redirects a recommendation or states a preference for how things are built,
+record it immediately as a `taste` decision in the record of work.
 
-**Stop at confirmation.** Reflect back how you understood it and get agreement. Do not treat that
-agreement as permission to start building.
+**Stop at confirmation.** Reflect back how you understood it — including any load-bearing assumptions
+you are relying on — and get agreement. Record load-bearing assumptions with `decision --kind assumption`.
+Do not treat that agreement as permission to start building.
 
 ## What to write
 
 Into the task's **plan**, under `## How it works`, in plain language. Write only that half; `/refine`
 owns `## What we need`. The whole plan is budgeted at 50–100 lines. Explain the path through the
-program, not everything true about it. Add the questions that mattered, and their answers, to the
-**interview**.
+program, not everything true about it. Append the full Q&A progression that settled the approach to the
+**interview** so cold sessions recover the exact reasoning.
 
 - how the program works — the path through it, in the order things happen;
 - why it works that way, and what was rejected;

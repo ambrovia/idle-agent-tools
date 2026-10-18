@@ -50,6 +50,18 @@ const MIGRATIONS = [
   );
   create index decisions_root on decisions(root);
   `,
+  `
+  alter table decisions alter column root drop not null;
+  alter table decisions alter column task drop not null;
+  alter table decisions add column kind text not null default 'decision'
+    check (kind in ('decision', 'assumption', 'taste'));
+  create index decisions_project on decisions(project) where root is null;
+
+  alter table tasks add column retro text not null default ''
+    check (char_length(retro) <= ${CAPS.log});
+  alter table tasks add column outcome text not null default ''
+    check (char_length(outcome) <= ${CAPS.log});
+  `,
 ];
 
 export async function migrate(q) {

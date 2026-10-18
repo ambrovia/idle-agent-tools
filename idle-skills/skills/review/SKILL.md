@@ -38,7 +38,8 @@ reliable evidence available: existing automated tests, focused execution, inspec
 behavior, rendered evidence, or a documented manual check may qualify under project policy. Do not
 demand a new harness merely because stronger proof is imaginable.
 
-Confirm the change is proven through its real consuming path — an integration or E2E test, a recorded
+Confirm the change is proven through its real consuming path — and on a root or integrate task, that it
+satisfies `How it is used` (`consumer_scenario`) — via an integration or E2E test, a recorded
 manual run, or rendered output, whichever the task named or the repository already supports. Units
 passing in isolation while the wired path is broken is the classic false green; a plausible argument
 that it works is not evidence. If that evidence is missing or does not demonstrate the path, that
@@ -50,6 +51,8 @@ only when disputing them — then say so in the finding.
 Inspect:
 
 - conformance to the plan, decisions in force and approved design, within the task's scope;
+- the builder's recorded (`[assumption]`) and unstated assumptions about inputs, callers, state, and
+  environment — verify whether each holds in the real consuming path;
 - tests that can fail for a reason someone would care about, no more of them than that needs, and
   preservation of protected behavior;
 - concrete regressions and wiring/integration failures;

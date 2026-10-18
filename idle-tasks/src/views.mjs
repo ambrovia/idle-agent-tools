@@ -27,40 +27,53 @@ async function lineage(q, taskId) {
      select * from up order by depth desc`, [taskId]);
 }
 
+const kindTag = (d) => (d.kind && d.kind !== 'decision' ? ` [${d.kind}]` : '');
+const formatBriefDecision = (d) => `${d.id}${kindTag(d)}: ${d.statement}${d.rationale ? ` — ${firstLine(d.rationale)}` : ''}`;
+const formatStateDecision = (d) => `${d.id}${kindTag(d)}: ${d.statement} (${d.by})`;
+
 export async function brief(q, task) {
   const line = await lineage(q, task.id);
+  const root = line[0];
   const ancestors = line.slice(0, -1);
   const planned = [...line].reverse().find((t) => t.plan);
+  const interviewed = [...line].reverse().find((t) => t.interview);
   const refs = [...new Set(line.flatMap((t) => t.decision_refs))];
-  const decisions = await q(`select id, statement, rationale from decisions where id = any($1) and status = 'active' order by at`, [refs]);
+  const decisions = await q(`select id, kind, statement, rationale from decisions where id = any($1) and status = 'active' order by at`, [refs]);
+  const projectMemory = await q(`select id, kind, statement, rationale from decisions where project = $1 and root is null and status = 'active' order by at`, [task.project]);
   const needs = await q(`select id, title, status, goal from tasks where id = any($1)`, [task.needs]);
   const where = Object.assign({}, ...line.map((t) => t.metadata)); // root first, so a task's own entries win
   return [
-    `# ${task.id} — ${task.title}  [${task.status}]\n`,
-    section('Goal', task.goal || '_No goal written. Ask before guessing._'),
+    // Stable project and root context first (maximises prompt-cache prefix hits across spawns and retries).
     section('What this is for', bullets(ancestors, (t) => `**${t.title}** — ${firstLine(t.goal)}`)),
-    section('Signs the goal is reached', task.acceptance_criteria),
-    section('Why it came back', task.verdict),
-    section('Checks — the system runs these when you submit', bullets(checksFor(task.project), (c) => `\`${c}\``)),
-    section('Scope', bullets(task.scope, (s) => `\`${s}\``)),
+    section('How it is used', root.consumer_scenario),
     section(`Plan${planned && planned.id !== task.id ? ` (from ${planned.id})` : ''}`, planned?.plan),
-    section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement}${d.rationale ? ` — ${firstLine(d.rationale)}` : ''}`)),
-    section('Builds on', bullets(needs, (n) => `${n.id} [${n.status}] **${n.title}** — ${firstLine(n.goal)}`)),
+    section(`Interview${interviewed && interviewed.id !== task.id ? ` (from ${interviewed.id})` : ''}`, interviewed?.interview),
+    section('Project memory', bullets(projectMemory, formatBriefDecision)),
+    section('Decisions in force', bullets(decisions, formatBriefDecision)),
+    section('Checks — the system runs these when you submit', bullets(checksFor(task.project), (c) => `\`${c}\``)),
     section('Where', Object.keys(where).length ? `\`${JSON.stringify(where)}\`` : ''),
+    // Task-specific and retry-volatile context last.
+    `\n# ${task.id} — ${task.title}  [${task.status}]\n`,
+    section('Goal', task.goal || '_No goal written. Ask before guessing._'),
+    section('Signs the goal is reached', task.acceptance_criteria),
+    section('Scope', bullets(task.scope, (s) => `\`${s}\``)),
+    section('Builds on', bullets(needs, (n) => `${n.id} [${n.status}] **${n.title}** — ${firstLine(n.goal)}`)),
+    section('Why it came back', task.verdict),
     '\nThe goal is the contract; the signs and the checks only help you tell. Done means the goal is reached.\n',
-  ].join('');
+  ].join('').trimStart();
 }
 
 export async function state(q, root) {
   const rows = await q(`select * from tasks where root = $1 order by created_at`, [root.id]);
-  const superseded = (await q(`select id from decisions where root = $1 and status = 'superseded'`, [root.id])).map((d) => d.id);
+  const superseded = (await q(`select id from decisions where project = $1 and (root = $2 or root is null) and status = 'superseded'`, [root.project, root.id])).map((d) => d.id);
   const ready = await q(
     `select t.id, t.title from tasks t where t.root = $1
        and (t.status = 'open' or (t.status = 'claimed' and t.claim_expires <= now()))
        and not exists (select 1 from tasks n where n.id = any(t.needs) and n.status <> 'done')
        and not exists (select 1 from tasks c where c.parent = t.id)`, [root.id]);
   const claims = await q(`select id, title, claimed_by, scope, claim_expires from tasks where root = $1 and ${LIVE}`, [root.id]);
-  const decisions = await q(`select id, statement, by from decisions where root = $1 and status = 'active' order by at desc limit 10`, [root.id]);
+  const decisions = await q(`select id, kind, statement, by from decisions where root = $1 and status = 'active' order by at desc limit 10`, [root.id]);
+  const projectMemory = await q(`select id, kind, statement, by from decisions where project = $1 and root is null and status = 'active' order by at desc limit 20`, [root.project]);
   const open = (t) => !['done', 'archived'].includes(t.status);
   const kids = (t) => rows.filter((c) => c.parent === t.id);
 
@@ -87,9 +100,12 @@ export async function state(q, root) {
     section('Ready to claim', bullets(ready, (t) => `${t.id} ${t.title}`)),
     section('Live claims', bullets(claims, (c) => `${c.id} ${c.claimed_by} — ${c.scope.join(', ') || 'no scope'}`)),
     section('Recently done — contradict what is not', bullets(done, (t) => `${t.id} **${t.title}** — ${firstLine(t.goal)}`)),
-    section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement} (${d.by})`)),
+    section('Project memory', bullets(projectMemory, formatStateDecision)),
+    section('Decisions in force', bullets(decisions, formatStateDecision)),
     section('How it is used', root.consumer_scenario),
     section('Plan', root.plan),
     section('Interview', root.interview),
+    section('Retro', root.retro),
+    section('Outcome', root.outcome),
   ].join('');
 }

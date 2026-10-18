@@ -25,16 +25,21 @@ Tasks nest. A child is a more detailed goal than its parent. `needs` names tasks
 names what a task touches — paths, modules, systems; two tasks whose scopes overlap cannot be claimed
 at the same time.
 
-A task's `plan` is the condensed, worker-facing plan; its `interview` is the curated Q&A it came from.
+A task's `plan` is the condensed, worker-facing plan; its `interview` is the Q&A progression it came from.
 Both sit on the root once it has been refined, and on any deeper task that needed its own.
 
-A **decision** is one line anyone may record when they had to choose. It binds the task it was made on
-and any task named with it. Decisions are searched before they are recorded, and superseded rather than
-edited.
+A **decision** is one line anyone may record when they had to choose, or when they relied on an
+unverified premise (`--kind assumption`), or when the human steered how things are done (`--kind taste`).
+With `--task`, it binds the task it was made on and any task named with it. Without `--task`, it is
+standing **project memory** that every task in the repository sees. Decisions and assumptions are
+searched before they are recorded, and superseded rather than edited.
 
 `feedback` on a task is for whoever plans the tree: the goal is wrong, the approach will not work, a
 decision conflicts, what you learned by doing. `verdict` is why a task came back: a failed check,
-blocking findings, the reason it was reopened.
+blocking findings, the reason it was reopened. `retro` is self-reflection recorded on the root after the
+work completes (`success`, `friction`, `divergence`, `cost`). `outcome` is outer feedback recorded at any
+time, including after `done` or `archived`: human PR review comments, user feedback, business KPIs, or
+runtime signals.
 
 ## States
 
@@ -62,10 +67,10 @@ when the session has them.
 
 | | |
 |---|---|
-| `task` | Create or update. Without `id` it creates — after searching: if similar live tasks exist it returns them instead, and `confirm` creates anyway. With `id` it changes fields, moves the task with `status`, appends `feedback` or `verdict`. |
-| `decision` | Create or update, the same way. `superseded-by` retires one. |
-| `show` | One task or decision. `brief`: what a worker starts from. `state`: the whole tree it belongs to — what needs attention, feedback, tree, ready, claims, recently done. |
-| `list` | Root tasks of this project; with `root` one of them as a tree; with `ready` what can be claimed; with `decisions` the decisions made in a tree. |
+| `task` | Create or update. Without `id` it creates — after searching: if similar live tasks exist it returns them instead, and `confirm` creates anyway. With `id` it changes fields, moves the task with `status`, appends `feedback`, `verdict`, `retro` or `outcome`. |
+| `decision` | Create or update, the same way (`--kind decision\|assumption\|taste`; omit `--task` for standing project-wide memory). `superseded-by` retires one. |
+| `show` | One task or decision. `brief`: what a worker starts from. `state`: the whole tree it belongs to — what needs attention, feedback, tree, ready, claims, recently done, project memory, decisions & assumptions, retro, outcome. |
+| `list` | Root tasks of this project; with `root` one of them as a tree; with `ready` what can be claimed; with `decisions` project-wide memory (or with `root` a tree's decisions, with `all` every decision in the project); with `search` matching tasks, retros, outcomes and decisions across the project. |
 
 `idle help <operation>` lists every input.
 

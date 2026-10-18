@@ -9,34 +9,48 @@ user-invocable: true
 
 # Compound
 
-Read the candidate tracker at `.pipeline/compound-candidates.md`, then the `retro:` feedback on the root
-of every root task of this project — list them with archived ones included. If the tracker does not exist, create it with a title and no rows.
+Read project-wide decisions (`idle list --decisions`) and all decisions across roots
+(`idle list --decisions --all`), then read every root task of this project (`idle list --archived` and
+`show --state` or `list --search`) — including its `retro`, `outcome` (PR review comments, user feedback,
+business KPIs, runtime signals), `interview` Q&A, and superseded assumptions. If a legacy
+`.pipeline/compound-candidates.md` exists, read it too.
 
-You are the only writer of that tracker, and you run at maintainer cadence — after several tasks,
-never inside a run. That is what makes a single shared file safe here: nothing a run writes lands in
-the repository, so concurrent branches never touch the same path. The tracker carries the classification
-forward so this skill does not re-derive every pattern from scratch each time.
+You run at maintainer cadence — after several tasks, never inside a run. Mine four sources of recurring
+evidence across roots, including patterns that occurred inside sessions without causing a formal retro
+failure:
 
-Group observations only when they describe the same behavioural mechanism. Three independent
-occurrences qualify a pattern for consideration; they do not prove the diagnosis.
+1. **In-session taste nudges and `interview` Q&As** — where the maintainer repeatedly redirected
+   recommendations or stated how they prefer things done (`kind = 'taste'` or repeated interview
+   overrides), even when the task then succeeded smoothly;
+2. **Repeated local `decisions` and invalidated `assumptions`** — where builders or planners across
+   separate tasks had to make the same unguided choice or tripped over the same false premise;
+3. **`retro` observations** (`success`, `friction`, `divergence`, `cost`);
+4. **Outer `outcome` signals** — human PR review comments, user feedback, business KPIs, or post-ship
+   regressions.
+
+Group observations only when they describe the same behavioural or taste mechanism. Three independent
+occurrences qualify a process/skill pattern for consideration; two independent occurrences across tasks
+qualify a recurring in-session `taste` or domain convention. Track emerging candidates as project-wide
+memory in `idle-tasks` (`idle decision` without `--task`) so candidate tracking never dirties git or
+conflicts across branches.
 
 Classify patterns as emerging, confirmed, contradicted, or resolved. Report each confirmed pattern to
 the maintainer with:
 
-- occurrences and evidence;
-- likely mechanism and competing explanation;
+- occurrences and evidence across roots/sessions;
+- likely mechanism (including the underlying false assumption, where applicable) and competing explanation;
 - behavior worth preserving;
-- one smallest proposed process/skill change;
+- one smallest proposed change: a project-wide memory entry in `idle-tasks`, an amendment to a
+  `.pipeline/rules/<slot>.md` file (`taste`, `code`, `testing`, `architecture`, `security`, `design-system`,
+  `frontend`, `visual`, `docs`), or a surgical skill change;
 - expected benefit, regression risk, and how to validate it.
 
-Recurring `divergence` observations propose an amendment to the `taste` rule slot rather than a skill
-change; quote the corrections it would have prevented. Never propose one from a single correction,
-and propose one only when it holds across the repository — per-task preferences belong in that
-task's plan, and the slot stays short enough to read.
+Quote the corrections or repeated decisions the rule would have prevented. Never propose one from a
+single occurrence, and propose a repository rule only when it holds across the repository — per-task
+preferences belong in that task's plan, and rule files stay short enough to read.
 
-Propose; never apply. Do not delete history, convert anecdotes into mandates, or bundle unrelated
-changes. Update tracker state and retain contradiction and resolution evidence. Human approval is
-required before any policy mutation.
+Propose; never apply policy or rule-file edits without human approval. Do not delete history, convert
+anecdotes into mandates, or bundle unrelated changes.
 
 ## Target
 

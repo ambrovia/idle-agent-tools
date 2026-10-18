@@ -48,9 +48,12 @@ Then:
 - Lock costly, cross-cutting, public, or irreversible decisions. Leave local reversible choices to the
   builder.
 - Name things so that the name removes the need for a paragraph of explanation.
-- Ask only questions that materially change the result; offer an evidence-based recommendation.
+- Ask only questions that materially change the result; name the concrete tension in the codebase or
+  domain that forces each question, state what you currently assume, and offer an evidence-based
+  recommendation.
 - Cite `file:line` for load-bearing claims about what already exists in the repository; mark unchecked
-  claims `UNVERIFIED`. Do not plan from memory of the codebase.
+  claims `UNVERIFIED` and record load-bearing unverified premises with `decision --kind assumption`. Do
+  not plan from memory of the codebase.
 - Use current official sources for load-bearing external claims. Cite the URL; mark inaccessible claims
   `UNVERIFIED` rather than guessing.
 - Read repository conventions from `pipeline.config.yml` — the `rules` slots, `paths`, `designSystem`, and
