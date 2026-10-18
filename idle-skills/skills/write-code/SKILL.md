@@ -1,7 +1,7 @@
 ---
 name: write-code
 description: "Implement a claimed task with the smallest clear solution that reaches its goal. Use after the plan is agreed and the task is yours."
-persona: pipeline-builder
+persona: idle-builder
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---
@@ -41,7 +41,9 @@ pre-existing failures separately. When you submit, the system runs the project's
 reopens the task with the output, whatever you reported.
 
 A choice you had to make where the plan was silent is a **decision**: record it as one, so it binds the
-tasks after yours and the maintainer can find and overturn it. Feedback is not the place for it. Write
+tasks after yours and the maintainer can find and overturn it. An unverified premise you had to rely on
+is an **assumption**: record it as an assumption so reviewers and the maintainer can
+audit or supersede it. Feedback is not the place for either. Write
 feedback on the task for anything
 learned by doing that whoever plans the tree should know: the goal is wrong, the approach will not
 work, a decision conflicts. End in exactly one way: submit; propose children when the task is bigger

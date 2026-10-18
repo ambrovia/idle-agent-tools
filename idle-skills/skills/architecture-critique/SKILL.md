@@ -1,7 +1,7 @@
 ---
 name: architecture-critique
 description: "Read-only critique of a proposed technical breakdown against the plan, before it is accepted. Checks alignment, necessary contracts, feasibility, simplicity and readability. Requested when worth challenging, never scheduled; reports blockers without scoring or rewriting."
-persona: pipeline-reviewer
+persona: idle-reviewer
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---
@@ -28,7 +28,8 @@ Check that the proposal:
 - addresses plausible changed failure, data, and migration risks at the stated tier, and reasons about
   security from the surfaces the change actually reaches rather than deferring to an absent rule;
 - uses focused feasibility evidence for genuinely unknown load-bearing assumptions, including a live
-  probe (or `UNVERIFIED`) when a premise depends on deployed or runtime state;
+  probe (or `UNVERIFIED` recorded as an `assumption` in memory) when a premise depends on deployed or
+  runtime state, and exposes any unstated assumption that does not hold in the code;
 - provides reliable, proportionate verification, including named end-to-end evidence that would show the
   change working through its real consuming path;
 - leaves reversible local choices to the builder and defaults to the simplest workable task tree —

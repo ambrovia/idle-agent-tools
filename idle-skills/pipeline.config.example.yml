@@ -73,7 +73,7 @@ vcs: github
 # the otherwise-generic skills. Which skill reads which slot is noted after each.
 rules:
   code: null           # language / type / style conventions — write-code, architecture, architecture-critique, review
-  testing: null        # what counts as a test, layout, lanes/fixtures, combined/integration seam — write-tests, architecture, architecture-critique, review, pipeline
+  testing: null        # what counts as a test, layout, lanes/fixtures, combined/integration seam — write-tests, architecture, architecture-critique, review, orchestrate
   architecture: null   # architecture invariants & conventions — architecture, architecture-critique, write-code, review
   design-system: null  # component budget, tokens, reuse-before-build, promotion — design, write-code, review
   frontend: null       # client / UI conventions — design, write-code, review
@@ -81,13 +81,13 @@ rules:
   aesthetics: null     # aesthetic quality bar — design
   security: null       # security policy / threat model — architecture, architecture-critique, write-code, review
   docs: null           # documentation voice & conventions — write-docs, review
-  taste: null          # standing conventions for how this repo likes things done — refine, program-design, pipeline
+  taste: null          # standing conventions for how this repo likes things done — refine, program-design, orchestrate
 # The `taste` slot is short, standing conventions only — the answers you have given
 # often enough to be worth not repeating. It is NOT a lookup table for per-item
 # questions: when an interview needs to know how you want something and this item's
 # plan does not say, the agent asks you rather than stretching a convention written
 # for a different question. /retro records where an agent's choice diverged from what
-# you wanted, /compound proposes an amendment, and you approve it.
+# you wanted, /self-improve proposes an amendment, and you approve it.
 # Rule files live under .pipeline/rules/ — host-neutral, so every tool reads the same
 # ones. They are maintainer-authored and committed: /setup writes them with your
 # approval, and no pipeline run may edit them (the orchestrator owns .pipeline/work/<id>/

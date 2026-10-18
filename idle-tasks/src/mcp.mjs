@@ -26,7 +26,7 @@ const tools = OPS.filter((op) => !op.cliOnly).map((op) => ({
     properties: {
       ...Object.fromEntries((op.args ?? []).map((arg) => [arg, { type: 'string' }])),
       ...Object.fromEntries(Object.entries(op.flags ?? {}).map(([name, f]) => [name, { ...TYPES[f.type], description: f.desc }])),
-      by: { type: 'string', description: 'who you are, e.g. harness/model — recorded on claims, feedback and decisions' },
+      by: { type: 'string', description: 'who you are, e.g. harness/model — recorded on claims, feedback and memories' },
       project: { type: 'string', description: 'project label; leave out — it is taken from the repository you are working in' },
     },
     required: op.args ?? [],
@@ -93,7 +93,7 @@ export function serve() {
     if (method === 'initialize') {
       client = params?.clientInfo?.name ?? client;
       roots = !!params?.capabilities?.roots;
-      send({ id, result: { protocolVersion: params?.protocolVersion ?? '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'idle', version: '0.2.0' } } });
+      send({ id, result: { protocolVersion: params?.protocolVersion ?? '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'idle', version: '0.3.0' } } });
     } else if (method === 'ping') send({ id, result: {} });
     else if (method === 'tools/list') {
       hidden = !inRepository();

@@ -25,8 +25,9 @@ that answer and stop.
 
 ## How to interview
 
-**Ask in rounds**, numbered, each with a recommendation, over the questions whose prerequisites are
-settled.
+**Ask in rounds**, numbered, over the questions whose prerequisites are settled. Structure each question
+around the concrete tension in the codebase or domain that forces it, state what you currently assume, and
+give a recommended answer so the maintainer can easily judge whether the question is sharp enough.
 
 **Facts are your job.** How the current system works, what already exists, what a change would touch
 — find out, dispatch a subagent to read widely where it is a lot, and bring back the answer. Ask the
@@ -39,18 +40,25 @@ them — fix that and try again rather than accepting a bad answer.
 
 **Their taste is only what they tell you here.** As in `/refine`: when the approach question is
 unanswered for this task, ask. Never import it from another task or another conversation.
-`{{rules.taste}}` holds a handful of repository-wide facts; assume the answer you need is not in
-there.
+`{{rules.taste}}` and project memory hold repository-wide facts; assume the answer you need is not in
+there. Answers to approach questions belong in this task's plan or task-bound decisions; record standing
+`taste` in project memory only when the maintainer explicitly states a general repository-wide principle.
 
-**Stop at confirmation.** Reflect back how you understood it and get agreement. Do not treat that
+**Stop when the questions show you have it.** Reflect back how you understood the approach — including any
+load-bearing assumptions you are relying on — and verify with the maintainer that the quality and
+sharpness of your questions show you have understood the direction. As in `/refine`, if the maintainer
+stops you early, distinguish whether the questions are sharp enough that program design is complete, or
+too shallow from the start because the setup or codebase reading was wrong. Record load-bearing
+assumptions in the record of work when present (or in the plan when run standalone). Do not treat
 agreement as permission to start building.
 
 ## What to write
 
-Into the task's **plan**, under `## How it works`, in plain language. Write only that half; `/refine`
+Into the **plan** (on the task in the record of work when present, or directly in the session when run
+standalone), under `## How it works`, in plain language. Write only that half; `/refine`
 owns `## What we need`. The whole plan is budgeted at 50–100 lines. Explain the path through the
-program, not everything true about it. Add the questions that mattered, and their answers, to the
-**interview**.
+program, not everything true about it. Append the full Q&A progression that settled the approach to the
+**interview** so cold sessions recover the exact reasoning.
 
 - how the program works — the path through it, in the order things happen;
 - why it works that way, and what was rejected;

@@ -8,32 +8,37 @@ user-invocable: false
 
 # Retro
 
-Read the tree's state — what came back and why, what was blocked, feedback from the work, superseded
-decisions — then VCS history, verification/review output, lore, and session trajectories. The record
-keeps no other history; the rest comes from those. Append terse observations to the root task as
-feedback, one per entry, each starting `retro:`.
+Read the tree's state when the record of work is present — what came back and why, what was blocked,
+feedback from the work, superseded decisions and assumptions, outer `outcome` entries, and the
+mechanical bounce counters (`check_failures`, `review_bounces`, `reopens`) — then VCS history,
+verification/review output, lore, and session trajectories. Record terse observations as `retro`
+memories on the root task in the record of work (`memory` with `--task <root> --kind retro --summary "…" --details "…"`)
+when present (or report them directly in the session when run standalone without a task record), never to
+the git working tree. Because `retro` memories live outside the repository, `/retro` runs after `/ship`
+without dirtying the branch or racing with CI.
 
-Each entry records kind (`success`, `friction`, `divergence`, or `cost`), source, the concrete
-observation, its evidence, and optionally a related known pattern. Record what worked so later cleanup does not remove it.
+Each `retro` memory records observation kind (`success`, `friction`, `divergence`, or `cost`) and concise
+observation in `summary`, and its source, concrete evidence, and optional related known pattern in `details`.
+Record what worked so later cleanup does not remove it.
 
 A `divergence` entry records where the agent's choice was not what the maintainer wanted — read them
-out of what they reopened, the decisions they superseded, and anything they asked to be changed or
-simplified. Record the choice, what they wanted instead, and where the plan was silent. Do not write
-the `taste` rule yourself, and never treat one correction as a convention.
+out of what they reopened, the decisions or assumptions they superseded, in-session `taste` nudges, and
+anything they asked to be changed or simplified. Record the choice, **the underlying assumption that
+failed**, what they wanted instead, and where the plan was silent. Do not write `.pipeline/rules/`
+yourself, and never treat one correction as a convention.
 
-Close each root task with one `cost` entry: what ran, how many critiques and reviews, how much was
-re-done, and how much of the effort went to rework or infrastructure rather than the outcome.
-Whether a run was proportionate is only visible in aggregate.
+Close each root task with one `cost` entry using the mechanical bounce counters (`check_failures`,
+`review_bounces`, `reopens`) when present, plus what ran, how many critiques and reviews occurred, and
+how much of the effort went to rework or infrastructure rather than the outcome. Whether a run was
+proportionate is only visible in aggregate.
 
-Read `.pipeline/compound-candidates.md` before writing a new free-text observation and reuse the
-matching candidate's identifier when the same behaviour recurs; write free text only for friction
-with no matching row. Read it, never write it — `/compound` owns that file. If it does not exist,
-write free text and let `/compound` cluster it later.
+Read project memory in the record of work (when present) and `.pipeline/compound-candidates.md` (when
+present) before writing a new free-text observation, and reuse the matching candidate's identifier when
+the same behaviour recurs; write free text only for friction with no matching entry. Read them, never
+mutate candidate state here — `/self-improve` owns that.
 
 Observe only. Do not diagnose beyond evidence, fix code or prompts, assign follow-up work, inflate one
 event into a pattern, or duplicate an existing observation without new evidence.
-
-Retro is the final mutable pipeline observation phase and must complete before ship runs.
 
 ## Target
 

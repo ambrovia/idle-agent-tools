@@ -11,11 +11,11 @@ Two plugins, usable together or apart. One marketplace serves both on every harn
 
 ### [`idle-tasks/`](idle-tasks/) — the record of work
 
-Agents do not talk to each other; they read and write one record. It holds two things: **tasks** — goals that nest into trees, need each other and carry scope — and **decisions**. Anyone can drop a task at any time; a title is enough. Four operations (`task`, `decision`, `show`, `list`), the same over the `idle` CLI and over MCP; everything else is a state. Claims are leases, refused when scopes overlap. When a task is submitted **the system runs your project's checks itself** and sends a failing task back with the output — no agent's word counts. It lives in your home folder on PGlite, on any Postgres you bring, or in Linear. It knows nothing about our workflow: bring your own. Also on npm as [`idle-agent-tasks`](https://www.npmjs.com/package/idle-agent-tasks).
+Agents do not talk to each other; they read and write one record. It holds two things: **tasks** — goals that nest into trees, need each other and carry scope — and **memories** (`decision`, `assumption`, standing `taste`, and `retro` observations). Anyone can drop a task at any time; a title is enough. Four operations (`task`, `memory`, `show`, `list`), the same over the `idle` CLI and over MCP; everything else is a state. Claims are leases, refused when scopes overlap. When a task is submitted **the system runs your project's checks itself** and sends a failing task back with the output — no agent's word counts. It lives in your home folder on PGlite, on any Postgres you bring, or in Linear. It knows nothing about our workflow: bring your own. Also on npm as [`idle-agent-tasks`](https://www.npmjs.com/package/idle-agent-tasks).
 
 ### [`idle-skills/`](idle-skills/) — the workflow
 
-A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan in your own words. The planner breaks the work into goals, builders work them, the system runs the checks, fresh reviewers judge whether each *goal* is reached — and you contradict what is not done. Fifteen skills, three personas, hooks that put fresh evidence in front of every agent when it starts. Needs idle-tasks.
+A dropped task starts with an interview: the planner asks, you decide, and the answers become a goal and a plan in your own words. The planner breaks the work into goals, builders work them, the system runs the checks, fresh reviewers judge whether each *goal* is reached — and you contradict what is not done. Fifteen skills, three personas, hooks that put fresh evidence in front of every agent when it starts, and a `/self-improve` skill (manual or weekly across projects). Works on `idle-tasks`, or standalone.
 
 ```
 drop a task ──▶ interview ──▶ plan the tree ──▶ build ──▶ checks ──▶ review ──▶ ship
@@ -59,7 +59,7 @@ The marketplace was renamed, so an existing install does not move by itself. Rem
 /plugin marketplace add ambrovia/idle-agent-tools
 ```
 
-then install both plugins as below. Skills keep their names; their prefix becomes `idle-skills:`. Codex asks once to re-approve the hooks, because their paths changed. Items that exist only as `.pipeline/work/<id>/plan.md` are adopted by `/pipeline` as tasks.
+then install both plugins as below. Skills keep their names; their prefix becomes `idle-skills:`. Codex asks once to re-approve the hooks, because their paths changed. Items that exist only as `.pipeline/work/<id>/plan.md` are adopted by `/orchestrate` as tasks.
 
 ### APM
 
@@ -95,7 +95,7 @@ In each repository, commit `.claude/settings.json`:
 
 Claude reads it from the folder a session starts in, so start at the repository root. `claude plugin marketplace update idle-agent-tools` picks up a new release.
 
-`idle-tasks` is the record of work on its own — the `idle` CLI, its MCP server and the `/idle` skill — and works with any workflow. `idle-skills` is the workflow on top and needs it. The orchestrator is `/pipeline`; `/setup`, `/lore` and `/compound` are the other commands you invoke directly. The phase skills are dispatched by the orchestrator, not run by hand.
+`idle-tasks` is the record of work on its own — the `idle` CLI, its MCP server and the `/idle` skill — and works with any workflow. `idle-skills` is the workflow on top and works with `idle-tasks` or standalone. The orchestrator is `/orchestrate`; `/setup`, `/lore` and `/self-improve` are the other commands you invoke directly. The phase skills are dispatched by the orchestrator, not run by hand.
 
 ### Cursor — plugin
 
@@ -149,7 +149,7 @@ Codex reads a repository's `.codex/` only when the repository is trusted (`trust
 scripts/install-codex.sh /path/to/project
 ```
 
-That writes `.codex/agents/*.toml` and namespaced `[agents.pipeline-*]` entries in `.codex/config.toml`.
+That writes `.codex/agents/*.toml` and namespaced `[agents.idle-*]` entries in `.codex/config.toml`.
 
 ### opencode — installer
 
@@ -164,7 +164,7 @@ scripts/install-opencode.sh --global   # ~/.config/opencode
 | Piece | Destination |
 |---|---|
 | Skills | `.opencode/skills/` |
-| Agents | `.opencode/agents/` (`@pipeline-planner`, …) |
+| Agents | `.opencode/agents/` (`@idle-planner`, …) |
 | Post-edit guards | `.opencode/plugins/pipeline.js` |
 | Session-start | managed block in `AGENTS.md` |
 | Record of work | `mcp.idle` in `opencode.json` (started from npm) |

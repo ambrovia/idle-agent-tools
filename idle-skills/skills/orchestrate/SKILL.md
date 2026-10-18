@@ -1,12 +1,12 @@
 ---
-name: pipeline
+name: orchestrate
 description: "Drive one or more tasks to a CI-green PR, through whatever shape each one actually needs. Runs the interviews itself, breaks the work into goals with the maintainer, and dispatches the rest. Never creates scope."
 persona: orchestrator
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: true
 ---
 
-# Pipeline
+# Orchestrate
 
 Take a task to done — a dropped title, or a whole tree of work. You are its planner: the one agent
 that holds the whole picture, plans every level of it, and talks to the maintainer. There is no fixed lifecycle: what the work needs is decided
@@ -47,16 +47,26 @@ Scope is theirs: how far this goes, what must be reached, and roughly how. The h
 more it is theirs; at the leaves it is mostly yours. This is not a hands-off factory.
 
 There are no gates. You say something is done; they contradict it, and it reopens. Your part is to
-surface enough for that: what was done, on what evidence, what you decided, what you are unsure about —
-in plain language, from the tree's state. For a changed user-facing surface, show the surface, not
-prose about it. Follow where they go: deep where they dive deep, shallow where they stay shallow.
+surface enough for that: what was done, on what evidence, what you decided, **what load-bearing
+assumptions you relied on without asking**, and what you are unsure about — in plain language, from the
+tree's state. For a changed user-facing surface, show the surface, not prose about it. Follow where they
+go: deep where they dive deep, shallow where they stay shallow.
 
 Ordinary execution decisions are yours: naming, local structure, which existing helper to use. Stop and
 ask only when a decision would change something the maintainer has already seen or agreed — the
 boundary, the approach, a user-facing surface, a public contract — or when the plan turns out to be
-wrong about the code. Everything else that is unclear is feedback on the task, and the work continues.
+wrong about the code. Everything else that is unclear is feedback on the task or a recorded assumption,
+and the work continues. Local steering on a question or task stays on that task; record a standing `taste`
+entry in project memory only when the maintainer explicitly states a general principle that applies across
+the repository.
 
-When they reopen something, the reason goes on the task. Decide with them what new work it means.
+When they reopen or contradict something, do not merely patch the symptom:
+
+1. **Name the underlying assumption that failed** — what the planner or builder took for granted that
+   produced the wrong result.
+2. **Supersede that assumption** in the record so every open task bound by it is flagged, and check
+   whether the `plan` or sibling tasks relied on the same false premise.
+3. Put the reason on the task and decide with them what new work it means.
 
 One global dial, from `pipeline.config.yml`: **`engineering.tier`** — how mature the product is, and
 therefore how good the code must be. Ambiguity decides ceremony — how much interview, whether design
@@ -66,8 +76,8 @@ and architecture rounds run at all. Exposure decides scrutiny — how many revie
 
 Three rules:
 
-1. **Decide it yourself.** Make design decisions rather than delegating them, and record them. No two
-   tasks may decide the same question.
+1. **Decide it yourself.** Make design decisions rather than delegating them, and record them. Record
+   unverified premises as assumptions. No two tasks may decide the same question.
 2. **One task unless proven otherwise.** Before splitting, ask whether a single session would plausibly
    do the whole thing. If yes, create one task.
 3. **Re-read before you plan.** The record, not the transcript.
@@ -76,7 +86,9 @@ Run `/refine` when what is wanted is unresolved, and `/program-design` when the 
 — either, both, or neither. Conduct them yourself; they are how you learn enough to act for the
 maintainer later.
 
-Then break the task down, if it needs it. Each task is a goal: what is true when it is done, and why. A child is
+Then break the task down, if it needs it. Even when `/architecture` is skipped, verify in the repository
+that every symbol, file, or contract the plan names actually exists in the shape assumed, and derive real
+consumers from the code rather than guessing. Each task is a goal: what is true when it is done, and why. A child is
 a more detailed goal than its parent, and at the bottom a goal is as specific as an acceptance criterion
 ever was. For each:
 
@@ -87,9 +99,10 @@ ever was. For each:
 - **needs** — only what makes it impossible before that is done.
 
 **Children being done is not the goal being reached.** When the last child of a task completes, ask
-whether the parent's goal has been shown working through its real consuming path. Where the children
-leave a seam between them, create an integrate task whose goal is the parent's goal; where one child was
-the whole of it, its review already judged that. Mark the parent done only when it is shown.
+whether the parent's goal — and on the root, its `consumer_scenario` (`How it is used`) — has been shown
+working through its real consuming path. Where the children leave a seam between them, create an
+integrate task whose goal is the parent's goal and `consumer_scenario`; where one child was the whole of
+it, its review already judged that. Mark the parent done only when it is shown.
 
 **Optional rounds.** Run `/design` only for a user-facing decision not already settled by an approved
 pattern, and only when a design system is configured. Run `/architecture` only where scope and
@@ -98,7 +111,8 @@ decisions for you to accept, edit or decline — it never creates work itself. T
 bad brief to fix, not an answer to accept.
 
 On every wake, handle what the state says needs attention: proposals, blocked tasks, tasks that came
-back, feedback from the work, parents whose children are done, tasks bound by a superseded decision.
+back, feedback from the work, parents whose children are done, tasks bound by a superseded decision or
+assumption.
 
 ## Dispatch
 
@@ -116,8 +130,9 @@ Tell every agent you spawn who it is — `builder/<model>`, `reviewer/<model>` �
 call to the record. Agents in one session otherwise share one identity, and a reviewer that looks like
 the builder is refused.
 
-The agent claims its task, records the decisions it had to make, writes feedback for what it learned by
-doing, and ends by submitting, proposing children, or blocking with a reason. Its report says the same.
+The agent claims its task, records the decisions and assumptions it had to make, writes feedback for what
+it learned by doing, and ends by submitting, proposing children, or blocking with a reason. Its report
+says the same.
 
 **Fan out only for homogeneous work** — the same thing done many times, sharing one topic and context.
 Run anything heterogeneous sequentially. Parallel tasks need isolated worktrees and non-overlapping
@@ -149,7 +164,8 @@ to the maintainer. Never try again with the same understanding.
 
 - **Enter the worktree before working the task.** Create it with the configured workflow, cut from the
   current remote default branch — a stale local base hides work and reintroduces reverted code. Record
-  branch, worktree and the commit it was cut from (`since`) on the root.
+  branch, worktree and the commit it was cut from (`since`) on the root (and on a child task when it uses
+  its own worktree).
 - **Bootstrap only when the worktree is new or stale**, using the configured command.
 - **Run the configured contamination and cleanup checks** before any commit or removal. Never invent a
   cleanup command.
@@ -165,21 +181,25 @@ exists, and never respond by discarding work products wholesale.
 
 ## Finishing
 
-When the root's children are done and its goal is shown reached, run `/retro`, then `/ship`, which
-commits, verifies from a clean tree, opens or updates the PR, and waits for CI. Any later mutation
-re-enters ship. Stop at a CI-green merge-ready PR; a human merges. Mark the root done then, and archive
-it once it is merged or abandoned — the repository, not the record, is the truth about what was built.
+When the root's children are done and its goal and `consumer_scenario` are shown reached, run `/ship`,
+which commits, verifies from a clean tree, opens or updates the PR, and waits for CI. Any later mutation
+re-enters ship. Stop at a CI-green merge-ready PR; a human merges. Then run `/retro`, which records its
+observations as `retro` memories on the root task in the record of work — never to the git working tree, so it
+cannot dirty the shipped branch or race with CI. Mark the root done then, and archive it once it is
+merged or abandoned — the repository, not the record, is the truth about what was built. Post-merge
+feedback, PR review notes, user feedback, or business KPIs can be appended to the root's `outcome` at
+any time.
 
 Always return a concise outcome summary: what completed, was skipped or is blocked, delivered behavior,
-verification, PR and CI state, decisions needed. Carry forward the non-blocking findings. Do not create
-cleanup work from observations.
+verification, PR and CI state, load-bearing assumptions, and decisions needed. Carry forward the
+non-blocking findings. Do not create cleanup work from observations.
 
 An item that exists only as `.pipeline/work/<id>/plan.md` is not blocked by any of this: drop a task
 from it — its title and first paragraph the goal, `What we need` and `How it works` the plan — and carry
 on.
 
-After several completed tasks, `/compound` may analyze accumulated retros and propose changes for
-maintainer approval. It never mutates pipeline policy automatically.
+After several completed tasks, `/self-improve` may analyze accumulated retros, outcomes, interviews, and
+decisions across roots to propose changes for maintainer approval. It never mutates policy automatically.
 
 ## Target
 

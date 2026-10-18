@@ -70,28 +70,29 @@ async function load(linear, cfg, label) {
   const projectId = (await linear.project(team.id, name))?.id;
   const issues = projectId ? await linear.issues(team.id, projectId) : [];
   const idOf = new Map(issues.map((i) => [i.id, i.meta?.id ?? i.identifier]));
-  const tasks = []; const decisions = [];
+  const tasks = []; const memories = [];
   for (const i of issues) {
     const m = i.meta ?? {};
     const state = team.states.find((s) => s.id === i.stateId);
     const base = { id: idOf.get(i.id), project: label };
-    if (i.labelIds.includes(labels.get('decision'))) {
+    if (i.labelIds.includes(labels.get('memory')) || i.labelIds.includes(labels.get('decision'))) {
       i.loaded = { status: state?.type === 'canceled' ? 'superseded' : 'active' };
-      decisions.push({ ...base, root: m.root ?? null, task: m.task ?? null, statement: i.title, rationale: i.description || null, by: m.by ?? null,
+      memories.push({ ...base, root: m.root ?? null, task: m.task ?? null, kind: m.kind ?? 'decision', summary: i.title, details: i.description || null, rejected: m.rejected ?? [], by: m.by ?? null,
         status: state?.type === 'canceled' ? 'superseded' : 'active', superseded_by: m.superseded_by ?? null, at: date(m.at ?? i.createdAt) });
       continue;
     }
     tasks.push({ ...base, parent: idOf.get(i.parentId) ?? null, title: i.title, ...parse(i.description),
-      scope: m.scope ?? [], needs: m.needs ?? [], decision_refs: m.decision_refs ?? [],
+      scope: m.scope ?? [], needs: m.needs ?? [], memory_refs: m.memory_refs ?? m.decision_refs ?? [],
       status: status(state, i.labelIds.includes(labels.get('blocked')), m.status),
       claimed_by: m.claimed_by ?? null, claim_expires: date(m.claim_expires), feedback: m.feedback ?? '', verdict: m.verdict ?? '',
+      outcome: m.outcome ?? '',
       metadata: m.metadata ?? {}, created_at: date(i.createdAt), updated_at: date(i.updatedAt) });
     i.loaded = { status: tasks.at(-1).status, parent: tasks.at(-1).parent };
   }
   const byId = new Map(tasks.map((t) => [t.id, t]));
   const rootOf = (t, seen = new Set()) => (byId.has(t.parent) && !seen.has(t.id) ? rootOf(byId.get(t.parent), seen.add(t.id)) : t.id);
   for (const t of tasks) t.root = rootOf(t);
-  return { team, labels, project: { name, id: projectId }, issues: new Map(issues.map((i) => [idOf.get(i.id), i])), tasks, decisions };
+  return { team, labels, project: { name, id: projectId }, issues: new Map(issues.map((i) => [idOf.get(i.id), i])), tasks, memories };
 }
 
 async function save(linear, { team, labels, project, issues, dirty }) {
@@ -99,18 +100,18 @@ async function save(linear, { team, labels, project, issues, dirty }) {
   const label = async (name) => labels.get(name) ?? labels.set(name, (await linear.createLabel(team.id, name)).id).get(name);
   for (const row of dirty) {
     const was = issues.get(row.id);
-    const decision = 'statement' in row;
-    const on = decision ? 'decision' : 'blocked';
-    const want = decision || row.status === 'blocked';
+    const memory = 'summary' in row;
+    const on = memory ? 'memory' : 'blocked';
+    const want = memory || row.status === 'blocked';
     const labelIds = want === !!was?.labelIds.includes(labels.get(on)) ? was?.labelIds ?? []
       : want ? [...was?.labelIds ?? [], await label(on)] : was.labelIds.filter((l) => l !== labels.get(on));
-    const fields = decision
-      ? { title: row.statement, description: row.rationale ?? '', stateId: to[row.status === 'superseded' ? 'archived' : 'done'].id, labelIds }
+    const fields = memory
+      ? { title: row.summary, description: row.details ?? '', stateId: to[row.status === 'superseded' ? 'archived' : 'done'].id, labelIds }
       : { title: row.title, description: describe(row), stateId: to[row.status].id, labelIds, parentId: issues.get(row.parent)?.id ?? null };
-    const meta = decision
-      ? { id: row.id, root: row.root, task: row.task, by: row.by, superseded_by: row.superseded_by, at: row.at }
-      : { id: row.id, status: row.status, scope: row.scope, needs: row.needs, decision_refs: row.decision_refs, claimed_by: row.claimed_by,
-          claim_expires: row.claim_expires, feedback: row.feedback, verdict: row.verdict, metadata: row.metadata };
+    const meta = memory
+      ? { id: row.id, root: row.root, task: row.task, kind: row.kind ?? 'decision', rejected: row.rejected ?? [], by: row.by, superseded_by: row.superseded_by, at: row.at }
+      : { id: row.id, status: row.status, scope: row.scope, needs: row.needs, memory_refs: row.memory_refs, claimed_by: row.claimed_by,
+          claim_expires: row.claim_expires, feedback: row.feedback, verdict: row.verdict, outcome: row.outcome, metadata: row.metadata };
     if (was?.loaded?.status === row.status) delete fields.stateId;
     if (was?.loaded && was.loaded.parent === row.parent) delete fields.parentId;
     let id = was?.id;
@@ -123,6 +124,6 @@ async function save(linear, { team, labels, project, issues, dirty }) {
       if (Object.keys(changed).length) await linear.updateIssue(id, changed);
     }
     await linear.saveAttachment({ issueId: id, url: META_URL + row.id, title: `idle ${row.id}`, metadata: meta });
-    for (const need of decision ? [] : row.needs.filter((n) => !was?.meta?.needs?.includes(n) && issues.has(n))) await linear.blocks(issues.get(need).id, id);
+    for (const need of memory ? [] : row.needs.filter((n) => !was?.meta?.needs?.includes(n) && issues.has(n))) await linear.blocks(issues.get(need).id, id);
   }
 }

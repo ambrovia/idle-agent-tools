@@ -1,7 +1,7 @@
 ---
 name: write-tests
 description: "Create proportionate failing evidence for a task's goal before implementation when behavior is regressible and an automated test is appropriate. Use in the build phase; do not let tests create requirements."
-persona: pipeline-builder
+persona: idle-builder
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---

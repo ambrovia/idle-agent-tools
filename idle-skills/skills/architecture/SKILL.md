@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: "Work out the technical shape of an agreed plan — contracts, types, schemas, dependency order — and propose it as tasks and decisions. Use only where scope and complexity make those definitions necessary. Never decides how the program works; that is the plan's job."
-persona: pipeline-planner
+persona: idle-planner
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---
@@ -35,8 +35,9 @@ change a costly or cross-cutting decision.
 Run a focused feasibility probe only when a load-bearing assumption is new, unknown, or contradicted by
 available evidence. When the premise depends on deployed or live state (bucket contents, running jobs,
 live rows, remote config, external behavior), probe that live surface — a repo read is not enough; if
-unreachable, mark it `UNVERIFIED`. Report the reproducible question, method, result, and verdict; record what it settles as a decision. A
-probe reduces uncertainty and does not become a deliverable.
+unreachable, mark it `UNVERIFIED` and record the unverified premise as an **assumption**.
+Report the reproducible question, method, result, and verdict; record what a confirmed probe settles as a
+decision. A probe reduces uncertainty and does not become a deliverable.
 
 Reconcile the requested outcome with reality. Verify that every symbol the plan or spec names — table,
 route, component, constant, export — exists in the shape assumed, and record each disagreement with how
@@ -63,7 +64,8 @@ builder needs:
 - load-bearing files/modules as each task's `scope`, derived from the repository, and real dependency
   order as `needs`;
 - verification approach using existing lanes where adequate, including the one piece of end-to-end
-  evidence that will show the change working through its real consuming path in production conditions —
+  evidence that will show the change working through its real consuming path in production conditions
+  (and satisfying `consumer_scenario` on the root) —
   an integration or E2E test, a scripted run, or a specific manual check with its expected observation.
   Name the cheapest form that would actually catch a broken wire; do not mandate a new harness when an
   existing lane or a recorded manual check suffices. It is the goal of the integrate task;

@@ -41,7 +41,7 @@ const PLUGIN_ROOT = join(HOOK_DIR, '..');
 const LOCAL_IDLE = join(PLUGIN_ROOT, '..', 'idle-tasks', 'bin', 'idle.mjs');
 const IDLE = process.env.IDLE_BIN ? [process.execPath, process.env.IDLE_BIN]
   : existsSync(join(PLUGIN_ROOT, '..', 'idle-tasks', 'node_modules', '@electric-sql', 'pglite')) ? [process.execPath, LOCAL_IDLE]
-    : ['npx', '-y', 'idle-agent-tasks@0.2.0'];
+    : ['npx', '-y', 'idle-agent-tasks@0.3.0'];
 const SKILL_TOOL = /^skill$/i;
 const MAX_LINES = positiveInt(process.env.PIPELINE_INJECT_MAX_LINES, 300);
 // Codex truncates injected context hard at ~1k tokens and spills past 2.5k, so
@@ -56,9 +56,9 @@ const DIGEST_SKILLS = new Set([
 
 // SubagentStart: what each role needs waiting for it when it wakes up.
 const AGENT_EXTRA = {
-  'pipeline-reviewer': { checks: true, diff: true },
-  'pipeline-builder': { checks: true, checksNote: 'baseline, ran before this agent started' },
-  'pipeline-planner': {},
+  'idle-reviewer': { checks: true, diff: true },
+  'idle-builder': { checks: true, checksNote: 'baseline, ran before this agent started' },
+  'idle-planner': {},
   // Some hosts fire the spawn event without naming the role. Everything an agent
   // gets here is useful whatever it turns out to be: state, plus checks it would
   // otherwise re-run. The diff is reviewer-specific and stays out.
@@ -130,7 +130,7 @@ function resolveTarget(format) {
   return name ? { kind: 'skill', name } : null;
 }
 
-// Hosts qualify plugin-provided names — "pipeline:review", "pipeline:pipeline-reviewer".
+// Hosts qualify plugin-provided names — "idle-skills:review", "idle-skills:idle-reviewer".
 // The routing tables key on the bare name.
 function normalizeName(raw) {
   return raw.replace(/^\//, '').split(/\s/)[0].toLowerCase().replace(/^[a-z0-9_-]+:/, '');
@@ -232,6 +232,35 @@ function diffSince(root, since) {
   };
 }
 
+function findLore(root) {
+  const result = spawnSync('git', ['grep', '-n', '@lore:'], {
+    cwd: root, encoding: 'utf8', timeout: 5_000, maxBuffer: 512 * 1024,
+  });
+  if (result.status !== 0) return null;
+  const lines = (result.stdout ?? '').trim().split('\n').filter(Boolean);
+  return lines.length ? lines.slice(0, 25).join('\n') : null;
+}
+
+function findSince(root, activeId) {
+  try {
+    const shown = JSON.parse(idle(root, 'show', activeId) ?? '{}');
+    const treeOut = idle(root, 'list', '--root', activeId) ?? '';
+    const treeIds = [...treeOut.matchAll(/^\s*(\S+)\s+\[(claimed|submitted|verified)\b/gm)]
+      .map((m) => m[1])
+      .filter((id) => id !== activeId);
+    const childIds = (shown.children ?? [])
+      .filter((c) => ['claimed', 'submitted', 'verified'].includes(c.status))
+      .map((c) => c.id);
+    for (const id of new Set([...childIds, ...treeIds])) {
+      const childTask = JSON.parse(idle(root, 'show', id) ?? '{}').task;
+      if (childTask?.metadata?.since) return childTask.metadata.since;
+    }
+    return shown.task?.metadata?.since ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function buildInjection(format) {
   if (process.env.PIPELINE_SKILL_INJECT === 'off') return null;
   const target = resolveTarget(format);
@@ -254,6 +283,9 @@ function buildInjection(format) {
   const label = target.name || 'spawn';
   const sections = [`pipeline injection — ${target.kind}: ${label}, task: ${active.id}`];
 
+  const lore = findLore(root);
+  if (lore) sections.push('## lore', cap(lore, 'git grep -n "@lore:"'));
+
   const state = idle(root, 'show', active.id, '--state');
   if (state) sections.push('## state', cap(state, `idle show ${active.id} --state`));
 
@@ -274,9 +306,8 @@ function buildInjection(format) {
   }
 
   if (extra.diff) {
-    // The commit the work started from, recorded on the root when its worktree was cut.
-    let since = null;
-    try { since = JSON.parse(idle(root, 'show', active.id)).task.metadata.since; } catch { /* absent */ }
+    // The commit the work started from, recorded on the active child worktree or the root.
+    const since = findSince(root, active.id);
     if (since) {
       const diff = diffSince(root, String(since));
       if (diff) sections.push(`## diff since ${since} (${diff.lines} lines)`, cap(diff.text, `git diff ${since}`));

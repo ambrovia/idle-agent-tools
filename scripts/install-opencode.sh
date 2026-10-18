@@ -9,12 +9,12 @@
 #
 #   skills  → .opencode/skills/    (opencode's own skill dir — self-contained,
 #                                    no dependency on .claude/ or shared .agents/)
-#   agents  → .opencode/agents/    (opencode-format pipeline-planner / pipeline-reviewer / pipeline-builder)
+#   agents  → .opencode/agents/    (opencode-format idle-planner / idle-reviewer / idle-builder)
 #   plugin  → .opencode/plugins/   (post-edit guards)
 #   helpers → .opencode/pipeline/   (skill-load injection the plugin shells out
 #                                    to; kept out of plugins/ because opencode
 #                                    loads that dir as modules)
-#   rules   → AGENTS.md            (session-start "pipeline is active" guidance)
+#   rules   → AGENTS.md            (session-start "idle-skills is active" guidance)
 #   record  → opencode.json        (the idle-tasks MCP server, started from npm)
 #             + the idle skill, which says how the record of work is used
 #
@@ -73,12 +73,12 @@ try { config = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (err) {
   if (err.code !== 'ENOENT') { console.error(`  ! ${file} is not plain JSON — add the idle MCP server by hand`); process.exit(0); }
 }
 config.$schema ??= 'https://opencode.ai/config.json';
-config.mcp = { ...config.mcp, idle: { type: 'local', command: ['npx', '-y', 'idle-agent-tasks@0.2.0', 'mcp'], enabled: true } };
+config.mcp = { ...config.mcp, idle: { type: 'local', command: ['npx', '-y', 'idle-agent-tasks@0.3.0', 'mcp'], enabled: true } };
 fs.writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
 NODE
 echo "  ✓ record   → $CONFIG_FILE (mcp.idle)"
 
-# 2. Agents — opencode-format pipeline-planner / pipeline-reviewer / pipeline-builder.
+# 2. Agents — opencode-format idle-planner / idle-reviewer / idle-builder.
 mkdir -p "$AGENTS_DIR"
 cp "$SRC/idle-skills/.opencode/agents/"*.md "$AGENTS_DIR/"
 echo "  ✓ agents   → $AGENTS_DIR"
@@ -105,12 +105,12 @@ $BEGIN
 idle-skills is active. Work in structured phases, not freeform.
 
 - Large or non-trivial changes: drop a task with the idle skill, then run it through the
-  pipeline skill, which refines and plans it with the user. Don't freelance big changes.
-- Conceptual questions (what a thing IS or should be): use the concept skill, and
+  orchestrate skill, which refines and plans it with the user. Don't freelance big changes.
+- Conceptual questions (what a thing IS or should be): use the refine skill, and
   resolve them interactively with the user — don't settle load-bearing meaning alone.
 - Structured work uses three dedicated agents; you are the orchestrator, delegate
-  work to your team: @pipeline-planner (concept/design/architecture) plans & structures
-  details; @pipeline-builder implements & ships and thus does the heavy lifting; @pipeline-reviewer
+  work to your team: @idle-planner (concept/design/architecture) plans & structures
+  details; @idle-builder implements & ships and thus does the heavy lifting; @idle-reviewer
   critiques and reviews.
 $END
 EOF
@@ -129,7 +129,7 @@ cat <<EOF
 
 Done. Open the target project in opencode and restart it.
   • skills surface via the skill tool
-  • personas are available as @pipeline-planner, @pipeline-reviewer, @pipeline-builder
+  • personas are available as @idle-planner, @idle-reviewer, @idle-builder
   • post-edit guards and skill-load injection load from the plugin automatically
 
 To pin models, set 'model: <provider>/<id>' in the agent files under $AGENTS_DIR.

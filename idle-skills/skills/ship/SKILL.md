@@ -1,7 +1,7 @@
 ---
 name: ship
-description: "Turn completed work into a clean CI-green merge-ready PR. Verifies, commits, updates the PR, and waits for CI; does not merge. Review belongs to the pipeline skill."
-persona: pipeline-builder
+description: "Turn completed work into a clean CI-green merge-ready PR. Verifies, commits, updates the PR, and waits for CI; does not merge. Review belongs to the orchestrate skill."
+persona: idle-builder
 applies-to: [frontend, backend, application, framework, infra]
 argument-hint: "[task id or branch description]"
 user-invocable: false
@@ -28,12 +28,16 @@ from the task record is folded back into it.
    or hook-bypassed run is not a green gate. Distinguish change-caused from pre-existing failures;
    required verification must pass under project policy.
 4. If `{{vcs}}` is `none`, ship ends here — the work is committed and verified, with no PR or CI.
-   Otherwise push and open or update a non-draft PR using `{{vcs}}`. Summarize outcome, evidence, and
-   known non-blocking limitations without task ids.
-5. Wait for required CI. If CI fails, diagnose from the failing check's log, hand the failure back to
-   whoever owns it — the builder for code, the maintainer for anything the plan got wrong — and
-   re-enter ship with a changed strategy; any mutation repeats verification from step 3. After three
-   failed attempts, stop and block the task with the failing check and what you tried.
+   Otherwise push and open or update a non-draft PR using `{{vcs}}`. Summarize outcome, evidence,
+   all active decisions and assumptions from the work (each summary, details, and rejected alternatives,
+   calling out assumptions explicitly so the reviewer can challenge them before reading diffs), and known
+   non-blocking limitations, without internal task or memory ids.
+5. Wait for required CI. If CI fails, diagnose from the failing check's log, record the failure on the
+   root task when the record of work is present (a `retro` memory for CI/reconciliation friction, `outcome`
+   on the task for external PR review comments), hand the failure back to whoever owns it — the builder for
+   code, the maintainer for anything the plan got wrong — and re-enter ship with a changed strategy; any
+   mutation repeats verification from step 3. After three failed attempts, stop and block the task with the
+   failing check and what you tried.
 
 Stop at a CI-green merge-ready PR. A human decides whether to merge. Tag or release only when
 explicitly requested and configured.

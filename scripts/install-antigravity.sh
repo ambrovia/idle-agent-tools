@@ -35,7 +35,7 @@ cp "$SRC/idle-tasks/plugin.json" "$SRC/idle-tasks/mcp_config.json" "$STAGE/idle-
 cp -R "$SRC/idle-tasks/skills" "$STAGE/idle-tasks/skills"
 cp "$SRC/idle-skills/plugin.json" "$STAGE/idle-skills/"
 cp -R "$SRC/idle-skills/skills" "$STAGE/idle-skills/skills"
-cp "$SRC/idle-skills/agents-antigravity/"pipeline-*.md "$STAGE/idle-skills/agents/"
+cp "$SRC/idle-skills/agents-antigravity/"idle-*.md "$STAGE/idle-skills/agents/"
 # A skill may carry a locally installed node_modules; that is not part of the plugin.
 find "$STAGE" -type d -name node_modules -prune -exec rm -rf {} +
 
@@ -50,6 +50,11 @@ for name in idle-tasks idle-skills; do
   echo "  ✓ $name → $DEST/$name"
 done
 
+SIDECAR_DEST="$HOME/.gemini/config/sidecars/weekly-self-improve"
+mkdir -p "$SIDECAR_DEST"
+cp "$SRC/idle-skills/sidecars/weekly-self-improve/sidecar.json" "$SIDECAR_DEST/sidecar.json"
+echo "  ✓ weekly-self-improve → $SIDECAR_DEST/sidecar.json"
+
 echo ""
 echo "Restart Antigravity. Skills surface as idle-skills:<name> and idle-tasks:idle;"
-echo "the record of work is the MCP server \"idle\"."
+echo "the record of work is the MCP server \"idle\", and \"Weekly Self-Improve\" is in Automations."

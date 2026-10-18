@@ -31,8 +31,11 @@ say at that level. The higher in the tree, the more it is theirs.
 
 ## How to interview
 
-**Ask in rounds.** Each round asks every open question whose prerequisites are settled — not one
-question at a time, and not a wall of everything. Number them and give each a recommended answer.
+**Ask in rounds to collect what is missing.** Each round asks every open question whose prerequisites are
+settled — not one question at a time, and not a wall of everything. Number them, name the concrete tension
+in the codebase or domain that forces each question, state what you currently assume, and give a
+recommended answer. Structuring questions this way makes it easy for the maintainer (including first-time
+users) to judge whether each question is grounded and sharp enough.
 
 **Facts are your job; decisions are theirs.** If the codebase, the docs, or the tracker can answer a
 question, go find out — dispatch a subagent to read widely and report back rather than spending the
@@ -41,11 +44,12 @@ maintainer's attention or your own context on it. Only ask what genuinely requir
 **Their taste is only what they tell you here.** When you need to know how they want something and
 this task's plan does not say, ask. Do not infer it from another task's plan, another conversation,
 or a standing rule written for a different question — an answer carried in from elsewhere is your own
-taste wearing a citation.
+taste wearing a citation. An answer to a single question is local to this task and belongs in its plan;
+record standing `taste` in project memory only when the maintainer explicitly states a general principle
+that applies across the whole repository.
 
-`{{rules.taste}}` is a short list of hard facts that hold across the whole repository — ten or twenty
-of them, not a reference work. Follow it, and expect it to answer almost nothing: nearly all of what
-you need is specific to this task and comes from this conversation.
+`{{rules.taste}}` and project memory hold hard facts that apply across the
+repository — follow them, and expect them to answer almost nothing specific to this task.
 
 **Is it worth doing at all?** Settle this before anything else, with evidence rather than a guess:
 
@@ -58,12 +62,24 @@ you need is specific to this task and comes from this conversation.
 If the beneficiary or the delta is not credible, or it duplicates live work, say so and what smallest
 decision would settle it. Do not invent the answer to keep the task alive.
 
-**Stop at confirmation.** End the interview by reflecting back what you understood and getting
-agreement. Do not treat agreement as permission to start building.
+**Question sharpness is the stopping mechanism.** When you believe you have collected enough information,
+reflect back what you understood — including any load-bearing assumptions you are making — and verify with
+the maintainer that the quality and sharpness of your questions show you have understood their intent and
+direction. When the maintainer stops you based on the quality of your questions, recognize which of the
+two signals they are giving:
+
+- **Refinement is complete** — your questions have become detailed and sharp enough that the intent and
+  boundary are settled; record the goal, plan, interview, and load-bearing assumptions and stop.
+- **The setup is wrong and refinement must be abandoned or restarted** — your questions are too shallow or
+  off-target from the start because you have not read the right code or the initial framing is wrong; stop
+  asking immediately and read deeper or reset the framing with the maintainer.
+
+Do not treat agreement on the refined plan as permission to start building.
 
 ## What to write
 
-In plain language the maintainer would recognise as their own:
+In plain language the maintainer would recognise as their own (written to the task in the record of work
+when present, or presented directly in the session when run standalone):
 
 - **goal** — what they need, who it is for, and what is true when it is done, concretely enough to tell
   later whether it happened. This is the contract every task under it is read against;
@@ -72,8 +88,10 @@ In plain language the maintainer would recognise as their own:
   should be done, wherever they gave one. `/program-design` owns `## How it works`;
 - **how it is used** — on the root: how someone outside would use the result, written now, before
   anything is built;
-- **interview** — the questions that mattered and their answers, close to their wording. Curated, not
-  a transcript: leave out what the conversation wandered through.
+- **interview** — the full Q&A progression that sharpened the understanding: the questions, the
+  recommended answers, and the maintainer's answers in their own wording, including where they redirected
+  the framing. Cold sessions read this to recover the exact state of understanding; leave out only
+  unrelated chitchat.
 
 Write acceptance criteria only where they sharpen the goal. They are signs of it, never a substitute;
 agents that work to a list miss what the list was for.

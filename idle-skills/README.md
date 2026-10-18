@@ -25,16 +25,17 @@ drop a task ──▶ interview ──▶ plan the tree ──▶ build ──�
 |---|---|
 | [`skills/`](skills/) | The 15 workflow skills (`SKILL.md`, [Agent Skills](https://agents.md/) standard) |
 | [`personas/`](personas/) | Persona source of truth; [`../scripts/generate-agents.mjs`](../scripts/generate-agents.mjs) renders every host format below |
-| [`agents/`](agents/) | Claude-format `pipeline-planner` / `pipeline-reviewer` / `pipeline-builder` (generated) |
+| [`agents/`](agents/) | Claude-format `idle-planner` / `idle-reviewer` / `idle-builder` (generated) |
 | [`agents-cursor/`](agents-cursor/), [`agents-antigravity/`](agents-antigravity/), [`.opencode/agents/`](.opencode/agents/), [`.codex/agents/`](.codex/agents/) | The same personas for Cursor, Antigravity, opencode and Codex (generated) |
 | [`hooks/`](hooks/) | Session-start + edit-streak + thrash guards, and spawn-time evidence injection (Claude, Cursor, Gemini, Copilot, Codex, opencode) |
+| [`.codex/automations/`](.codex/automations/), [`sidecars/`](sidecars/) | Weekly `/self-improve` routine definitions for Codex and Antigravity (and `/schedule` prompt in [`skills/self-improve/SKILL.md`](skills/self-improve/SKILL.md)) |
 | [`.claude-plugin/`](.claude-plugin/), [`.codex-plugin/`](.codex-plugin/), [`.cursor-plugin/`](.cursor-plugin/), [`plugin.json`](plugin.json), [`apm.yml`](apm.yml) | Plugin manifests for Claude Code, Codex, Cursor, Antigravity and APM |
 | [`.opencode/plugins/pipeline.js`](.opencode/plugins/pipeline.js) | opencode post-edit plugin |
 | [`pipeline.config.example.yml`](pipeline.config.example.yml) | Everything project-specific, in one file |
 
 ## Install
 
-Install both plugins from the marketplace at the repository root — see the [top-level README](../README.md#install). This plugin declares `idle-tasks` as a dependency; without the record of work, the skills have nothing to write to.
+Install both plugins from the marketplace at the repository root — see the [top-level README](../README.md#install). `idle-skills` works over `idle-tasks` when installed, and degrades cleanly to standalone session and repository operation when used without it.
 
 ## Configure
 
@@ -83,9 +84,9 @@ event at all.
 
 | spawned as | receives |
 |---|---|
-| `pipeline-planner` | the tree's state |
-| `pipeline-builder` | state + check results, marked as a pre-edit baseline |
-| `pipeline-reviewer` | state + check results + the diff since the work started |
+| `idle-planner` | the tree's state |
+| `idle-builder` | state + check results, marked as a pre-edit baseline |
+| `idle-reviewer` | state + check results + the diff since the work started |
 
 **This runs `checks.preSpawn` (or `verify`) as a shell command.** A hook executes directly, so it is
 not covered by the host's tool-permission prompts: whatever that line contains runs when an agent
@@ -109,7 +110,7 @@ The skills are deliberately generic — repo-specific knowledge (test layout, wh
 ```yaml
 rules:
   code: .pipeline/rules/typescript.md       # → write-code, architecture, architecture-critique, review
-  testing: .pipeline/rules/testing.md       # → write-tests, architecture, architecture-critique, review, pipeline
+  testing: .pipeline/rules/testing.md       # → write-tests, architecture, architecture-critique, review, orchestrate
   design-system: .pipeline/rules/design.md  # → design, write-code, review
   security: .pipeline/rules/security.md     # → architecture, architecture-critique, write-code, review
 ```
@@ -119,9 +120,9 @@ Rule files live under `.pipeline/rules/` so every host reads the same ones — n
 | Slot | Read by | Use it for |
 |---|---|---|
 | `code` | write-code, architecture, architecture-critique, review | language / type / style conventions |
-| `testing` | write-tests, architecture, architecture-critique, review, pipeline | what counts as a test, layout, lanes/fixtures |
+| `testing` | write-tests, architecture, architecture-critique, review, orchestrate | what counts as a test, layout, lanes/fixtures |
 | `architecture` | architecture, architecture-critique, write-code, review | architecture invariants & conventions |
-| `taste` | refine, program-design, pipeline | standing conventions for how this repo likes things done |
+| `taste` | refine, program-design, orchestrate | standing conventions for how this repo likes things done |
 | `design-system` | design, write-code, review | component budget, tokens, reuse-before-build, promotion |
 | `frontend` | design, write-code, review | client / UI conventions |
 | `visual` | design, review | visual fidelity / regression policy |
@@ -133,11 +134,11 @@ This is how one repo makes `/review` enforce its own reuse-before-build rule, or
 
 ## The skills
 
-`pipeline` · `refine` · `program-design` · `design` · `architecture` · `architecture-critique` · `write-tests` · `write-code` · `write-docs` · `review` · `retro` · `ship` · `compound` · `lore` · `setup`
+`orchestrate` · `refine` · `program-design` · `design` · `architecture` · `architecture-critique` · `write-tests` · `write-code` · `write-docs` · `review` · `retro` · `ship` · `self-improve` · `lore` · `setup`
 
 The record's own skill, `idle`, comes with [idle-tasks](../idle-tasks/).
 
-Drop a task — `idle task --title "…"`, or just tell the agent — and run it end to end with `/pipeline <id>`. After several tasks, run `/compound` to mine the retro log for recurring patterns and propose process fixes. Use `/lore` anytime to capture or surface tribal knowledge.
+Drop a task — `idle task --title "…"`, or just tell the agent — and run it end to end with `/orchestrate <id>`. After several tasks (or on a weekly schedule), run `/self-improve` to mine the retro log and project memory for recurring patterns and propose process fixes. Use `/lore` anytime to capture or surface tribal knowledge.
 
 ## License
 

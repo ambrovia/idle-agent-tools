@@ -17,37 +17,53 @@ export function tree(rows) {
   return lines.join('\n');
 }
 
+const kindTag = (m) => (m.kind && m.kind !== 'decision' ? ` [${m.kind}]` : '');
+const rejectedTag = (m) => (m.rejected?.length ? ` (rejected: ${m.rejected.join(', ')})` : '');
+const formatBriefMemory = (m) => `${m.id}${kindTag(m)}: ${m.summary}${m.details ? ` — ${firstLine(m.details)}` : ''}${rejectedTag(m)}`;
+const formatStateMemory = (m) => `${m.id}${kindTag(m)}: ${m.summary}${rejectedTag(m)} (${m.by})`;
+
 export async function brief(s, task) {
   const line = await s.lineage(task.id); // root first, the task itself last
+  const root = line[0];
   const ancestors = line.slice(0, -1);
   const planned = [...line].reverse().find((t) => t.plan);
-  const refs = [...new Set(line.flatMap((t) => t.decision_refs))];
-  const decisions = (await s.decisions(refs)).filter((d) => d.status === 'active');
+  const interviewed = [...line].reverse().find((t) => t.interview);
+  const refs = [...new Set(line.flatMap((t) => t.memory_refs))];
+  const memories = (await s.memories(refs)).filter((m) => m.status === 'active' && m.kind !== 'retro');
+  const projectMemory = (await s.projectMemories(task.project)).filter((m) => m.status === 'active' && m.kind !== 'retro').reverse();
   const needs = await s.tasks(task.needs);
   const where = Object.assign({}, ...line.map((t) => t.metadata)); // root first, so a task's own entries win
   return [
-    `# ${task.id} — ${task.title}  [${task.status}]\n`,
-    section('Goal', task.goal || '_No goal written. Ask before guessing._'),
+    // Stable project and root context first (maximises prompt-cache prefix hits across spawns and retries).
     section('What this is for', bullets(ancestors, (t) => `**${t.title}** — ${firstLine(t.goal)}`)),
-    section('Signs the goal is reached', task.acceptance_criteria),
-    section('Why it came back', task.verdict),
-    section('Checks — the system runs these when you submit', bullets(checksFor(task.project), (c) => `\`${c}\``)),
-    section('Scope', bullets(task.scope, (s) => `\`${s}\``)),
+    section('How it is used', root.consumer_scenario),
     section(`Plan${planned && planned.id !== task.id ? ` (from ${planned.id})` : ''}`, planned?.plan),
-    section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement}${d.rationale ? ` — ${firstLine(d.rationale)}` : ''}`)),
-    section('Builds on', bullets(needs, (n) => `${n.id} [${n.status}] **${n.title}** — ${firstLine(n.goal)}`)),
+    section(`Interview${interviewed && interviewed.id !== task.id ? ` (from ${interviewed.id})` : ''}`, interviewed?.interview),
+    section('Project memory', bullets(projectMemory, formatBriefMemory)),
+    section('Decisions in force', bullets(memories, formatBriefMemory)),
+    section('Checks — the system runs these when you submit', bullets(checksFor(task.project), (c) => `\`${c}\``)),
     section('Where', Object.keys(where).length ? `\`${JSON.stringify(where)}\`` : ''),
+    // Task-specific and retry-volatile context last.
+    `\n# ${task.id} — ${task.title}  [${task.status}]\n`,
+    section('Goal', task.goal || '_No goal written. Ask before guessing._'),
+    section('Signs the goal is reached', task.acceptance_criteria),
+    section('Scope', bullets(task.scope, (s) => `\`${s}\``)),
+    section('Builds on', bullets(needs, (n) => `${n.id} [${n.status}] **${n.title}** — ${firstLine(n.goal)}`)),
+    section('Why it came back', task.verdict),
     '\nThe goal is the contract; the signs and the checks only help you tell. Done means the goal is reached.\n',
-  ].join('');
+  ].join('').trimStart();
 }
 
 export async function state(s, root) {
   const rows = await s.treeRows(root.id);
-  const made = await s.decisionsInRoot(root.id); // newest first
-  const superseded = made.filter((d) => d.status === 'superseded').map((d) => d.id);
+  const made = await s.memoriesInRoot(root.id); // newest first
+  const proj = await s.projectMemories(root.project); // newest first
+  const superseded = [...made, ...proj].filter((m) => m.status === 'superseded').map((m) => m.id);
   const ready = await s.ready({ root: root.id });
   const claims = await s.liveClaims(root.id);
-  const decisions = made.filter((d) => d.status === 'active').slice(0, 10);
+  const memories = made.filter((m) => m.status === 'active' && m.kind !== 'retro').slice(0, 10);
+  const retros = made.filter((m) => m.status === 'active' && m.kind === 'retro');
+  const projectMemory = proj.filter((m) => m.status === 'active' && m.kind !== 'retro').slice(0, 20);
   const open = (t) => !['done', 'archived'].includes(t.status);
   const kids = (t) => rows.filter((c) => c.parent === t.id);
 
@@ -59,8 +75,8 @@ export async function state(s, root) {
     ...rows.filter((t) => t.status === 'verified').map((t) => `${t.id} verified, waiting for review: **${t.title}**`),
     ...rows.filter((t) => t.status === 'open' && kids(t).length && kids(t).every((c) => !open(c)))
       .map((t) => `${t.id} every child is done — is the goal reached? **${t.title}**`),
-    ...rows.filter((t) => open(t) && t.decision_refs.some((d) => superseded.includes(d)))
-      .map((t) => `${t.id} is bound by a superseded decision — re-plan: **${t.title}**`),
+    ...rows.filter((t) => open(t) && t.memory_refs.some((m) => superseded.includes(m)))
+      .map((t) => `${t.id} is bound by a superseded memory — re-plan: **${t.title}**`),
   ];
   const feedback = rows.filter((t) => open(t) && t.feedback);
   const done = rows.filter((t) => t.status === 'done').sort((a, b) => b.updated_at - a.updated_at).slice(0, 10);
@@ -74,9 +90,12 @@ export async function state(s, root) {
     section('Ready to claim', bullets(ready, (t) => `${t.id} ${t.title}`)),
     section('Live claims', bullets(claims, (c) => `${c.id} ${c.claimed_by} — ${c.scope.join(', ') || 'no scope'}`)),
     section('Recently done — contradict what is not', bullets(done, (t) => `${t.id} **${t.title}** — ${firstLine(t.goal)}`)),
-    section('Decisions in force', bullets(decisions, (d) => `${d.id}: ${d.statement} (${d.by})`)),
+    section('Project memory', bullets(projectMemory, formatStateMemory)),
+    section('Decisions in force', bullets(memories, formatStateMemory)),
     section('How it is used', root.consumer_scenario),
     section('Plan', root.plan),
     section('Interview', root.interview),
+    section('Retro', bullets(retros, formatBriefMemory)),
+    section('Outcome', root.outcome),
   ].join('');
 }

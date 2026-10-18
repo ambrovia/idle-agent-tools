@@ -1,6 +1,6 @@
 # Persona agents — one source, generated per harness
 
-Three personas (`pipeline-planner`, `pipeline-reviewer`, `pipeline-builder`) drive the pipeline's
+Three personas (`idle-planner`, `idle-reviewer`, `idle-builder`) drive the pipeline's
 producer/evaluator separation. They are authored ONCE in `../personas/<name>.md`
 (neutral frontmatter + the prompt body) and **generated** into each harness's
 dialect by `../scripts/generate-agents.mjs`. Every generated file carries a
@@ -14,7 +14,7 @@ Frontmatter is harness-neutral; the generator maps it to each tool's dialect:
 
 | Field | Meaning |
 |---|---|
-| `capability` | `high` (pipeline-planner, pipeline-reviewer) or `fast` (pipeline-builder) |
+| `capability` | `high` (idle-planner, idle-reviewer) or `fast` (idle-builder) |
 | `write` / `edit` / `bash` | tool policy (read / grep / glob are always on) |
 
 ## Generated outputs
@@ -49,14 +49,14 @@ if any generated file is stale, so the copies cannot silently drift.
   (`high` / `fast`) are not valid model ids (spawn errors). The generator enforces both.
 - **Cursor:** plugin manifest at `.cursor-plugin/plugin.json` registers skills,
   `agents-cursor/*.md` (`model: inherit`, no `tools`; `readonly: true` on
-  pipeline-reviewer), and `hooks/cursor-hooks.json` (uses `${CURSOR_PLUGIN_ROOT}`
+  idle-reviewer), and `hooks/cursor-hooks.json` (uses `${CURSOR_PLUGIN_ROOT}`
   for script paths). Install via Team Marketplace import, `scripts/install-cursor.sh`,
   or manual copy.
 - **opencode:** the loader globs `{agent,agents}`, so the plural `.opencode/agents/`
   used here loads fine (the old singular/plural silent-no-load is fixed on current versions).
 - **Codex:** project files in `.codex/agents/` load only when the project is trusted
   and registered in `.codex/config.toml`. Run `scripts/install-codex.sh <project>`
-  to install them as `pipeline-planner`, `pipeline-reviewer`, and `pipeline-builder`
+  to install them as `idle-planner`, `idle-reviewer`, and `idle-builder`
   roles. The Codex plugin manifest has no subagent-role field, so plugin installation
   alone cannot create those roles.
 

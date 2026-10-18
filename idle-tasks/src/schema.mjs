@@ -1,8 +1,8 @@
 // Schema — migrations run inside the caller's transaction; a caller that has to
 // migrate takes an advisory lock so two first-timers do not both create it.
-// Two tables — tasks and decisions — and nothing else. Caps are CHECK constraints: the database refuses an essay whoever wrote the client.
+// Two tables — tasks and memories — and nothing else. Caps are CHECK constraints: the database refuses an essay whoever wrote the client.
 
-export const CAPS = { title: 120, goal: 4000, acceptance: 2000, scenario: 2000, plan: 8000, interview: 20000, entry: 1000, log: 8000, statement: 300, rationale: 1000 };
+export const CAPS = { title: 120, goal: 4000, acceptance: 2000, scenario: 2000, plan: 8000, interview: 20000, entry: 1000, log: 8000, summary: 300, details: 1000 };
 
 const MIGRATIONS = [
   `
@@ -41,14 +41,30 @@ const MIGRATIONS = [
     project text not null,
     root text not null,
     task text not null references tasks(id),
-    statement text not null check (char_length(statement) between 1 and ${CAPS.statement}),
-    rationale text check (char_length(rationale) <= ${CAPS.rationale}),
+    statement text not null check (char_length(statement) between 1 and ${CAPS.summary}),
+    rationale text check (char_length(rationale) <= ${CAPS.details}),
     by text,
     status text not null default 'active' check (status in ('active','superseded')),
     superseded_by text references decisions(id),
     at timestamptz not null default now()
   );
   create index decisions_root on decisions(root);
+  `,
+  `
+  alter table decisions rename to memories;
+  alter table memories rename column statement to summary;
+  alter table memories rename column rationale to details;
+  alter table memories alter column root drop not null;
+  alter table memories alter column task drop not null;
+  alter table memories add column kind text not null default 'decision'
+    check (kind in ('decision', 'assumption', 'taste', 'retro'));
+  alter table memories add column rejected text[] not null default '{}';
+  alter index decisions_root rename to memories_root;
+  create index memories_project on memories(project) where root is null;
+
+  alter table tasks rename column decision_refs to memory_refs;
+  alter table tasks add column outcome text not null default ''
+    check (char_length(outcome) <= ${CAPS.log});
   `,
 ];
 
