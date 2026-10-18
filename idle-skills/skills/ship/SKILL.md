@@ -28,8 +28,10 @@ from the task record is folded back into it.
    or hook-bypassed run is not a green gate. Distinguish change-caused from pre-existing failures;
    required verification must pass under project policy.
 4. If `{{vcs}}` is `none`, ship ends here — the work is committed and verified, with no PR or CI.
-   Otherwise push and open or update a non-draft PR using `{{vcs}}`. Summarize outcome, evidence, and
-   known non-blocking limitations without task ids.
+   Otherwise push and open or update a non-draft PR using `{{vcs}}`. Summarize outcome, evidence,
+   all active decisions and assumptions from the tree (`idle list --decisions --root <root-id>` —
+   each statement and why, calling out `[assumption]` entries explicitly so the reviewer can challenge
+   them before reading diffs), and known non-blocking limitations, without internal task or decision ids.
 5. Wait for required CI. If CI fails, diagnose from the failing check's log, record the failure on the
    root task (`--retro` for CI/reconciliation friction, `--outcome` for external PR review comments),
    hand the failure back to whoever owns it — the builder for code, the maintainer for anything the plan
