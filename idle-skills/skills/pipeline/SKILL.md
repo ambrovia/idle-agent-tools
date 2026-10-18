@@ -55,16 +55,16 @@ go: deep where they dive deep, shallow where they stay shallow.
 Ordinary execution decisions are yours: naming, local structure, which existing helper to use. Stop and
 ask only when a decision would change something the maintainer has already seen or agreed — the
 boundary, the approach, a user-facing surface, a public contract — or when the plan turns out to be
-wrong about the code. Everything else that is unclear is feedback on the task or a recorded assumption
-(`decision --kind assumption`), and the work continues. When the maintainer steers a choice or states a
-preference in conversation, record it immediately as a `taste` decision.
+wrong about the code. Everything else that is unclear is feedback on the task or a recorded assumption,
+and the work continues. When the maintainer steers a choice or states a
+preference in conversation, record it immediately as a standing `taste` decision in project memory.
 
 When they reopen or contradict something, do not merely patch the symptom:
 
 1. **Name the underlying assumption that failed** — what the planner or builder took for granted that
    produced the wrong result.
-2. **Supersede that assumption** in the record (`decision --id … --superseded-by …`) so every open task
-   bound by it is flagged, and check whether the `plan` or sibling tasks relied on the same false premise.
+2. **Supersede that assumption** in the record so every open task bound by it is flagged, and check
+   whether the `plan` or sibling tasks relied on the same false premise.
 3. Put the reason on the task and decide with them what new work it means.
 
 One global dial, from `pipeline.config.yml`: **`engineering.tier`** — how mature the product is, and
@@ -76,7 +76,7 @@ and architecture rounds run at all. Exposure decides scrutiny — how many revie
 Three rules:
 
 1. **Decide it yourself.** Make design decisions rather than delegating them, and record them. Record
-   unverified premises as `decision --kind assumption`. No two tasks may decide the same question.
+   unverified premises as assumptions. No two tasks may decide the same question.
 2. **One task unless proven otherwise.** Before splitting, ask whether a single session would plausibly
    do the whole thing. If yes, create one task.
 3. **Re-read before you plan.** The record, not the transcript.
@@ -183,10 +183,10 @@ exists, and never respond by discarding work products wholesale.
 When the root's children are done and its goal and `consumer_scenario` are shown reached, run `/ship`,
 which commits, verifies from a clean tree, opens or updates the PR, and waits for CI. Any later mutation
 re-enters ship. Stop at a CI-green merge-ready PR; a human merges. Then run `/retro`, which writes its
-observations to `--retro` on the root task in the record of work — never to the git working tree, so it
+observations to `retro` on the root task in the record of work — never to the git working tree, so it
 cannot dirty the shipped branch or race with CI. Mark the root done then, and archive it once it is
 merged or abandoned — the repository, not the record, is the truth about what was built. Post-merge
-feedback, PR review notes, user feedback, or business KPIs can be appended to the root via `--outcome` at
+feedback, PR review notes, user feedback, or business KPIs can be appended to the root's `outcome` at
 any time.
 
 Always return a concise outcome summary: what completed, was skipped or is blocked, delivered behavior,

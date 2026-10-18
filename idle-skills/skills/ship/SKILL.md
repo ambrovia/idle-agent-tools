@@ -29,14 +29,15 @@ from the task record is folded back into it.
    required verification must pass under project policy.
 4. If `{{vcs}}` is `none`, ship ends here — the work is committed and verified, with no PR or CI.
    Otherwise push and open or update a non-draft PR using `{{vcs}}`. Summarize outcome, evidence,
-   all active decisions and assumptions from the tree (`idle list --decisions --root <root-id>` —
-   each statement and why, calling out `[assumption]` entries explicitly so the reviewer can challenge
-   them before reading diffs), and known non-blocking limitations, without internal task or decision ids.
+   all active decisions and assumptions from the work (each statement and why, calling out assumptions
+   explicitly so the reviewer can challenge them before reading diffs), and known non-blocking
+   limitations, without internal task or decision ids.
 5. Wait for required CI. If CI fails, diagnose from the failing check's log, record the failure on the
-   root task (`--retro` for CI/reconciliation friction, `--outcome` for external PR review comments),
-   hand the failure back to whoever owns it — the builder for code, the maintainer for anything the plan
-   got wrong — and re-enter ship with a changed strategy; any mutation repeats verification from step 3.
-   After three failed attempts, stop and block the task with the failing check and what you tried.
+   root task when the record of work is present (`retro` for CI/reconciliation friction, `outcome` for
+   external PR review comments), hand the failure back to whoever owns it — the builder for code, the
+   maintainer for anything the plan got wrong — and re-enter ship with a changed strategy; any mutation
+   repeats verification from step 3. After three failed attempts, stop and block the task with the
+   failing check and what you tried.
 
 Stop at a CI-green merge-ready PR. A human decides whether to merge. Tag or release only when
 explicitly requested and configured.

@@ -10,12 +10,14 @@ TARGET_ROOT="$(cd "$TARGET_ROOT" && pwd)"
 
 CODEX_DIR="$TARGET_ROOT/.codex"
 AGENTS_DIR="$CODEX_DIR/agents"
+AUTOMATIONS_DIR="$CODEX_DIR/automations"
 CONFIG_FILE="$CODEX_DIR/config.toml"
-mkdir -p "$AGENTS_DIR"
+mkdir -p "$AGENTS_DIR" "$AUTOMATIONS_DIR"
 
 for name in pipeline-planner pipeline-reviewer pipeline-builder; do
   cp "$PLUGIN_ROOT/.codex/agents/$name.toml" "$AGENTS_DIR/$name.toml"
 done
+cp "$PLUGIN_ROOT/.codex/automations/weekly-compound.toml" "$AUTOMATIONS_DIR/weekly-compound.toml"
 
 touch "$CONFIG_FILE"
 

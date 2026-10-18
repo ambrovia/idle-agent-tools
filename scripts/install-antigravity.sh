@@ -50,6 +50,11 @@ for name in idle-tasks idle-skills; do
   echo "  ✓ $name → $DEST/$name"
 done
 
+SIDECAR_DEST="$HOME/.gemini/config/sidecars/weekly-compound"
+mkdir -p "$SIDECAR_DEST"
+cp "$SRC/idle-skills/sidecars/weekly-compound/sidecar.json" "$SIDECAR_DEST/sidecar.json"
+echo "  ✓ weekly-compound → $SIDECAR_DEST/sidecar.json"
+
 echo ""
 echo "Restart Antigravity. Skills surface as idle-skills:<name> and idle-tasks:idle;"
-echo "the record of work is the MCP server \"idle\"."
+echo "the record of work is the MCP server \"idle\", and \"Weekly Compound\" is in Automations."

@@ -48,10 +48,11 @@ maintainer's attention or your own context on it. Only ask what genuinely requir
 this task's plan does not say, ask. Do not infer it from another task's plan, another conversation,
 or a standing rule written for a different question — an answer carried in from elsewhere is your own
 taste wearing a citation. When the maintainer overrides a recommendation or states a standing preference
-during the interview, record it immediately as a `taste` decision in the record of work so later tasks
-and `/compound` do not lose it when the task succeeds without friction.
+during the interview, record it immediately as a standing `taste` decision in project memory (when the
+record of work is present) so later tasks and `/compound` do not lose it when the task succeeds without
+friction.
 
-`{{rules.taste}}` and project memory in the record of work hold hard facts that apply across the
+`{{rules.taste}}` and project memory hold hard facts that apply across the
 repository — follow them, and expect them to answer almost nothing specific to this task.
 
 **Is it worth doing at all?** Settle this before anything else, with evidence rather than a guess:
@@ -67,11 +68,13 @@ decision would settle it. Do not invent the answer to keep the task alive.
 
 **Stop at confirmation.** End the interview by reflecting back what you understood — including any
 load-bearing assumptions you are making — and getting agreement. Record those load-bearing assumptions
-with `decision --kind assumption`. Do not treat agreement as permission to start building.
+in the record of work when present (or in the plan when run standalone). Do not treat agreement as
+permission to start building.
 
 ## What to write
 
-In plain language the maintainer would recognise as their own:
+In plain language the maintainer would recognise as their own (written to the task in the record of work
+when present, or presented directly in the session when run standalone):
 
 - **goal** — what they need, who it is for, and what is true when it is done, concretely enough to tell
   later whether it happened. This is the contract every task under it is read against;

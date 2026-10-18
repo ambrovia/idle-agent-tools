@@ -45,15 +45,18 @@ them — fix that and try again rather than accepting a bad answer.
 unanswered for this task, ask. Never import it from another task or another conversation.
 `{{rules.taste}}` and project memory hold repository-wide facts; assume the answer you need is not in
 there. When the maintainer redirects a recommendation or states a preference for how things are built,
-record it immediately as a `taste` decision in the record of work.
+record it immediately as a standing `taste` decision in project memory (when the record of work is
+present).
 
 **Stop at confirmation.** Reflect back how you understood it — including any load-bearing assumptions
-you are relying on — and get agreement. Record load-bearing assumptions with `decision --kind assumption`.
-Do not treat that agreement as permission to start building.
+you are relying on — and get agreement. Record load-bearing assumptions in the record of work when
+present (or in the plan when run standalone). Do not treat that agreement as permission to start
+building.
 
 ## What to write
 
-Into the task's **plan**, under `## How it works`, in plain language. Write only that half; `/refine`
+Into the **plan** (on the task in the record of work when present, or directly in the session when run
+standalone), under `## How it works`, in plain language. Write only that half; `/refine`
 owns `## What we need`. The whole plan is budgeted at 50–100 lines. Explain the path through the
 program, not everything true about it. Append the full Q&A progression that settled the approach to the
 **interview** so cold sessions recover the exact reasoning.

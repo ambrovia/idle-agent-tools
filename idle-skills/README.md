@@ -28,13 +28,14 @@ drop a task ──▶ interview ──▶ plan the tree ──▶ build ──�
 | [`agents/`](agents/) | Claude-format `pipeline-planner` / `pipeline-reviewer` / `pipeline-builder` (generated) |
 | [`agents-cursor/`](agents-cursor/), [`agents-antigravity/`](agents-antigravity/), [`.opencode/agents/`](.opencode/agents/), [`.codex/agents/`](.codex/agents/) | The same personas for Cursor, Antigravity, opencode and Codex (generated) |
 | [`hooks/`](hooks/) | Session-start + edit-streak + thrash guards, and spawn-time evidence injection (Claude, Cursor, Gemini, Copilot, Codex, opencode) |
+| [`.codex/automations/`](.codex/automations/), [`sidecars/`](sidecars/) | Weekly `/compound` routine definitions for Codex and Antigravity (and `/schedule` prompt in [`skills/compound/SKILL.md`](skills/compound/SKILL.md)) |
 | [`.claude-plugin/`](.claude-plugin/), [`.codex-plugin/`](.codex-plugin/), [`.cursor-plugin/`](.cursor-plugin/), [`plugin.json`](plugin.json), [`apm.yml`](apm.yml) | Plugin manifests for Claude Code, Codex, Cursor, Antigravity and APM |
 | [`.opencode/plugins/pipeline.js`](.opencode/plugins/pipeline.js) | opencode post-edit plugin |
 | [`pipeline.config.example.yml`](pipeline.config.example.yml) | Everything project-specific, in one file |
 
 ## Install
 
-Install both plugins from the marketplace at the repository root — see the [top-level README](../README.md#install). This plugin declares `idle-tasks` as a dependency; without the record of work, the skills have nothing to write to.
+Install both plugins from the marketplace at the repository root — see the [top-level README](../README.md#install). `idle-skills` works over `idle-tasks` when installed, and degrades cleanly to standalone session and repository operation when used without it.
 
 ## Configure
 

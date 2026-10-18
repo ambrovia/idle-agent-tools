@@ -56,7 +56,7 @@ Then:
   domain that forces each question, state what you currently assume, and offer an evidence-based
   recommendation.
 - Cite `file:line` for load-bearing claims about what already exists in the repository; mark unchecked
-  claims `UNVERIFIED` and record load-bearing unverified premises with `decision --kind assumption`. Do
+  claims `UNVERIFIED` and record load-bearing unverified premises as assumptions. Do
   not plan from memory of the codebase.
 - Use current official sources for load-bearing external claims. Cite the URL; mark inaccessible claims
   `UNVERIFIED` rather than guessing.

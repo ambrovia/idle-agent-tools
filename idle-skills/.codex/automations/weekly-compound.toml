@@ -1,0 +1,9 @@
+# Weekly compound routine for Codex — distills recurring taste, assumption, retro, and outcome patterns across projects.
+[automation]
+name = "Weekly Compound"
+schedule = "0 9 * * 1"
+
+[prompt]
+content = """
+Run the /compound weekly routine across all projects with new completed work, retros, outcomes, or decisions since the last compound pass (or for this repository when running standalone). Record 1-occurrence candidates in project memory, and for any confirmed pattern (2+ occurrences for taste/domain conventions, 3+ for process/skill changes), drop a proposed root task or report the evidence-backed proposal for human approval. Never edit rules or skills unattended.
+"""

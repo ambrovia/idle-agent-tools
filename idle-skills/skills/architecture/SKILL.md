@@ -35,7 +35,7 @@ change a costly or cross-cutting decision.
 Run a focused feasibility probe only when a load-bearing assumption is new, unknown, or contradicted by
 available evidence. When the premise depends on deployed or live state (bucket contents, running jobs,
 live rows, remote config, external behavior), probe that live surface — a repo read is not enough; if
-unreachable, mark it `UNVERIFIED` and record the unverified premise with `decision --kind assumption`.
+unreachable, mark it `UNVERIFIED` and record the unverified premise as an **assumption**.
 Report the reproducible question, method, result, and verdict; record what a confirmed probe settles as a
 decision. A probe reduces uncertainty and does not become a deliverable.
 

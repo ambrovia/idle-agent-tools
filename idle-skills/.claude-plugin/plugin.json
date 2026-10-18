@@ -13,8 +13,5 @@
     "./agents/pipeline-planner.md",
     "./agents/pipeline-reviewer.md",
     "./agents/pipeline-builder.md"
-  ],
-  "dependencies": [
-    "idle-tasks"
   ]
 }
