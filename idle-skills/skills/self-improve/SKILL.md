@@ -12,9 +12,9 @@ user-invocable: true
 Run either **manually on demand** (when the maintainer invokes `/self-improve` in a session) or **on the
 weekly schedule** (`## Weekly routine`), after several tasks — never inside an active build loop.
 
-Read project memory and all decisions across root tasks in the record of work when present, then read
-this project's root tasks — including their `retro`, `outcome` (PR review comments, user feedback,
-business KPIs, runtime signals), `interview` Q&A, and superseded assumptions. When
+Read project memories (`decision`, `assumption`, `taste`, and `retro` entries) in the record of work
+when present, then read this project's root tasks — including their `outcome` (PR review comments, user
+feedback, business KPIs, runtime signals) and `interview` Q&A. When
 `.pipeline/compound-candidates.md` exists, or when running standalone without a task record, also read
 `.pipeline/compound-candidates.md`, recent VCS history, merged pull requests and review comments, and
 session trajectories.
@@ -22,12 +22,13 @@ session trajectories.
 Mine four sources of recurring evidence across completed work, including patterns that occurred inside
 sessions without causing a formal retro failure:
 
-1. **Repeated steering in `interview` Q&As and standing `taste` entries** — where the maintainer
+1. **Repeated steering in `interview` Q&As and standing `taste` memories** — where the maintainer
    repeatedly redirected recommendations in the same direction across separate tasks (distinguishing
    recurring general taste from a localized answer to a single question);
-2. **Repeated local `decisions` and invalidated `assumptions`** — where builders or planners across
-   separate tasks had to make the same unguided choice or tripped over the same false premise;
-3. **`retro` observations** (`success`, `friction`, `divergence`, `cost`);
+2. **Repeated local `decision` memories and invalidated `assumption` memories** — where builders or
+   planners across separate tasks had to make the same unguided choice or tripped over the same false
+   premise;
+3. **`retro` memories** (`success`, `friction`, `divergence`, `cost`);
 4. **Outer `outcome` signals** — human PR review comments, user feedback, business KPIs, or post-ship
    regressions.
 

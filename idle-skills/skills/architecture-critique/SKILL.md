@@ -28,7 +28,7 @@ Check that the proposal:
 - addresses plausible changed failure, data, and migration risks at the stated tier, and reasons about
   security from the surfaces the change actually reaches rather than deferring to an absent rule;
 - uses focused feasibility evidence for genuinely unknown load-bearing assumptions, including a live
-  probe (or `UNVERIFIED` recorded as an `assumption` decision) when a premise depends on deployed or
+  probe (or `UNVERIFIED` recorded as an `assumption` in memory) when a premise depends on deployed or
   runtime state, and exposes any unstated assumption that does not hold in the code;
 - provides reliable, proportionate verification, including named end-to-end evidence that would show the
   change working through its real consuming path;

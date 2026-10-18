@@ -11,12 +11,12 @@
   "keywords": [
     "skills",
     "agents",
-    "pipeline",
+    "orchestrate",
     "multi-agent",
     "tdd",
     "review",
     "retro",
-    "compound"
+    "self-improve"
   ],
   "skills": "./skills",
   "agents": "./agents-cursor",
