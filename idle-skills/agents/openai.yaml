@@ -1,4 +1,4 @@
 interface:
-  display_name: "Pipeline"
-  short_description: "Run work through pipeline-planner, pipeline-reviewer, and pipeline-builder personas"
-  default_prompt: "Run this work package through the pipeline."
+  display_name: "Idle Skills"
+  short_description: "Run work through idle-planner, idle-reviewer, and idle-builder personas"
+  default_prompt: "Run this work package through the orchestrator."

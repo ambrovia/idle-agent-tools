@@ -152,14 +152,14 @@ test('opencode format prints plain text', () => {
 
 test('codex gets plain text, never JSON-leading, within a tighter budget, and always exits 0', () => {
   const { root } = fixture({ verify: 'seq 1 400' });
-  const result = run(root, 'codex', spawnPayload('pipeline-reviewer'));
+  const result = run(root, 'codex', spawnPayload('idle-reviewer'));
   assert.equal(result.status, 0);
   // Codex discards stdout that looks like JSON but does not match its schema,
   // and discards everything on a non-zero exit.
   assert.ok(!result.stdout.trimStart().startsWith('{'));
   assert.ok(!result.stdout.trimStart().startsWith('['));
-  assert.match(result.stdout, /agent: pipeline-reviewer, task: T-/);
-  const claude = claudeContext(run(root, 'claude', spawnPayload('pipeline-reviewer')));
+  assert.match(result.stdout, /agent: idle-reviewer, task: T-/);
+  const claude = claudeContext(run(root, 'claude', spawnPayload('idle-reviewer')));
   assert.ok(result.stdout.split('\n').length < claude.split('\n').length);
 });
 
@@ -179,18 +179,18 @@ test('malformed payload never breaks the load', () => {
 
 test('SubagentStart injects into a spawned reviewer, with checks and the diff, and names its event', () => {
   const { root, since } = fixture();
-  const result = run(root, 'claude', spawnPayload('pipeline-reviewer'));
+  const result = run(root, 'claude', spawnPayload('idle-reviewer'));
   assert.equal(result.status, 0);
   assert.equal(JSON.parse(result.stdout).hookSpecificOutput.hookEventName, 'SubagentStart');
   const context = claudeContext(result);
-  assert.match(context, /agent: pipeline-reviewer, task: T-/);
+  assert.match(context, /agent: idle-reviewer, task: T-/);
   assert.match(context, /CHECKS-GREEN/);
   assert.match(context, new RegExp(`## diff since ${since.slice(0, 7)}|## diff since ${since}`));
 });
 
 test('a builder gets checks but not the diff it is about to change', () => {
   const { root } = fixture();
-  const context = claudeContext(run(root, 'claude', spawnPayload('pipeline-builder')));
+  const context = claudeContext(run(root, 'claude', spawnPayload('idle-builder')));
   assert.match(context, /predate|baseline/i);
   assert.doesNotMatch(context, /## diff since/);
 });
@@ -214,7 +214,7 @@ test('tracked @lore annotations and active child worktree since are injected', (
     '--meta', JSON.stringify({ since: childSince }));
   idle(root, 'task', '--id', child.id, '--status', 'claimed', '--by', 'builder');
 
-  const context = claudeContext(run(root, 'claude', spawnPayload('pipeline-reviewer')));
+  const context = claudeContext(run(root, 'claude', spawnPayload('idle-reviewer')));
   assert.match(context, /## lore[\s\S]*@lore: PGlite — lock required before opening dir/);
   assert.match(context, new RegExp(`## diff since ${childSince.slice(0, 7)}|## diff since ${childSince}`));
   assert.match(context, /\+export const x = 2;/);

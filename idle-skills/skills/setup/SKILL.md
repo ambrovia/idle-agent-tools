@@ -19,9 +19,9 @@ The record of work needs no setup in the repository: it lives in the user's home
 `idle-tasks` is present, offer to set, in `~/.idle/config.json`: this project's `checks` to `{{verify}}` —
 keyed by the label `idle doctor` prints, so the system verifies every submitted task itself;
 `"review": true`, so a verified task waits for a reviewer who did not do the work; and a shared database
-only when the maintainer brings one. Also offer to schedule the weekly `/compound` routine in the
+only when the maintainer brings one. Also offer to schedule the weekly `/self-improve` routine in the
 current harness (Claude Code `/schedule`, Codex `.codex/automations/`, Antigravity `/automation` sidecar)
-using the `## Weekly routine` prompt in `/compound` so recurring taste and friction patterns are
+using the `## Weekly routine` prompt in `/self-improve` so recurring taste and friction patterns are
 distilled weekly across all projects by default.
 
 Write approved rule files to `.pipeline/rules/<slot>.md` and point the slot at that path. Rule files are maintainer-authored and committed; a

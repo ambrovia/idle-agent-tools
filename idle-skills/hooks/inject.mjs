@@ -56,9 +56,9 @@ const DIGEST_SKILLS = new Set([
 
 // SubagentStart: what each role needs waiting for it when it wakes up.
 const AGENT_EXTRA = {
-  'pipeline-reviewer': { checks: true, diff: true },
-  'pipeline-builder': { checks: true, checksNote: 'baseline, ran before this agent started' },
-  'pipeline-planner': {},
+  'idle-reviewer': { checks: true, diff: true },
+  'idle-builder': { checks: true, checksNote: 'baseline, ran before this agent started' },
+  'idle-planner': {},
   // Some hosts fire the spawn event without naming the role. Everything an agent
   // gets here is useful whatever it turns out to be: state, plus checks it would
   // otherwise re-run. The diff is reviewer-specific and stays out.
@@ -130,7 +130,7 @@ function resolveTarget(format) {
   return name ? { kind: 'skill', name } : null;
 }
 
-// Hosts qualify plugin-provided names — "pipeline:review", "pipeline:pipeline-reviewer".
+// Hosts qualify plugin-provided names — "idle-skills:review", "idle-skills:idle-reviewer".
 // The routing tables key on the bare name.
 function normalizeName(raw) {
   return raw.replace(/^\//, '').split(/\s/)[0].toLowerCase().replace(/^[a-z0-9_-]+:/, '');
@@ -244,14 +244,15 @@ function findLore(root) {
 function findSince(root, activeId) {
   try {
     const shown = JSON.parse(idle(root, 'show', activeId) ?? '{}');
-    const nodes = JSON.parse(idle(root, 'list', '--root', activeId) ?? '[]');
-    const flat = (list) => (Array.isArray(list) ? list.flatMap((n) => [n, ...flat(n.children ?? [])]) : []);
-    const candidates = [
-      ...(shown.children ?? []),
-      ...flat(nodes).filter((n) => n.id !== activeId),
-    ].filter((c, i, a) => ['claimed', 'submitted', 'verified'].includes(c.status) && a.findIndex((x) => x.id === c.id) === i);
-    for (const child of candidates) {
-      const childTask = JSON.parse(idle(root, 'show', child.id) ?? '{}').task;
+    const treeOut = idle(root, 'list', '--root', activeId) ?? '';
+    const treeIds = [...treeOut.matchAll(/^\s*(\S+)\s+\[(claimed|submitted|verified)\b/gm)]
+      .map((m) => m[1])
+      .filter((id) => id !== activeId);
+    const childIds = (shown.children ?? [])
+      .filter((c) => ['claimed', 'submitted', 'verified'].includes(c.status))
+      .map((c) => c.id);
+    for (const id of new Set([...childIds, ...treeIds])) {
+      const childTask = JSON.parse(idle(root, 'show', id) ?? '{}').task;
       if (childTask?.metadata?.since) return childTask.metadata.since;
     }
     return shown.task?.metadata?.since ?? null;

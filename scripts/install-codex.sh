@@ -14,10 +14,10 @@ AUTOMATIONS_DIR="$CODEX_DIR/automations"
 CONFIG_FILE="$CODEX_DIR/config.toml"
 mkdir -p "$AGENTS_DIR" "$AUTOMATIONS_DIR"
 
-for name in pipeline-planner pipeline-reviewer pipeline-builder; do
+for name in idle-planner idle-reviewer idle-builder; do
   cp "$PLUGIN_ROOT/.codex/agents/$name.toml" "$AGENTS_DIR/$name.toml"
 done
-cp "$PLUGIN_ROOT/.codex/automations/weekly-compound.toml" "$AUTOMATIONS_DIR/weekly-compound.toml"
+cp "$PLUGIN_ROOT/.codex/automations/weekly-self-improve.toml" "$AUTOMATIONS_DIR/weekly-self-improve.toml"
 
 touch "$CONFIG_FILE"
 
@@ -25,17 +25,17 @@ START_MARKER="# BEGIN agent-skills-pipeline codex agents"
 END_MARKER="# END agent-skills-pipeline codex agents"
 BLOCK="$(cat <<'EOF'
 # BEGIN agent-skills-pipeline codex agents
-[agents.pipeline-planner]
-description = "Pipeline planning persona for concept, design, and architecture planning."
-config_file = "./agents/pipeline-planner.toml"
+[agents.idle-planner]
+description = "Idle planning persona for concept, design, and architecture planning."
+config_file = "./agents/idle-planner.toml"
 
-[agents.pipeline-reviewer]
-description = "Pipeline review persona for critiques and read-only implementation review."
-config_file = "./agents/pipeline-reviewer.toml"
+[agents.idle-reviewer]
+description = "Idle review persona for critiques and read-only implementation review."
+config_file = "./agents/idle-reviewer.toml"
 
-[agents.pipeline-builder]
-description = "Pipeline build persona for tests, implementation, fixes, and shipping."
-config_file = "./agents/pipeline-builder.toml"
+[agents.idle-builder]
+description = "Idle build persona for tests, implementation, fixes, and shipping."
+config_file = "./agents/idle-builder.toml"
 # END agent-skills-pipeline codex agents
 EOF
 )"

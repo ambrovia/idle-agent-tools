@@ -10,8 +10,8 @@
   "license": "Apache-2.0",
   "skills": "./skills",
   "agents": [
-    "./agents/pipeline-planner.md",
-    "./agents/pipeline-reviewer.md",
-    "./agents/pipeline-builder.md"
+    "./agents/idle-planner.md",
+    "./agents/idle-reviewer.md",
+    "./agents/idle-builder.md"
   ]
 }

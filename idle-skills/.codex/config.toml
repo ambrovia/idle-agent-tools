@@ -1,13 +1,13 @@
-# Repo-scoped Codex registration for the pipeline persona agents.
+# Repo-scoped Codex registration for the idle-skills persona agents.
 # Codex plugins expose skills/hooks, but subagent roles still come from config.toml.
-[agents.pipeline-planner]
-description = "Pipeline planning persona for concept, design, and architecture planning."
-config_file = "./agents/pipeline-planner.toml"
+[agents.idle-planner]
+description = "Idle planning persona for concept, design, and architecture planning."
+config_file = "./agents/idle-planner.toml"
 
-[agents.pipeline-reviewer]
-description = "Pipeline review persona for critiques and read-only implementation review."
-config_file = "./agents/pipeline-reviewer.toml"
+[agents.idle-reviewer]
+description = "Idle review persona for critiques and read-only implementation review."
+config_file = "./agents/idle-reviewer.toml"
 
-[agents.pipeline-builder]
-description = "Pipeline build persona for tests, implementation, fixes, and shipping."
-config_file = "./agents/pipeline-builder.toml"
+[agents.idle-builder]
+description = "Idle build persona for tests, implementation, fixes, and shipping."
+config_file = "./agents/idle-builder.toml"

@@ -1,7 +1,7 @@
 ---
 name: write-code
 description: "Implement a claimed task with the smallest clear solution that reaches its goal. Use after the plan is agreed and the task is yours."
-persona: pipeline-builder
+persona: idle-builder
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---

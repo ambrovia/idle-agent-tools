@@ -31,14 +31,11 @@ say at that level. The higher in the tree, the more it is theirs.
 
 ## How to interview
 
-**Your questions are how the maintainer judges whether you understand.** Generic or checklist questions
-show you have not read enough yet; sharp questions that expose a concrete tension between the request
-and the existing codebase or domain show you have grasped the boundary. Before asking a round, read
-enough code to name the specific tension that forces each question and state what you currently assume.
-If the maintainer says your questions are still too vague, stop asking and read deeper first.
-
-**Ask in rounds.** Each round asks every open question whose prerequisites are settled — not one
-question at a time, and not a wall of everything. Number them and give each a recommended answer.
+**Ask in rounds to collect what is missing.** Each round asks every open question whose prerequisites are
+settled — not one question at a time, and not a wall of everything. Number them, name the concrete tension
+in the codebase or domain that forces each question, state what you currently assume, and give a
+recommended answer. Structuring questions this way makes it easy for the maintainer (including first-time
+users) to judge whether each question is grounded and sharp enough.
 
 **Facts are your job; decisions are theirs.** If the codebase, the docs, or the tracker can answer a
 question, go find out — dispatch a subagent to read widely and report back rather than spending the
@@ -47,10 +44,9 @@ maintainer's attention or your own context on it. Only ask what genuinely requir
 **Their taste is only what they tell you here.** When you need to know how they want something and
 this task's plan does not say, ask. Do not infer it from another task's plan, another conversation,
 or a standing rule written for a different question — an answer carried in from elsewhere is your own
-taste wearing a citation. When the maintainer overrides a recommendation or states a standing preference
-during the interview, record it immediately as a standing `taste` decision in project memory (when the
-record of work is present) so later tasks and `/compound` do not lose it when the task succeeds without
-friction.
+taste wearing a citation. An answer to a single question is local to this task and belongs in its plan;
+record standing `taste` in project memory only when the maintainer explicitly states a general principle
+that applies across the whole repository.
 
 `{{rules.taste}}` and project memory hold hard facts that apply across the
 repository — follow them, and expect them to answer almost nothing specific to this task.
@@ -66,10 +62,19 @@ repository — follow them, and expect them to answer almost nothing specific to
 If the beneficiary or the delta is not credible, or it duplicates live work, say so and what smallest
 decision would settle it. Do not invent the answer to keep the task alive.
 
-**Stop at confirmation.** End the interview by reflecting back what you understood — including any
-load-bearing assumptions you are making — and getting agreement. Record those load-bearing assumptions
-in the record of work when present (or in the plan when run standalone). Do not treat agreement as
-permission to start building.
+**Question sharpness is the stopping mechanism.** When you believe you have collected enough information,
+reflect back what you understood — including any load-bearing assumptions you are making — and verify with
+the maintainer that the quality and sharpness of your questions show you have understood their intent and
+direction. When the maintainer stops you based on the quality of your questions, recognize which of the
+two signals they are giving:
+
+- **Refinement is complete** — your questions have become detailed and sharp enough that the intent and
+  boundary are settled; record the goal, plan, interview, and load-bearing assumptions and stop.
+- **The setup is wrong and refinement must be abandoned or restarted** — your questions are too shallow or
+  off-target from the start because you have not read the right code or the initial framing is wrong; stop
+  asking immediately and read deeper or reset the framing with the maintainer.
+
+Do not treat agreement on the refined plan as permission to start building.
 
 ## What to write
 

@@ -34,7 +34,7 @@ proportionate is only visible in aggregate.
 Read project memory in the record of work (when present) and `.pipeline/compound-candidates.md` (when
 present) before writing a new free-text observation, and reuse the matching candidate's identifier when
 the same behaviour recurs; write free text only for friction with no matching entry. Read them, never
-mutate candidate state here — `/compound` owns that.
+mutate candidate state here — `/self-improve` owns that.
 
 Observe only. Do not diagnose beyond evidence, fix code or prompts, assign follow-up work, inflate one
 event into a pattern, or duplicate an existing observation without new evidence.

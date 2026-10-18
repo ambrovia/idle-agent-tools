@@ -1,0 +1,13 @@
+{
+  "builtin": "schedule",
+  "args": [
+    "CRON_TZ=Europe/Zurich 0 9 * * 1",
+    "agentapi",
+    "new-conversation",
+    "--",
+    "Run the /self-improve weekly routine across all projects with new completed work, retros, outcomes, or decisions since the last /self-improve pass (or for the current repository when running standalone). Record 1-occurrence candidates in project memory, and for any confirmed pattern (2+ independent occurrences for general taste/domain conventions, 3+ for process/skill changes), drop a proposed root task or report the evidence-backed proposal for human approval. Never edit rules or skills unattended."
+  ],
+  "restart_policy": "always",
+  "display_name": "Weekly Self-Improve",
+  "description": "Every Monday at 9:00 AM, runs /self-improve across active projects to distill recurring taste, assumption, retro, and outcome patterns into proposed rules or lore for human approval."
+}

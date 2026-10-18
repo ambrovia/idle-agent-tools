@@ -29,10 +29,11 @@ A task's `plan` is the condensed, worker-facing plan; its `interview` is the Q&A
 Both sit on the root once it has been refined, and on any deeper task that needed its own.
 
 A **decision** is one line anyone may record when they had to choose, or when they relied on an
-unverified premise (`--kind assumption`), or when the human steered how things are done (`--kind taste`).
-With `--task`, it binds the task it was made on and any task named with it. Without `--task`, it is
-standing **project memory** that every task in the repository sees. Decisions and assumptions are
-searched before they are recorded, and superseded rather than edited.
+unverified premise (`--kind assumption`), or when the human stated a standing repository-wide preference
+(`--kind taste`). With `--task`, it binds the task it was made on and any task named with it. Without
+`--task`, it is standing **project memory** that every task in the repository sees (use for general
+project-wide facts and preferences, never for a choice localized to a single question). Decisions and
+assumptions are searched before they are recorded, and superseded rather than edited.
 
 `feedback` on a task is for whoever plans the tree: the goal is wrong, the approach will not work, a
 decision conflicts, what you learned by doing. `verdict` is why a task came back: a failed check,

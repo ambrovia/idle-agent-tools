@@ -1,7 +1,7 @@
 ---
 name: review
 description: "Read-only review of implemented work against its task's goal or an explicit changed-file scope. Judges whether the goal is reached, applicable constraints/rules, regressions, and plausible changed risks. Produces operational findings and a verdict; never edits code."
-persona: pipeline-reviewer
+persona: idle-reviewer
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---

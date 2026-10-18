@@ -1,7 +1,7 @@
 ---
 name: ship
-description: "Turn completed work into a clean CI-green merge-ready PR. Verifies, commits, updates the PR, and waits for CI; does not merge. Review belongs to the pipeline skill."
-persona: pipeline-builder
+description: "Turn completed work into a clean CI-green merge-ready PR. Verifies, commits, updates the PR, and waits for CI; does not merge. Review belongs to the orchestrate skill."
+persona: idle-builder
 applies-to: [frontend, backend, application, framework, infra]
 argument-hint: "[task id or branch description]"
 user-invocable: false

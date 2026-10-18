@@ -42,7 +42,10 @@ async function append(s, task, field, body, by) {
   while (body.startsWith(`${by}:`) || body.startsWith(`- ${by}:`)) body = body.slice(body.indexOf(':') + 1).trimStart();
   if (!body) refuse('nothing to append');
   if (body.length > CAPS.entry) refuse(`too long: ${body.length} characters, the cap is ${CAPS.entry}`);
-  await s.append(task, field, `- ${by}: ${body}\n`);
+  const line = `- ${by}: ${body}\n`;
+  const row = await load(s, task);
+  if ((row[field]?.length ?? 0) + line.length > CAPS.log) refuse(`${field} too long: exceeds ${CAPS.log} characters`);
+  await s.append(task, field, line);
 }
 
 const trim = (s) => s.replace(/(?:\/\*\*?|\/)+$/, '');

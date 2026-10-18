@@ -1,7 +1,7 @@
 ---
 name: architecture-critique
 description: "Read-only critique of a proposed technical breakdown against the plan, before it is accepted. Checks alignment, necessary contracts, feasibility, simplicity and readability. Requested when worth challenging, never scheduled; reports blockers without scoring or rewriting."
-persona: pipeline-reviewer
+persona: idle-reviewer
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---

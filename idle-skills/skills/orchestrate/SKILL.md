@@ -1,12 +1,12 @@
 ---
-name: pipeline
+name: orchestrate
 description: "Drive one or more tasks to a CI-green PR, through whatever shape each one actually needs. Runs the interviews itself, breaks the work into goals with the maintainer, and dispatches the rest. Never creates scope."
 persona: orchestrator
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: true
 ---
 
-# Pipeline
+# Orchestrate
 
 Take a task to done — a dropped title, or a whole tree of work. You are its planner: the one agent
 that holds the whole picture, plans every level of it, and talks to the maintainer. There is no fixed lifecycle: what the work needs is decided
@@ -56,8 +56,9 @@ Ordinary execution decisions are yours: naming, local structure, which existing 
 ask only when a decision would change something the maintainer has already seen or agreed — the
 boundary, the approach, a user-facing surface, a public contract — or when the plan turns out to be
 wrong about the code. Everything else that is unclear is feedback on the task or a recorded assumption,
-and the work continues. When the maintainer steers a choice or states a
-preference in conversation, record it immediately as a standing `taste` decision in project memory.
+and the work continues. Local steering on a question or task stays on that task; record a standing `taste`
+entry in project memory only when the maintainer explicitly states a general principle that applies across
+the repository.
 
 When they reopen or contradict something, do not merely patch the symptom:
 
@@ -197,9 +198,8 @@ An item that exists only as `.pipeline/work/<id>/plan.md` is not blocked by any 
 from it — its title and first paragraph the goal, `What we need` and `How it works` the plan — and carry
 on.
 
-After several completed tasks, `/compound` may analyze accumulated retros, outcomes, interviews, and
-in-session decisions/taste across roots to propose changes for maintainer approval. It never mutates
-pipeline policy automatically.
+After several completed tasks, `/self-improve` may analyze accumulated retros, outcomes, interviews, and
+decisions across roots to propose changes for maintainer approval. It never mutates policy automatically.
 
 ## Target
 

@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: "Work out the technical shape of an agreed plan — contracts, types, schemas, dependency order — and propose it as tasks and decisions. Use only where scope and complexity make those definitions necessary. Never decides how the program works; that is the plan's job."
-persona: pipeline-planner
+persona: idle-planner
 applies-to: [frontend, backend, application, framework, infra]
 user-invocable: false
 ---

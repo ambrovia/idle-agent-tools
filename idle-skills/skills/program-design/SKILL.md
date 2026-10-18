@@ -25,12 +25,9 @@ that answer and stop.
 
 ## How to interview
 
-**Question sharpness is the readiness signal.** Every question must name the concrete tension in the
-codebase or domain that forces it and state what you currently assume. Generic questions mean you have
-not read enough of the existing system yet.
-
-**Ask in rounds**, numbered, each with a recommendation, over the questions whose prerequisites are
-settled.
+**Ask in rounds**, numbered, over the questions whose prerequisites are settled. Structure each question
+around the concrete tension in the codebase or domain that forces it, state what you currently assume, and
+give a recommended answer so the maintainer can easily judge whether the question is sharp enough.
 
 **Facts are your job.** How the current system works, what already exists, what a change would touch
 — find out, dispatch a subagent to read widely where it is a lot, and bring back the answer. Ask the
@@ -44,14 +41,16 @@ them — fix that and try again rather than accepting a bad answer.
 **Their taste is only what they tell you here.** As in `/refine`: when the approach question is
 unanswered for this task, ask. Never import it from another task or another conversation.
 `{{rules.taste}}` and project memory hold repository-wide facts; assume the answer you need is not in
-there. When the maintainer redirects a recommendation or states a preference for how things are built,
-record it immediately as a standing `taste` decision in project memory (when the record of work is
-present).
+there. Answers to approach questions belong in this task's plan or task-bound decisions; record standing
+`taste` in project memory only when the maintainer explicitly states a general repository-wide principle.
 
-**Stop at confirmation.** Reflect back how you understood it — including any load-bearing assumptions
-you are relying on — and get agreement. Record load-bearing assumptions in the record of work when
-present (or in the plan when run standalone). Do not treat that agreement as permission to start
-building.
+**Stop when the questions show you have it.** Reflect back how you understood the approach — including any
+load-bearing assumptions you are relying on — and verify with the maintainer that the quality and
+sharpness of your questions show you have understood the direction. As in `/refine`, if the maintainer
+stops you early, distinguish whether the questions are sharp enough that program design is complete, or
+too shallow from the start because the setup or codebase reading was wrong. Record load-bearing
+assumptions in the record of work when present (or in the plan when run standalone). Do not treat
+agreement as permission to start building.
 
 ## What to write
 
