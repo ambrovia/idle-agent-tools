@@ -1,6 +1,8 @@
 # idle-harness
 
-A tiny harness that closes its own loops and specialises itself. Research, not a product. [How it works](../docs/harness/how-it-works.md), in one page and a picture; the intent in [INTENT.md](INTENT.md); the design in [`docs/harness/base.md`](../docs/harness/base.md) and [`analytics.md`](../docs/harness/analytics.md).
+A tiny harness that closes its own loops and specialises itself. Research, not a product. The intent is in [INTENT.md](INTENT.md), the design in [`docs/harness/base.md`](../docs/harness/base.md) and [`analytics.md`](../docs/harness/analytics.md).
+
+![How idle-harness works](../docs/harness/how-it-works.svg)
 
 The base owns the loop; a harness owns its turn and its tools. A harness is a folder under `~/.idle/harness/`. It starts empty and still works, because the base supplies the bare tools: read, write, edit, bash. The agent changes its own folder as it works. Every change is kept as a version, and the folder is loaded again at every turn.
 
