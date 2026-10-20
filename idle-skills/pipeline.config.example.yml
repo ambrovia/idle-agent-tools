@@ -90,8 +90,8 @@ rules:
 # you wanted, /self-improve proposes an amendment, and you approve it.
 # Rule files live under .pipeline/rules/ — host-neutral, so every tool reads the same
 # ones. They are maintainer-authored and committed: /setup writes them with your
-# approval, and no pipeline run may edit them (the orchestrator owns .pipeline/work/<id>/
-# and nothing else under .pipeline/).
+# approval, and no pipeline run may edit them. Run state lives in the record of work
+# (/idle), not under .pipeline/.
 # Example (a TS app):
 #   code: .pipeline/rules/typescript.md
 #   testing: .pipeline/rules/testing.md

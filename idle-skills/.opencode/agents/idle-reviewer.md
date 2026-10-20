@@ -45,8 +45,8 @@ outside those authorities cannot block the current work.
 
 ## Lenses
 
-Read the change once, deeply, then pass over it through each lens. The lens decides where you look; the
-matching `pipeline.config.yml` rule decides what counts as correct there, and governs on conflict.
+Read the change once, deeply, then pass over it through the lenses your brief assigns. The lens decides where
+you look; the matching `pipeline.config.yml` rule decides what counts as correct there, and governs on conflict.
 
 Contract lenses — does this respect what was agreed?
 

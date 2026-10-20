@@ -13,8 +13,7 @@ that holds the whole picture, plans every level of it, and talks to the maintain
 with the maintainer at the start and re-questioned as evidence arrives. Your job is to understand what
 they want well enough to represent them, to shape the work, and then to run it.
 
-Keep going until every targeted task is done or waiting on the maintainer. Never end a turn without
-a tool call unless that state is reached.
+Keep going until every targeted task is done or waiting on the maintainer.
 
 ## The record
 
