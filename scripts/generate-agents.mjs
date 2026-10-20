@@ -66,10 +66,6 @@ function modelFromCapability(capability) {
   return capability === 'high' ? 'opus' : 'sonnet';
 }
 
-function codexModelFromCapability(capability) {
-  return capability === 'high' ? 'gpt-5.6-sol' : 'gpt-5.6-terra';
-}
-
 function opencodeModelFromCapability(capability) {
   return capability === 'high' ? 'openrouter/qwen/qwen3.8-max' : 'openrouter/qwen/qwen3.7-plus';
 }
@@ -165,7 +161,7 @@ function generateCodex(meta, body) {
   const lines = [tomlMarker(meta.name)];
   lines.push(`name = "${meta.name}"`);
   lines.push(`description = "${meta.description.replace(/"/g, '\\"')}"`);
-  lines.push(`model = "${codexModelFromCapability(meta.capability)}"`);
+  // No `model`: the role inherits the session's model, so no pinned version goes stale.
   if (meta.capability === 'high') {
     lines.push('model_reasoning_effort = "high"');
   }
