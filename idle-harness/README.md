@@ -1,6 +1,6 @@
 # idle-harness
 
-A tiny harness that closes its own loops and specialises itself. Research, not a product. The intent is in [INTENT.md](INTENT.md), the design in [`docs/harness/base.md`](../docs/harness/base.md) and [`analytics.md`](../docs/harness/analytics.md).
+A tiny harness that closes its own loops and specialises itself. Research, not a product. The intent is in [INTENT.md](INTENT.md), the design in [`docs/harness/base.md`](../docs/harness/base.md) and [`analytics.md`](../docs/harness/analytics.md), and how it compares with Google's Harness² in [`harness2-compared.md`](../docs/harness/harness2-compared.md).
 
 ![How idle-harness works](../docs/harness/how-it-works.svg)
 
