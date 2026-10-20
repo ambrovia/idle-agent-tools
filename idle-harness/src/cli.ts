@@ -9,12 +9,15 @@ import { report } from './analytics.ts';
 import { harnessDir, sessionDir } from './home.ts';
 import { interrupt, run } from './loop.ts';
 import { follower, holder, pending, send } from './record.ts';
+import type { Review } from './record.ts';
 import * as versions from './versions.ts';
 
 const USAGE = `idle-harness chat <harness> [message] [--session <id>] [--task <id>] [--once]
                                              talk to a harness; --once answers and exits,
                                              --task names the idle-tasks task the session works on
 idle-harness stats <harness> [--json]        what its tasks took, and what its own tools cost and did
+
+In a chat, the human reviews a piece of work: /approve [1-5] [note], /rate <1-5> [note] later, /reject <reason>.
 idle-harness versions <harness>              the versions of its folder
 idle-harness restore <harness> <version>     put its folder back at a version
 
@@ -45,6 +48,22 @@ function show(entry: any) {
   if (entry.stopped) process.stderr.write(`! stopped (${entry.stopped})\n`);
 }
 
+// The human's answer to a piece of work, for the agent to read and the record to keep. Anything else is a message.
+function review(line: string, task?: string): { text: string; review: Review } | string | null {
+  const said = line.trim().match(/^\/(approve|rate|reject)(?:\s+([\s\S]*))?$/);
+  if (!said) return null;
+  const verdict = ({ approve: 'approved', rate: 'rated', reject: 'rejected' } as const)[said[1] as 'approve' | 'rate' | 'reject'];
+  const scored = verdict === 'rejected' ? null : (said[2] ?? '').match(/^([1-5])(?:\s+([\s\S]*))?$/);
+  const rating = scored ? Number(scored[1]) : undefined;
+  const note = ((scored ? scored[2] : said[2]) ?? '').trim();
+  if (verdict === 'rated' && !rating) return 'rate with a number from 1 to 5: /rate 4 the tests read well';
+  if (verdict === 'rejected' && !note) return 'say why: /reject the totals are still off for refunds';
+  const text = verdict === 'approved' ? `The human approved the work${rating ? ` and rated it ${rating} of 5` : ''}${note ? `: ${note}` : '.'}`
+    : verdict === 'rated' ? `The human rated the work ${rating} of 5${note ? `: ${note}` : '.'}`
+    : `The human rejected the work: ${note}`;
+  return { text, review: { verdict, ...(rating ? { rating } : {}), note, ...(task ? { task } : {}) } };
+}
+
 function chat() {
   const once = Boolean(flag('--once', false));
   const task = flag('--task', true);
@@ -60,7 +79,15 @@ function chat() {
   let cost = 0;
   let latest: any;
   const follow = () => news().forEach((entry) => { show(entry); turns++; cost += entry.cost ?? 0; latest = entry; });
-  if (rest.length) send(dir, 'user', rest.join(' '));
+  // A review goes in as the human's verdict, everything else as what they said. A review that cannot be read is not sent.
+  const deliver = (line: string) => {
+    const verdict = review(line, task);
+    if (typeof verdict === 'string') process.stderr.write(`! ${verdict}\n`);
+    else if (verdict) send(dir, 'review', verdict.text, verdict.review);
+    else send(dir, 'user', line);
+    return typeof verdict !== 'string';
+  };
+  if (rest.length && !deliver(rest.join(' '))) process.exit(2);
   // The session is its own process: stopping it stops nothing else, and its record lets it be picked up again.
   const bin = fileURLToPath(new URL('../bin/idle-harness.mjs', import.meta.url));
   const child = running ? undefined : spawn(process.execPath, [bin, 'run', name, session, ...(once ? ['--once'] : []), ...(task ? ['--task', task] : [])], { stdio: ['ignore', 'inherit', 'inherit'] });
@@ -79,7 +106,7 @@ function chat() {
   };
   const input = once ? undefined : createInterface({ input: process.stdin });
   let asked = rest.length > 0;
-  input?.on('line', (line) => { if (line.trim()) { send(dir, 'user', line); asked = true; } });
+  input?.on('line', (line) => { if (line.trim() && deliver(line)) asked = true; });
   input?.on('close', () => { ended = true; if (!child) leave(0); else if (!asked) child.kill(); });
   // Leaving a session this front end did not start leaves it running.
   for (const [signal] of SIGNALS) process.on(signal, () => (child ? child.kill(signal) : leave(0)));

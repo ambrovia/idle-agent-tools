@@ -1,6 +1,6 @@
 // What improvement learns from, read from a harness's session records every time and never kept: per task, what it
-// took to get there; per control loop — a tool a session built for itself — what each version cost and did.
-// Approval and the human's rating live in idle-tasks; the cost to an approved solution is a task's cost up to them.
+// took to reach a solution the human approved and how they rated it; per control loop — a tool a session built for
+// itself — what each version cost and did. Until idle-tasks keeps approvals and ratings, the record's reviews are read.
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,8 +10,13 @@ import { BARE } from './tools.ts';
 
 export type Session = { id: string; entries: any[] };
 
-// What one task took: everything spent while it was the task in hand, across sessions and harness versions.
-export type TaskTook = { task: string; cost: number; turns: number; input: number; cached: number; output: number; sessions: string[]; versions: string[]; attempts: number; submits: number; first: string; last: string };
+// What one task took: everything spent while it was the task in hand, across sessions and harness versions. toApproval
+// is what it had cost when the human approved it; a rejection reopens it, and the next approval counts. commits are the
+// ones its turns started from.
+export type TaskTook = {
+  task: string; cost: number; turns: number; input: number; cached: number; output: number; sessions: string[]; versions: string[];
+  attempts: number; submits: number; rejections: number; approved?: string; toApproval?: number; rating?: number; commits: string[]; first: string; last: string;
+};
 
 // One version of a tool a session wrote, with what it cost to write and what it did afterwards.
 export type LoopVersion = { tool: string; session: string; buildCost: number; lines: number; uses: number; answerChars: number; problems: number; usedIn: string[]; tasks: string[] };
@@ -47,13 +52,23 @@ function taskMove(call: any): { task: string; status: string } | null {
 export function attribute(all: Session[]): { tasks: TaskTook[]; unattributed: { cost: number; turns: number; sessions: string[] } } {
   const tasks = new Map<string, TaskTook>();
   const unattributed = { cost: 0, turns: 0, sessions: new Set<string>() };
-  const at = (task: string, when: string) => tasks.get(task) ?? tasks.set(task, { task, cost: 0, turns: 0, input: 0, cached: 0, output: 0, sessions: [], versions: [], attempts: 0, submits: 0, first: when, last: when }).get(task)!;
+  const at = (task: string, when: string) => tasks.get(task) ?? tasks.set(task, { task, cost: 0, turns: 0, input: 0, cached: 0, output: 0, sessions: [], versions: [], attempts: 0, submits: 0, rejections: 0, commits: [], first: when, last: when }).get(task)!;
   for (const session of all) {
     const bound: string | undefined = session.entries[0]?.task; // the task the session was started for, if any
     let current = bound;
+    let submitted: string | undefined; // the task this session last handed in, which a review without a task is for
     if (current) at(current, session.entries[0].at).attempts++;
     for (const entry of session.entries) {
       const holder = current;
+      // A review arrives before the turn that reads it, so what that turn costs comes after the approval.
+      for (const { at: when, review } of (entry.arrived ?? []).filter((item: any) => item?.review)) {
+        const task = review.task ?? current ?? submitted;
+        if (!task) continue;
+        const took = at(task, when);
+        if (review.verdict === 'rejected') { took.rejections++; delete took.approved; delete took.toApproval; }
+        if (review.verdict === 'approved' && !took.approved) { took.approved = when; took.toApproval = took.cost; }
+        if (review.rating) took.rating = review.rating;
+      }
       const moves = (entry.response?.tool_calls ?? []).map(taskMove).filter(Boolean) as { task: string; status: string }[];
       for (const move of moves.filter((m) => m.status === 'claimed' && m.task !== current)) { current = move.task; at(current, entry.at).attempts++; }
       const charged = current ?? holder;
@@ -71,10 +86,11 @@ export function attribute(all: Session[]): { tasks: TaskTook[]; unattributed: { 
         took.output += entry.usage?.completion_tokens ?? 0;
         if (!took.sessions.includes(session.id)) took.sessions.push(session.id);
         if (entry.version && !took.versions.includes(entry.version)) took.versions.push(entry.version);
+        if (entry.work?.commit && !took.commits.includes(entry.work.commit)) took.commits.push(entry.work.commit);
         took.last = entry.at;
       }
       for (const move of moves) {
-        if (move.status === 'submitted') at(move.task, entry.at).submits++;
+        if (move.status === 'submitted') { at(move.task, entry.at).submits++; submitted = move.task; }
         // Submitted or let go: the session is back on the task it was started for, or on none.
         if (move.task === current && ['submitted', 'open', 'blocked', 'done', 'archived'].includes(move.status)) current = bound === move.task ? undefined : bound;
       }
@@ -144,8 +160,8 @@ export function report(harness: string, json = false): string {
   return [
     `${harness}: ${all.length} sessions, ${money(all.flatMap((s) => s.entries).reduce((t, e) => t + (e.cost ?? 0), 0))}`,
     '',
-    'Tasks — what each took while it was the task in hand (approval and rating come from idle-tasks)',
-    ...tasks.map((t) => `  ${t.task}: ${money(t.cost)}, ${t.turns} turns, ${share(t.cached, t.input)} of input cached, ${t.sessions.length} sessions, ${t.attempts} attempts, ${t.submits} submits, ${t.versions.length} harness versions`),
+    'Tasks — what each took while it was the task in hand, and what it took to reach your approval',
+    ...tasks.map((t) => `  ${t.task}: ${t.approved ? `approved for ${money(t.toApproval ?? 0)}${t.rating ? `, rated ${t.rating}` : ', not rated'}` : 'not approved'}${t.rejections ? ` after ${t.rejections} rejections` : ''} · ${money(t.cost)}, ${t.turns} turns, ${share(t.cached, t.input)} of input cached, ${t.sessions.length} sessions, ${t.attempts} attempts, ${t.submits} submits, ${t.versions.length} harness versions, ${t.commits.length} commits`),
     `  unattributed: ${money(unattributed.cost)}, ${unattributed.turns} turns in ${unattributed.sessions.length} sessions`,
     '',
     'Control loops — every version of a tool a session built',

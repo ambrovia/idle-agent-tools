@@ -39,6 +39,8 @@ Approval has to be a signal, not something read into a merge or a silence. The h
 - **The human answers where they are.** In the chat, `/approve 4 the error messages are better than I asked for` or `/reject the totals are still off for refunds`. On the command line, the same through idle-tasks. On a pull request, an approval or a merge, mapped onto the same event. A rejection is a reopen, with its reason.
 - **The answer reaches the harness as an inbox item**, so the session that did the work, or the next one, sees it, and its retrospective can use it.
 
+Built so far: the chat side. `/approve [1-5] [note]`, `/rate <1-5> [note]` and `/reject <reason>` arrive as items from `review`, which the record keeps. Until idle-tasks keeps approvals and ratings, `stats` reads them from there. A review is for the task the human names, or else the one the session is on, or else the one it last submitted. The cost to approval is what the task had cost when the approval arrived, not counting the turn that reads it.
+
 ## What it needs from idle-tasks
 
 idle-tasks keeps a task's current state and its feedback and verdict lines. Three things are missing:
@@ -61,7 +63,7 @@ It answers in three places:
 
 ## Also recorded, for causes
 
-Per compaction: trigger, tokens before and after, what was removed, the cost of the cache rebuild, and re-fetches and repeated failed calls afterwards (see the compaction report). Per model call: cached and uncached input. Per task: where the cost went, by agent, by tool and by control loop. None of these is a goal. They are where improvement looks once the two numbers move.
+Per compaction (recorded now as a `compact` call): trigger, who ran it, tokens before and after, what was removed, the summary's cost; still to compute from those, the cost of the cache rebuild, and re-fetches and repeated failed calls afterwards (see the compaction report). Per turn: the commit the work was at. Per model call: cached and uncached input. Per task: where the cost went, by agent, by tool and by control loop. None of these is a goal. They are where improvement looks once the two numbers move.
 
 ## Decided
 

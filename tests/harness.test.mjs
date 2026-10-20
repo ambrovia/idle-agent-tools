@@ -2,7 +2,7 @@
 // and a stand-in for OpenRouter. No network.
 
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -17,6 +17,7 @@ const { sessionDir } = await import(`${root}/src/home.ts`);
 const { BARE } = await import(`${root}/src/tools.ts`);
 const versions = await import(`${root}/src/versions.ts`);
 const analytics = await import(`${root}/src/analytics.ts`);
+const compaction = await import(`${root}/src/compact.ts`);
 
 const homes = [];
 process.on('exit', () => homes.forEach((home) => rmSync(home, { recursive: true, force: true })));
@@ -185,22 +186,188 @@ test('a request the provider refuses goes to the plain turn, which builds it aga
   assert.equal(last.failed, undefined);
 });
 
-test('a context past its limit is shortened crudely; the record keeps everything and the agent is told once', async () => {
-  const { cwd, harness } = sandbox();
-  harnessFile(harness, 'config.json', JSON.stringify({ contextLimit: 3000 }));
-  const big = (letter) => [['bash', { command: `printf '${letter}%.0s' $(seq 1 3000)` }]];
-  const { model, shown } = scripted(...'abcdefgh'.split('').map(big), 'done');
+// A model that writes a summary when the base asks for one, and otherwise answers as `model` does.
+const SUMMARY = ['Goal', 'Constraints and preferences', 'Done', 'In progress / Blocked', 'Decisions and why', 'Dead ends', 'Unverified', 'Next step', 'Critical data'].map((h) => `## ${h}\n- noted`).join('\n');
+const summarising = (model, summary = SUMMARY) => {
+  const asked = [];
+  const wrapped = async (context, prompt) => {
+    if (!String(prompt.at(-1)?.content).startsWith('[base] Compaction.')) return model(context, prompt);
+    asked.push({ context, prompt });
+    return { message: { role: 'assistant', content: typeof summary === 'function' ? summary() : summary }, usage: {}, cost: 0.005 };
+  };
+  return Object.assign(wrapped, { asked });
+};
+const exchange = (id, name, args, answer) => [
+  { role: 'assistant', content: null, tool_calls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] },
+  { role: 'tool', tool_call_id: id, content: answer },
+];
+
+test('a long tool answer goes to a file whole; the context gets its two ends and where the rest is', async () => {
+  const { cwd } = sandbox();
+  const { model, shown } = scripted([['bash', { command: "printf 'x%.0s' $(seq 1 50000); echo; echo the end" }]], 'done');
   say('s', 'go');
   await run({ harness: 'h', session: 's', cwd, once: true, model });
 
-  const last = shown.at(-1).messages;
-  const results = last.filter((message) => message.role === 'tool');
-  assert.match(results[0].content, /^\[shortened by the base to fit the context: 3000 characters/);
-  assert.equal(results.at(-1).content, 'h'.repeat(3000), 'the newest result stays whole');
-  assert.equal(last[0].content, 'go', 'and so does the first message');
-  assert.equal(last.filter((message) => String(message.content).startsWith('[base] Your context passed its limit')).length, 1);
+  const answer = shown.at(-1).messages.find((message) => message.role === 'tool').content;
+  const path = answer.match(/is in (.+?); read it there in parts/)[1];
+  assert.match(answer, /^\[the whole answer, 3 lines and 50009 characters, is in /);
+  assert.ok(answer.length < 30_000 && answer.endsWith('the end\n'), 'the context gets the two ends');
+  assert.equal(readFileSync(path, 'utf8').length, 50009, 'the file has all of it');
+  assert.equal(await bare('read').run({ path, offset: 2, limit: 1 }, blocks(cwd)), 'the end', 'and the bare read tool can page through it');
+});
+
+test('compaction clears the oldest bulky text first and keeps it all in files; the first message and the tail stay whole', async () => {
+  const { home } = sandbox();
+  const dir = join(home, 'session');
+  const messages = [{ role: 'user', content: 'go' }];
+  for (const [i, letter] of [...'abcde'].entries()) messages.push(...exchange(`c${i}`, 'bash', { command: `make ${letter}` }, i === 1 ? `error: boom\n${'b'.repeat(4000)}` : letter.repeat(4000)));
+  const write = exchange('w', 'write', { path: 'src/big.ts', content: 'w'.repeat(5000) }, 'wrote src/big.ts');
+  write[0].reasoning = 'r'.repeat(1000);
+  messages.push(...write, ...exchange('last', 'bash', { command: 'make f' }, 'f'.repeat(4000)));
+  const model = summarising(async () => assert.fail('clearing was enough; nothing is summarised'));
+  const { context, entry } = await compaction.compact({ model: 'm', system: 'S', tools: [], messages }, { limit: 6000 }, { model, dir, n: 9, ordinal: 1, by: 'base', trigger: 'limit' });
+
+  const answers = context.messages.filter((message) => message.role === 'tool').map((message) => message.content);
+  assert.match(answers[0], /^\[cleared by the base: bash\(\{"command":"make a"\}\) answered 4000 characters, with no error; the whole answer is in (.+c0\.txt)\]$/);
+  assert.equal(readFileSync(answers[0].match(/is in (.+)\]$/)[1], 'utf8'), 'a'.repeat(4000));
+  assert.match(answers[1], /failing: error: boom/);
+  assert.equal(answers.at(-1), 'f'.repeat(4000), 'the tail stays whole');
+  assert.equal(context.messages[0].content, 'go');
+  const written = context.messages.find((message) => message.tool_calls?.[0].id === 'w');
+  assert.deepEqual(JSON.parse(written.tool_calls[0].function.arguments), { path: 'src/big.ts', content: '[cleared by the base: 5000 characters]' });
+  assert.ok(!('reasoning' in written), 'old reasoning is dropped');
+  assert.deepEqual([entry.cleared.answers, entry.cleared.arguments, entry.cleared.reasoning, entry.summarised], [5, 1, 1, undefined]);
+  assert.ok(entry.after <= 3000 && entry.before > 6000);
+  assert.equal(messages[2].content, 'a'.repeat(4000), 'the context it was given is left as it was');
+});
+
+test("when clearing is not enough, the model summarises a fork of the live request; the human's words and the trail are the base's", async () => {
+  const { home } = sandbox();
+  const dir = join(home, 'session');
+  const messages = [{ role: 'user', content: 'go' }];
+  for (let i = 0; i < 4; i++) messages.push({ role: 'user', content: `U${i}`.repeat(1500) }, { role: 'assistant', content: `A${i}`.repeat(1500) });
+  const live = { model: 'm', system: 'S', tools: [{ type: 'function', function: { name: 'bash', description: '', parameters: {} } }], messages };
+  const model = summarising(async () => assert.fail('only the summary is asked for'));
+  const calls = [{ block: 'tool', call: { function: { name: 'edit', arguments: JSON.stringify({ path: 'src/a.ts' }) } }, result: 'edited src/a.ts' }, { block: 'tool', call: { function: { name: 'bash', arguments: '{"command":"npm test"}' } }, result: 'not ok 1\n[exit 1]' }];
+  const arrived = [{ from: 'user', at: 'now', text: 'keep the old API, please' }, { from: 'base', at: 'now', text: 'not the human' }];
+  const { context, entry } = await compaction.compact(live, { limit: 2000, pinned: 'never push to main' }, { model, dir, n: 4, ordinal: 2, by: 'base', trigger: 'limit', calls, arrived });
+
+  assert.equal(model.asked.length, 1);
+  assert.deepEqual(model.asked[0].context, live, 'a fork of the live request, so reading the history is a cache hit');
+  const [first, summary, ack, ...tail] = context.messages;
+  assert.equal(first.content, 'go');
+  assert.match(summary.content, /^\[base\] Compaction 2 of this session\. Messages 2 to 8 were summarised/);
+  assert.match(summary.content, /## Goal\n- noted/);
+  assert.match(summary.content, /--- written by the base from the record, not by the model ---\n\n## Pinned\nnever push to main/);
+  assert.match(summary.content, /## What the human said, newest first\n- turn 4: keep the old API, please\n\n/);
+  assert.match(summary.content, /## Files changed\n- src\/a\.ts, turn 4/);
+  assert.match(summary.content, /## Calls that failed\n- turn 4: bash\(\{"command":"npm test"\}\): not ok 1$/);
+  assert.equal(ack.role, 'assistant');
+  assert.deepEqual(tail, messages.slice(8));
+  assert.deepEqual([entry.summarised.from, entry.summarised.to, entry.cost], [2, 8, 0.005]);
+});
+
+test("a summary the base cannot use is asked for once more, then the base writes its own; compaction never stops the loop", async () => {
+  const { home } = sandbox();
+  const messages = [{ role: 'user', content: 'go' }, ...exchange('c1', 'bash', { command: 'ls' }, 'short'), { role: 'user', content: 'x'.repeat(8000) }, { role: 'assistant', content: 'y'.repeat(4000) }];
+  const model = summarising(async () => assert.fail('only the summary is asked for'), 'no headings here');
+  const { context, entry } = await compaction.compact({ model: 'm', system: 'S', tools: [], messages }, { limit: 1000 }, { model, dir: join(home, 's'), n: 1, ordinal: 1, by: 'base', trigger: 'limit' });
+
+  assert.equal(model.asked.length, 2);
+  assert.match(entry.summarised.fallback, /lacked headings/);
+  assert.match(context.messages[1].content, /so the base wrote this one\. The calls made in the summarised messages, oldest first:\n- bash\(\{"command":"ls"\}\)/);
+});
+
+test('past its limit the base compacts before the model call, stops when it comes too often, and the record keeps everything', async () => {
+  const { cwd, harness } = sandbox();
+  harnessFile(harness, 'config.json', JSON.stringify({ contextLimit: 3000 }));
+  const big = (letter) => [['bash', { command: `printf '${letter}%.0s' $(seq 1 3000)` }]];
+  const { model: answers, shown } = scripted(...'abcdefgh'.split('').map(big), 'done');
+  say('s', 'go');
+  await run({ harness: 'h', session: 's', cwd, once: true, model: summarising(answers) });
+
   const record = read(sessionDir('h', 's'));
-  assert.ok(record.some((entry) => entry.context.messages.some((message) => message.content === 'a'.repeat(3000))), 'the record keeps the full result');
+  const passes = record.flatMap((entry) => entry.calls.filter((call) => call.block === 'compact'));
+  assert.ok(passes.length >= 1);
+  assert.deepEqual([passes[0].by, passes[0].trigger, passes[0].ordinal], ['base', 'limit', 1]);
+  const last = shown.at(-1).messages;
+  assert.equal(last[0].content, 'go', 'the first message stays');
+  assert.equal(last.filter((message) => message.role === 'tool').at(-1).content, 'h'.repeat(3000), 'and the newest answer');
+  assert.equal(last.filter((message) => String(message.content).startsWith('[base] Your context passed its limit')).length, 1, 'the guard tells the agent once');
+  assert.ok(record.some((entry) => entry.context.messages.some((message) => message.content === 'a'.repeat(3000))), 'the record keeps every answer whole');
+});
+
+test('a request the provider refuses as too long is compacted to half, then a third, and sent again', async () => {
+  const { cwd } = sandbox();
+  const big = (letter) => [['bash', { command: `printf '${letter}%.0s' $(seq 1 20000)` }]];
+  const { model: answers } = scripted(big('a'), big('b'), big('c'), 'done');
+  const model = async (context, prompt) => {
+    if (JSON.stringify(context.messages).length > 45_000) throw Object.assign(new Error('the model call failed (400): maximum context length exceeded'), { status: 400 });
+    return answers(context, prompt);
+  };
+  say('s', 'go');
+  await run({ harness: 'h', session: 's', cwd, once: true, model: summarising(model) });
+
+  const record = read(sessionDir('h', 's'));
+  assert.ok(record.every((entry) => !entry.failed) && record.some((entry) => entry.response?.content === 'done'), 'the session went on to the end');
+  const passes = record.flatMap((entry) => entry.calls.filter((call) => call.block === 'compact'));
+  assert.ok(passes.length >= 1 && passes.every((pass) => pass.trigger === 'overflow'));
+});
+
+test("a harness's turn can compact with the base's building block, and the record says it did", async () => {
+  const { cwd, harness } = sandbox();
+  harnessFile(harness, 'turn.ts', `export async function turn(context, response, arrived, base) {
+  const step = await base.turn(context, response, arrived);
+  return { ...step, context: await base.compact(step.context, { limit: 1, target: 1, summarise: false }) };
+}`);
+  const { model } = scripted([['bash', { command: "printf 'q%.0s' $(seq 1 500)" }]], [['bash', { command: 'echo two' }]], 'done');
+  say('s', 'go');
+  await run({ harness: 'h', session: 's', cwd, once: true, model });
+
+  const passes = read(sessionDir('h', 's')).flatMap((entry) => entry.calls.filter((call) => call.block === 'compact'));
+  assert.ok(passes.some((pass) => pass.trigger === 'turn' && pass.by.startsWith('turn@') && pass.cleared.answers === 1));
+});
+
+test('the record keeps the commit each turn starts from, when the work is a git repository', async () => {
+  const { cwd } = sandbox();
+  const git = (...args) => spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).stdout.trim();
+  git('init', '-q');
+  writeFileSync(join(cwd, 'a.txt'), 'a');
+  git('add', '-A');
+  git('commit', '-q', '-m', 'first');
+  const { model } = scripted([['bash', { command: 'echo b > b.txt' }]], 'done');
+  say('s', 'go');
+  await run({ harness: 'h', session: 's', cwd, once: true, task: 'T1', model });
+
+  const record = read(sessionDir('h', 's'));
+  assert.deepEqual(record.map((entry) => entry.work.dirty), [0, 0, 1], 'as each turn starts: the file the second turn writes shows in the third');
+  assert.ok(record.every((entry) => entry.work.commit === git('rev-parse', 'HEAD')));
+  assert.deepEqual(analytics.attribute(analytics.sessions('h')).tasks[0].commits, [git('rev-parse', 'HEAD')]);
+});
+
+test("the human's review: approved and rated, or rejected and reopened; analytics counts the cost to approval", async () => {
+  const { home, cwd } = sandbox();
+  const fake = await provider(() => says('ok'));
+  try {
+    const first = cli(home, cwd, fake.url, ['chat', 'h', 'build it', '--session', 's', '--task', 'T1', '--once']);
+    assert.equal(await first.exit, 0, first.err);
+    const reject = cli(home, cwd, fake.url, ['chat', 'h', '/reject the totals are off', '--session', 's', '--once']);
+    assert.equal(await reject.exit, 0, reject.err);
+    const approve = cli(home, cwd, fake.url, ['chat', 'h', '/approve 4 much better', '--session', 's', '--once']);
+    assert.equal(await approve.exit, 0, approve.err);
+    const unreadable = cli(home, cwd, fake.url, ['chat', 'h', '/rate great', '--session', 's', '--once']);
+    assert.equal(await unreadable.exit, 2);
+    assert.match(unreadable.err, /rate with a number from 1 to 5/);
+  } finally {
+    fake.close();
+  }
+
+  const items = read(sessionDir('h', 's')).flatMap((entry) => entry.arrived).filter((item) => item.review);
+  assert.deepEqual(items.map((item) => [item.from, item.text]), [['review', 'The human rejected the work: the totals are off'], ['review', 'The human approved the work and rated it 4 of 5: much better']]);
+  assert.deepEqual(items[1].review, { verdict: 'approved', rating: 4, note: 'much better' });
+  const [task] = analytics.attribute(analytics.sessions('h')).tasks;
+  assert.deepEqual([task.task, task.rejections, task.rating, +task.toApproval.toFixed(3), +task.cost.toFixed(3)], ['T1', 1, 4, 0.004, 0.006], 'what it cost up to the approval, not the turn that read it');
+  assert.match(analytics.report('h'), /T1: approved for \$0\.0040, rated 4 after 1 rejections/);
 });
 
 test('analytics counts what each task took, from the task a session was started for or claimed, and every version of its tools', async () => {
@@ -227,7 +394,7 @@ test('analytics counts what each task took, from the task a session was started 
 
   const [version] = analytics.controlLoops(all);
   assert.deepEqual([version.tool, version.session, version.uses, version.problems, version.tasks], ['probe', 'a', 1, 0, ['T1']]);
-  assert.match(analytics.report('h'), /T1: \$0\.0300, 3 turns/);
+  assert.match(analytics.report('h'), /T1: not approved · \$0\.0300, 3 turns/);
 });
 
 test('the session survives an unreadable inbox file and a folder git cannot save', async () => {

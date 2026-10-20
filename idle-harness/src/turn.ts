@@ -1,5 +1,6 @@
 // The turn: what a harness programs, and the base's plain turn, which is all an empty harness is.
 
+import type { Options as Compacting } from './compact.ts';
 import type { Context, Message, ToolCall, ToolSpec } from './model.ts';
 import type { Item } from './record.ts';
 
@@ -17,6 +18,7 @@ export type Blocks = {
   tool(call: ToolCall): Promise<string>;
   model(context: Context, prompt: Message[]): Promise<Message>;
   turn(context: Context, response: Message | null, arrived: Item[]): Promise<Step>; // the plain turn
+  compact(context: Context, options?: Compacting): Promise<Context>; // the base's compaction, written into the record
   versions: { list(): string; show(version: string): string; restore(version: string): string };
 };
 
@@ -39,7 +41,11 @@ To change how a turn runs, write ${harness}/turn.ts:
     return step                                                // { context, prompt }
   }
 
-context is what the model is shown: { model, system, tools, messages }. response is the model's last message. arrived is what came in since: [{ from, at, text }]. Return the context and the messages to add for the next model call, or prompt: null to wait. base.tools lists every tool, base.tool(call) runs one, base.model(context, prompt) is an extra model call, base.versions lists, shows and restores. If your turn or a tool of yours breaks, the base carries on without it and tells you.`;
+context is what the model is shown: { model, system, tools, messages }. response is the model's last message. arrived is what came in since: [{ from, at, text }]. Return the context and the messages to add for the next model call, or prompt: null to wait. base.tools lists every tool, base.tool(call) runs one, base.model(context, prompt) is an extra model call, base.versions lists, shows and restores. base.compact(context, options) compacts a context the base's way — clear old tool answers, then summarise — and options can change its limit, target, tail, keep (tools never cleared), instructions and pinned text. The base compacts on its own once the context passes its limit. If your turn or a tool of yours breaks, the base carries on without it and tells you.
+
+When the work is a git repository, commit each step that works, on a branch of its own: the record keeps the commit every turn starts from, so work can be run again from there.
+
+When you believe a piece of work is done, ask the human to review it: say what changed, how you checked it, and what you could not check. They answer with /approve and a rating from 1 to 5, or /reject and the reason.`;
 
 export const fresh = (harness: string, cwd: string): Context => ({ model: '', system: system(harness, cwd), tools: [], messages: [] });
 
@@ -53,24 +59,6 @@ export async function turn(context: Context, response: Message | null, arrived: 
   }
   for (const item of arrived) prompt.push({ role: 'user', content: item.from === 'user' ? item.text : `[${item.from}] ${item.text}` });
   return { context: { ...context, tools: base.tools, messages }, prompt: prompt.length ? prompt : null };
-}
-
-// The base's crude fallback for a context that would pass its limit; a harness's own turn can do far better, and the
-// turn owns the context. The oldest tool results are shortened to a pointer, oldest first, until the request is
-// under 70% of the limit. The system prompt, the first message and the newest messages stay as they are, and nothing
-// is removed, so every tool call keeps its result. Tokens are guessed at four characters each.
-export function fit(context: Context, prompt: Message[], limit: number, record: string): { context: Context; trimmed: number } {
-  const size = (messages: Message[]) => Math.ceil(JSON.stringify({ system: context.system, tools: context.tools, messages: [...messages, ...prompt] }).length / 4);
-  if (size(context.messages) <= limit) return { context, trimmed: 0 };
-  const messages = [...context.messages];
-  let trimmed = 0;
-  for (let i = 1; i < messages.length - 6 && size(messages) > limit * 0.7; i++) {
-    const text = String(messages[i].content ?? '');
-    if (messages[i].role !== 'tool' || text.length < 200 || text.startsWith('[shortened')) continue;
-    messages[i] = { ...messages[i], content: `[shortened by the base to fit the context: ${text.length} characters, kept in ${record}]\n${text.slice(0, 120)}` };
-    trimmed++;
-  }
-  return { context: { ...context, messages }, trimmed };
 }
 
 // A step the loop can trust. Anything else counts as a turn that threw.

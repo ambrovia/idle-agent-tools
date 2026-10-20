@@ -19,6 +19,9 @@ export type Model = (context: Context, prompt: Message[]) => Promise<Reply>;
 // A request the provider turned down. Sending it again would only be turned down again.
 export const refused = (error: any) => error?.status >= 400 && error.status < 500 && error.status !== 429;
 
+// A request turned down for being longer than the model can read. A shorter one may go through.
+export const tooLong = (error: any) => refused(error) && /context|too long|too many tokens|maximum/i.test(String(error?.message));
+
 const pause = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
 // No time limit: Node's fetch gives up on an answer that takes five minutes to start, and a long reasoning call can.

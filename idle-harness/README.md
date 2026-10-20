@@ -20,7 +20,7 @@ Needs Node 22.18 or later, git, and an OpenRouter key. The key and the default m
 idle-harness/bin/idle-harness.mjs chat builder
 ```
 
-`chat <harness> [message] [--session <id>] [--once]` talks to a harness, creating it on first use. `--once` answers and exits, with the answer on stdout and exit code 1 if the model call failed. When the input ends, the harness finishes what it was asked and the command exits. A session that is already running is talked to, not started again. `versions <harness>` lists the versions of its folder; `restore <harness> <version>` puts the folder back at one.
+`chat <harness> [message] [--session <id>] [--task <id>] [--once]` talks to a harness, creating it on first use. In a chat, `/approve [1-5] [note]`, `/rate <1-5> [note]` and `/reject <reason>` are the human's review of the work; `stats <harness>` shows what each task took to reach approval and how it was rated. `--once` answers and exits, with the answer on stdout and exit code 1 if the model call failed. When the input ends, the harness finishes what it was asked and the command exits. A session that is already running is talked to, not started again. `versions <harness>` lists the versions of its folder; `restore <harness> <version>` puts the folder back at one.
 
 ## What a harness writes
 
@@ -41,7 +41,7 @@ export async function turn(context, response, arrived, base) {
 }
 ```
 
-`context` is what the model is shown: `{ model, system, tools, messages }`; an empty model means the default. `response` is the model's last message. `arrived` is what came in since. `base` is the building blocks: `tools`, `tool(call)`, `model(context, prompt)`, `turn(…)`, `versions`. Return the context and the messages to add for the next model call, or `prompt: null` to wait. If the turn throws, returns something that is not a whole step, or builds a request the provider refuses, the plain turn takes over and the agent is told.
+`context` is what the model is shown: `{ model, system, tools, messages }`; an empty model means the default. `response` is the model's last message. `arrived` is what came in since. `base` is the building blocks: `tools`, `tool(call)`, `model(context, prompt)`, `turn(…)`, `compact(context, options)`, `versions`. Return the context and the messages to add for the next model call, or `prompt: null` to wait. If the turn throws, returns something that is not a whole step, or builds a request the provider refuses, the plain turn takes over and the agent is told.
 
 ## On disk
 
@@ -49,7 +49,8 @@ export async function turn(context, response, arrived, base) {
 ~/.idle/harness/<harness>/              the harness: config.json, turn.ts, tools/, whatever it needs — a git repository the base drives
 ~/.idle/harness/<harness>/.sessions/<session>/
     record.jsonl                        one entry per turn: what arrived, every call and its result, what the model saw (only the
-                                        messages after the shared start), its answer, the turn's cost
+                                        messages after the shared start), its answer, the turn's cost, the commit the work was at
+    spill/                              tool answers too long for the context, whole
     inbox/                              one file per item; the only way into a session
     lock                                the process running the session's loop
 ```
@@ -65,7 +66,8 @@ Each module imports only from the ones below it; a test fails on any import cycl
 | `src/loop.ts` | the loop for one session, its building blocks, and stopping it mid-turn |
 | `src/harness.ts` | a harness folder at one version: its turn, its tools, its settings |
 | `src/tools.ts` | the bare tools and the registry |
-| `src/turn.ts` | the turn contract, the plain turn, and the crude fit of a context past its limit |
+| `src/turn.ts` | the turn contract and the plain turn |
+| `src/compact.ts` | spilling long tool answers, and compacting a context past its limit |
 | `src/record.ts` | a session's files: record, inbox, lock |
 | `src/model.ts` | what the model is shown and answers, and the call through OpenRouter |
 | `src/versions.ts` | versions of a harness folder, in git |

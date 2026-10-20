@@ -5,8 +5,12 @@ import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync
 import { join } from 'node:path';
 import type { Context } from './model.ts';
 
+// The human's answer to a piece of work: approved, with a rating from 1 to 5 now or later, or rejected with the reason.
+// task: the idle-tasks task it is for, when the human named it.
+export type Review = { verdict: 'approved' | 'rejected' | 'rated'; rating?: number; note: string; task?: string };
+
 // One thing that arrived in the inbox.
-export type Item = { from: string; at: string; text: string };
+export type Item = { from: string; at: string; text: string; review?: Review };
 
 const file = (dir: string) => join(dir, 'record.jsonl');
 const inbox = (dir: string) => join(dir, 'inbox');
@@ -66,10 +70,10 @@ export function follower(dir: string, fromEnd = false): () => any[] {
 // One file per item, written whole and then renamed into place, so several senders never collide.
 // The counter keeps the order of items one process sends within the same millisecond.
 let sent = 0;
-export function send(dir: string, from: string, text: string) {
+export function send(dir: string, from: string, text: string, review?: Review) {
   mkdirSync(inbox(dir), { recursive: true });
   const name = `${Date.now()}-${String(sent++).padStart(6, '0')}-${process.pid}.json`;
-  const item: Item = { from, at: now(), text };
+  const item: Item = { from, at: now(), text, ...(review ? { review } : {}) };
   writeFileSync(join(inbox(dir), `.${name}`), JSON.stringify(item));
   renameSync(join(inbox(dir), `.${name}`), join(inbox(dir), name));
 }

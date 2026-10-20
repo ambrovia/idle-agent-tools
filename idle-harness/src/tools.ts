@@ -10,8 +10,9 @@ import * as versions from './versions.ts';
 // What the model is told about a tool, and what runs when it calls it. The result is what the model reads back.
 export type Tool = { spec: ToolSpec; run(args: any, base: Blocks): Promise<unknown> | unknown };
 
-// Long output is cut in the middle: the start says what ran, the end says how it went.
-const MAX = 30_000;
+// Output past what a session should hold is cut in the middle: the start says what ran, the end says how it went.
+// Anything shorter reaches the base whole, which keeps a long answer in a file and gives the context its two ends.
+const MAX = 4_000_000;
 const clip = (text: string) => (text.length <= MAX ? text : `${text.slice(0, MAX / 2)}\n… cut …\n${text.slice(-MAX / 2)}`);
 
 // Commands run in their own process group, so a timeout or the end of the session stops everything they started,
@@ -37,7 +38,7 @@ function bash(command: string, timeout: number | undefined, base: Blocks): Promi
       stream.on('data', (data: string) => {
         if (finished) return; // a background job still writing is drained, not read
         out += data;
-        if (out.length > 4 * MAX) out = clip(out);
+        if (out.length > MAX) out = clip(out);
       });
     }
     if (child.pid) running.add(child.pid);
@@ -70,7 +71,7 @@ export const BARE: Tool[] = [
   tool('read', 'Read a text file.', { path: text, offset: { type: 'number', description: 'first line, counting from 1' }, limit: { type: 'number', description: 'how many lines' } }, ['path'], (a, base) => {
     const lines = readFileSync(at(base, a.path), 'utf8').split('\n');
     const first = Math.max(1, a.offset ?? 1) - 1;
-    return clip(lines.slice(first, a.limit ? first + a.limit : undefined).join('\n'));
+    return lines.slice(first, a.limit ? first + a.limit : undefined).join('\n');
   }),
   tool('write', 'Write a file, creating its folders. Replaces what is there.', { path: text, content: text }, ['path', 'content'], (a, base) => {
     mkdirSync(dirname(at(base, a.path)), { recursive: true });
@@ -87,7 +88,7 @@ export const BARE: Tool[] = [
   tool('bash', 'Run a shell command. There is no time limit unless you set one. A job left in the background runs until the session ends.', { command: text, timeout: { type: 'number', description: 'seconds' } }, ['command'], (a, base) => bash(a.command, a.timeout, base)),
   tool('versions', 'Earlier versions of your harness folder: list them, show what one changed, or restore the folder to one.', { action: { type: 'string', enum: ['list', 'show', 'restore'] }, version: text }, ['action'], (a, base) => {
     if (a.action === 'list') return versions.list(base.harness);
-    if (a.action === 'show') return clip(versions.show(base.harness, a.version));
+    if (a.action === 'show') return versions.show(base.harness, a.version);
     if (a.action === 'restore') return `the folder is back at ${a.version}; that is now version ${versions.restore(base.harness, a.version)}`;
     return 'error: action is list, show or restore';
   }),
