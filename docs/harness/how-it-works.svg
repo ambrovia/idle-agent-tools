@@ -1,197 +1,169 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1150" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="idle-harness explained. What we want: an AI agent rarely sees whether its result is right and never has all the information, so quality varies; a harness that closes the loop builds its own sensors and simulations, steers by them and keeps the ones that pay off, measured by the cost to reach a solution you approve and your rating. The building blocks: base loop, harness folder, versions, records, sensors and simulations, human review, idle-tasks, improvement. How it works: for every task a session acts, builds sensors, hands in and looks back; across many tasks improvement compares the sensors sessions built, keeps the best and makes it part of the harness for the next sessions.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 770" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="How idle-harness works, as one cycle. Tasks arrive, none of them complete. A working session closes its own loop: the agent acts on the work, builds sensors and simulations to see the result, and steers by them. It hands in; you approve and rate it. Everything is recorded: the cost to reach an approved solution and its rating, per task and per sensor version. Across many tasks, improvement keeps the best version of each sensor and makes it part of the harness. The next sessions start from that new version. Underneath, a base loop the agent cannot break keeps every version.">
   <style>
     .bg { fill: #ffffff; }
-    .panel { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
+    .stage { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
     .node { fill: #ffffff; stroke: #d0d7de; stroke-width: 1.2; }
-    .base { fill: #eaeef2; stroke: #8c959f; stroke-width: 1.3; }
-    .feature { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.3; }
-    .platform { fill: #fbefff; stroke: #c297ff; stroke-width: 1.3; }
-    .human { fill: #fff8c5; stroke: #d4a72c; stroke-width: 1.3; }
-    .record { fill: #ffffff; stroke: #8c959f; stroke-width: 1.3; }
-    .badge { fill: #1f2328; } .badgetext { font-size: 14px; font-weight: 700; fill: #ffffff; }
-    .num { fill: #0969da; } .nump { fill: #8250df; } .numtext { font-size: 12px; font-weight: 700; fill: #ffffff; }
-    .title { font-size: 30px; font-weight: 750; fill: #1f2328; }
-    .tag { font-size: 17px; fill: #1f2328; }
-    .small { font-size: 12px; fill: #59636e; }
-    .section { font-size: 19px; font-weight: 700; fill: #1f2328; }
-    .h { font-size: 14px; font-weight: 650; fill: #1f2328; }
+    .feature { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.5; }
+    .sensor { fill: #ffffff; stroke: #0969da; stroke-width: 1.6; }
+    .platform { fill: #fbefff; stroke: #c297ff; stroke-width: 1.5; }
+    .human { fill: #fff8c5; stroke: #d4a72c; stroke-width: 1.5; }
+    .base { fill: #eaeef2; stroke: #8c959f; stroke-width: 1.5; }
+    .goal { fill: none; stroke: #1a7f37; stroke-width: 1.5; stroke-dasharray: 6 4; }
+    .card { fill: #ffffff; stroke: #8c959f; stroke-width: 1.2; }
+    .badge { fill: #1f2328; } .badgetext { font-size: 13px; font-weight: 700; fill: #ffffff; }
+    .title { font-size: 26px; font-weight: 750; fill: #1f2328; }
+    .lead { font-size: 14px; fill: #1f2328; }
+    .h { font-size: 15px; font-weight: 650; fill: #1f2328; }
+    .t { font-size: 13px; font-weight: 600; fill: #1f2328; }
     .p { font-size: 13px; fill: #1f2328; }
     .s { font-size: 12px; fill: #59636e; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; fill: #1f2328; }
+    .goaltext { font-size: 12px; fill: #1a7f37; } .goalh { font-size: 13px; font-weight: 650; fill: #1a7f37; }
     .label { font-size: 12px; font-style: italic; fill: #59636e; }
-    .result { font-size: 15px; font-weight: 650; fill: #1f2328; }
-    .dot { fill: #59636e; } .dotgood { fill: #0969da; }
-    .target { stroke: #2da44e; stroke-width: 1.5; stroke-dasharray: 5 4; }
-    .targettext { font-size: 11px; fill: #1a7f37; }
-    .arrow { stroke: #59636e; stroke-width: 1.6; fill: none; marker-end: url(#grey); }
+    .flow { stroke: #1f2328; stroke-width: 2.2; fill: none; marker-end: url(#dark); }
+    .thin { stroke: #59636e; stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; marker-end: url(#grey); }
     .ctl { stroke: #0969da; stroke-width: 2; fill: none; marker-end: url(#blue); }
-    .plat { stroke: #8250df; stroke-width: 2; fill: none; marker-end: url(#purple); }
-    #grey path { fill: #59636e; } #blue path { fill: #0969da; } #purple path { fill: #8250df; }
+    .plat { stroke: #8250df; stroke-width: 2.4; fill: none; marker-end: url(#purple); }
+    #dark path { fill: #1f2328; } #grey path { fill: #59636e; } #blue path { fill: #0969da; } #purple path { fill: #8250df; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: #0d1117; }
-      .panel { fill: #161b22; stroke: #30363d; }
-      .node, .record { fill: #0d1117; }
-      .node { stroke: #30363d; } .record { stroke: #6e7681; }
-      .base { fill: #21262d; stroke: #6e7681; }
+      .stage { fill: #161b22; stroke: #30363d; }
+      .node, .sensor, .card { fill: #0d1117; }
+      .node { stroke: #30363d; } .card { stroke: #6e7681; } .sensor { stroke: #4493f8; }
       .feature { fill: #0c2d6b; stroke: #388bfd; }
       .platform { fill: #2b1a4a; stroke: #a371f7; }
       .human { fill: #3b2e00; stroke: #bb8009; }
+      .base { fill: #21262d; stroke: #6e7681; }
+      .goal { stroke: #3fb950; } .goaltext, .goalh { fill: #3fb950; }
       .badge { fill: #e6edf3; } .badgetext { fill: #0d1117; }
-      .num { fill: #388bfd; } .nump { fill: #a371f7; }
-      .title, .tag, .section, .h, .p, .result { fill: #e6edf3; }
-      .small, .s, .label { fill: #9198a1; }
-      .dot { fill: #9198a1; } .dotgood { fill: #4493f8; }
-      .target { stroke: #3fb950; } .targettext { fill: #3fb950; }
-      .arrow { stroke: #9198a1; } #grey path { fill: #9198a1; }
+      .title, .lead, .h, .t, .p, .code { fill: #e6edf3; }
+      .s, .label { fill: #9198a1; }
+      .flow { stroke: #e6edf3; } #dark path { fill: #e6edf3; }
+      .thin { stroke: #9198a1; } #grey path { fill: #9198a1; }
       .ctl { stroke: #4493f8; } #blue path { fill: #4493f8; }
       .plat { stroke: #ab7df8; } #purple path { fill: #ab7df8; }
     }
   </style>
   <defs>
+    <marker id="dark" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
   </defs>
-  <rect class="bg" x="0" y="0" width="1200" height="1150"/>
+  <rect class="bg" x="0" y="0" width="1200" height="770"/>
 
-  <!-- Header -->
-  <text class="title" x="40" y="56">idle-harness</text>
-  <text class="tag" x="40" y="88">An AI agent harness that closes its own loops, and gets better at its work by itself.</text>
-  <text class="small" x="40" y="112">A personal research project, work in progress · github.com/ambrovia/idle-agent-tools</text>
+  <!-- Title and goal -->
+  <text class="title" x="40" y="46">idle-harness — an agent harness that closes its own loops</text>
+  <text class="lead" x="40" y="76">Open-ended work is hard to check, and no task says everything. Better models master more skills, but none can see what it is not told.</text>
+  <text class="lead" x="40" y="96">So the agent builds its own sensors and simulations to see its results, and the harness keeps the best of them — getting better at its work by itself.</text>
 
-  <!-- 1 What we want -->
-  <rect class="panel" x="40" y="132" width="1120" height="280" rx="14"/>
-  <circle class="badge" cx="72" cy="162" r="14"/><text class="badgetext" x="72" y="167" text-anchor="middle">1</text>
-  <text class="section" x="96" y="169">What we want</text>
+  <!-- 1 Tasks -->
+  <rect class="stage" x="40" y="124" width="160" height="268" rx="12"/>
+  <circle class="badge" cx="62" cy="148" r="12"/><text class="badgetext" x="62" y="153" text-anchor="middle">1</text>
+  <text class="h" x="82" y="154">Tasks</text>
+  <rect class="card" x="72" y="176" width="110" height="58" rx="6"/>
+  <rect class="card" x="66" y="184" width="110" height="58" rx="6"/>
+  <rect class="card" x="60" y="192" width="110" height="58" rx="6"/>
+  <text class="t" x="115" y="217" text-anchor="middle">a task</text>
+  <text class="s" x="115" y="236" text-anchor="middle">from idle-tasks</text>
+  <text class="s" x="56" y="282">real work, one task</text>
+  <text class="s" x="56" y="299">after another, none</text>
+  <text class="s" x="56" y="316">of them complete:</text>
+  <text class="s" x="56" y="333">something is always</text>
+  <text class="s" x="56" y="350">left unsaid</text>
 
-  <text class="h" x="72" y="204">The problem</text>
-  <text class="p" x="72" y="224">An AI agent doing open-ended work rarely sees whether its result is</text>
-  <text class="p" x="72" y="242">right, and a task never says everything there is to know. So quality</text>
-  <text class="p" x="72" y="260">varies wildly — and a smarter model cannot make up for information</text>
-  <text class="p" x="72" y="278">it does not have.</text>
-  <text class="h" x="72" y="308">The goal</text>
-  <text class="p" x="72" y="328">A harness that closes the loop: it builds its own sensors and</text>
-  <text class="p" x="72" y="346">simulations to see the result of its work, steers by them, and keeps</text>
-  <text class="p" x="72" y="364">the ones that pay off, specialising itself to the work it does.</text>
-  <text class="p" x="72" y="394"><tspan class="h">Measured by</tspan>  the cost to reach a solution you approve, and your rating of it.</text>
+  <!-- 2 Working session -->
+  <rect class="feature" x="236" y="124" width="500" height="268" rx="12"/>
+  <circle class="badge" cx="258" cy="148" r="12"/><text class="badgetext" x="258" y="153" text-anchor="middle">2</text>
+  <text class="h" x="278" y="154">A working session closes its own loop</text>
 
-  <!-- open loop -->
-  <rect class="node" x="600" y="184" width="262" height="212" rx="10"/>
-  <text class="h" x="614" y="206">Open loop: act and hope</text>
-  <rect class="node" x="616" y="222" width="90" height="40" rx="8"/><text class="p" x="661" y="247" text-anchor="middle">agent</text>
-  <rect class="node" x="756" y="222" width="90" height="40" rx="8"/><text class="p" x="801" y="247" text-anchor="middle">result ?</text>
-  <path class="arrow" d="M706,242 L754,242"/><text class="label" x="730" y="236" text-anchor="middle">acts</text>
-  <line class="target" x1="616" y1="330" x2="846" y2="330"/>
-  <text class="targettext" x="616" y="324">what was wanted</text>
-  <circle class="dot" cx="718" cy="298" r="5"/><circle class="dot" cx="738" cy="352" r="5"/><circle class="dot" cx="758" cy="312" r="5"/>
-  <circle class="dot" cx="778" cy="366" r="5"/><circle class="dot" cx="798" cy="290" r="5"/><circle class="dot" cx="818" cy="340" r="5"/><circle class="dot" cx="838" cy="372" r="5"/>
-  <text class="s" x="731" y="388" text-anchor="middle">seven runs: quality varies wildly</text>
+  <rect class="node" x="262" y="178" width="160" height="58" rx="8"/>
+  <text class="t" x="342" y="202" text-anchor="middle">the agent's turn</text>
+  <text class="s" x="342" y="222" text-anchor="middle">the LLM, steering</text>
+  <rect class="node" x="556" y="178" width="160" height="58" rx="8"/>
+  <text class="t" x="636" y="202" text-anchor="middle">the work</text>
+  <text class="s" x="636" y="222" text-anchor="middle">code · service · data</text>
+  <rect class="sensor" x="400" y="278" width="180" height="58" rx="8"/>
+  <text class="t" x="490" y="302" text-anchor="middle">sensors · simulations</text>
+  <text class="s" x="490" y="322" text-anchor="middle">checks, probes, fakes</text>
 
-  <!-- closed loop -->
-  <rect class="node" x="882" y="184" width="262" height="212" rx="10"/>
-  <text class="h" x="896" y="206">Closed loop: act, measure, correct</text>
-  <rect class="node" x="898" y="222" width="80" height="40" rx="8"/><text class="p" x="938" y="247" text-anchor="middle">agent</text>
-  <rect class="node" x="1048" y="222" width="80" height="40" rx="8"/><text class="p" x="1088" y="247" text-anchor="middle">result</text>
-  <rect class="feature" x="968" y="272" width="90" height="30" rx="8"/><text class="s" x="1013" y="292" text-anchor="middle">sensor</text>
-  <path class="ctl" d="M978,242 L1046,242"/><text class="label" x="1012" y="236" text-anchor="middle">acts</text>
-  <path class="ctl" d="M1088,262 C1088,280 1075,287 1060,287"/>
-  <path class="ctl" d="M966,287 C950,287 938,280 938,264"/>
-  <line class="target" x1="898" y1="340" x2="1128" y2="340"/>
-  <text class="targettext" x="898" y="330">what was wanted</text>
-  <circle class="dotgood" cx="1004" cy="346" r="5"/><circle class="dotgood" cx="1022" cy="336" r="5"/><circle class="dotgood" cx="1040" cy="343" r="5"/>
-  <circle class="dotgood" cx="1058" cy="338" r="5"/><circle class="dotgood" cx="1076" cy="341" r="5"/><circle class="dotgood" cx="1094" cy="337" r="5"/><circle class="dotgood" cx="1112" cy="342" r="5"/>
-  <text class="s" x="1013" y="388" text-anchor="middle">seven runs: close to what was wanted</text>
+  <path class="ctl" d="M422,207 L554,207"/><text class="label" x="488" y="199" text-anchor="middle">acts</text>
+  <path class="ctl" d="M636,236 C636,272 612,300 582,306"/><text class="label" x="652" y="282">measured</text>
+  <path class="ctl" d="M398,306 C366,300 342,272 342,238"/><text class="label" x="330" y="290" text-anchor="end">shows the result</text>
 
-  <!-- 2 The building blocks -->
-  <rect class="panel" x="40" y="428" width="1120" height="272" rx="14"/>
-  <circle class="badge" cx="72" cy="458" r="14"/><text class="badgetext" x="72" y="463" text-anchor="middle">2</text>
-  <text class="section" x="96" y="465">The building blocks</text>
+  <text class="s" x="262" y="364">Uses the harness's tools and builds new ones where it cannot see;</text>
+  <text class="s" x="262" y="381">a simulation where it may not try things for real. Ends with a retrospective.</text>
 
-  <rect class="base" x="72" y="480" width="252" height="100" rx="10"/>
-  <text class="h" x="86" y="504">Base loop</text>
-  <text class="s" x="86" y="526">Runs every turn. The agent cannot</text>
-  <text class="s" x="86" y="543">break it: if the agent's own code</text>
-  <text class="s" x="86" y="560">fails, a plain turn takes over.</text>
+  <!-- 3 Review -->
+  <rect class="human" x="790" y="124" width="170" height="268" rx="12"/>
+  <circle class="badge" cx="814" cy="148" r="12"/><text class="badgetext" x="814" y="153" text-anchor="middle">3</text>
+  <text class="h" x="834" y="154">You review</text>
+  <text class="p" x="810" y="190">approve the solution</text>
+  <text class="p" x="810" y="210">and rate it 1–5</text>
+  <text class="s" x="810" y="240">in the chat, on the</text>
+  <text class="s" x="810" y="257">command line or on</text>
+  <text class="s" x="810" y="274">a pull request</text>
+  <text class="s" x="810" y="304">nothing waits for you;</text>
+  <text class="s" x="810" y="321">the agent moves on</text>
 
-  <rect class="base" x="340" y="480" width="252" height="100" rx="10"/>
-  <text class="h" x="354" y="504">Harness folder</text>
-  <text class="s" x="354" y="526">The agent's own: turn.ts (how each</text>
-  <text class="s" x="354" y="543">turn works), tools/, notes. Loaded</text>
-  <text class="s" x="354" y="560">again every turn; anything can change.</text>
+  <!-- What counts -->
+  <rect class="goal" x="990" y="124" width="170" height="268" rx="12"/>
+  <text class="goalh" x="1006" y="154">What counts</text>
+  <text class="goaltext" x="1006" y="186">efficiency:</text>
+  <text class="goaltext" x="1006" y="203">the cost to reach a</text>
+  <text class="goaltext" x="1006" y="220">solution you approve</text>
+  <text class="goaltext" x="1006" y="252">quality:</text>
+  <text class="goaltext" x="1006" y="269">your rating of it</text>
+  <text class="goaltext" x="1006" y="301">measured on real</text>
+  <text class="goaltext" x="1006" y="318">work over many tasks,</text>
+  <text class="goaltext" x="1006" y="335">never a benchmark</text>
 
-  <rect class="base" x="608" y="480" width="252" height="100" rx="10"/>
-  <text class="h" x="622" y="504">Versions</text>
-  <text class="s" x="622" y="526">Every change to the folder is saved</text>
-  <text class="s" x="622" y="543">in git. The agent can always look</text>
-  <text class="s" x="622" y="560">back and undo a change.</text>
+  <!-- top row flow -->
+  <path class="flow" d="M200,258 L234,258"/>
+  <path class="flow" d="M736,258 L788,258"/><text class="label" x="763" y="248" text-anchor="middle">hands in</text>
 
-  <rect class="base" x="876" y="480" width="252" height="100" rx="10"/>
-  <text class="h" x="890" y="504">Records</text>
-  <text class="s" x="890" y="526">Every turn, tool call, cost and</text>
-  <text class="s" x="890" y="543">token, kept in full, even when the</text>
-  <text class="s" x="890" y="560">agent's context is compacted.</text>
+  <!-- 4 Record -->
+  <rect class="stage" x="880" y="440" width="280" height="200" rx="12"/>
+  <circle class="badge" cx="902" cy="464" r="12"/><text class="badgetext" x="902" y="469" text-anchor="middle">4</text>
+  <text class="h" x="922" y="470">Everything is recorded</text>
+  <text class="s" x="898" y="498">every turn, tool call, cost and token;</text>
+  <text class="s" x="898" y="515">approval, rating and retrospective</text>
+  <text class="s" x="898" y="532">in idle-tasks</text>
+  <rect class="node" x="898" y="550" width="244" height="74" rx="8"/>
+  <text class="t" x="910" y="572">the cost to an approved solution</text>
+  <text class="t" x="910" y="590">and its rating, per task and per</text>
+  <text class="t" x="910" y="608">version of every sensor</text>
+  <path class="flow" d="M920,392 L920,438"/><text class="label" x="930" y="420">approval, rating</text>
+  <path class="thin" d="M700,392 C720,422 810,432 878,472"/><text class="label" x="752" y="456">every turn</text>
 
-  <rect class="feature" x="72" y="592" width="252" height="100" rx="10"/>
-  <text class="h" x="86" y="616">Sensors and simulations</text>
-  <text class="s" x="86" y="638">Checks, probes and fakes a session</text>
-  <text class="s" x="86" y="655">builds to see the result of its work,</text>
-  <text class="s" x="86" y="672">or to try things safely.</text>
+  <!-- 5 Improvement -->
+  <rect class="platform" x="460" y="440" width="360" height="200" rx="12"/>
+  <circle class="badge" cx="482" cy="464" r="12"/><text class="badgetext" x="482" y="469" text-anchor="middle">5</text>
+  <text class="h" x="502" y="470">Improvement, across many tasks</text>
+  <text class="p" x="480" y="500">Sessions each built their own version of a sensor.</text>
+  <text class="p" x="480" y="522">It keeps the one that did the job best, for least,</text>
+  <text class="p" x="480" y="544">makes it part of the harness — tested, and run by</text>
+  <text class="p" x="480" y="566">the turn without being asked — and removes what</text>
+  <text class="p" x="480" y="588">never fired.</text>
+  <text class="s" x="480" y="618">its own session · small steps that say what they are for</text>
+  <path class="flow" d="M878,540 L822,540"/><text class="label" x="850" y="530" text-anchor="middle">evidence</text>
 
-  <rect class="human" x="340" y="592" width="252" height="100" rx="10"/>
-  <text class="h" x="354" y="616">Human review</text>
-  <text class="s" x="354" y="638">You approve a solution and rate it</text>
-  <text class="s" x="354" y="655">1–5, in chat, CLI or a pull request.</text>
-  <text class="s" x="354" y="672">Nothing waits for you.</text>
+  <!-- 6 The harness -->
+  <rect class="base" x="40" y="440" width="360" height="200" rx="12"/>
+  <circle class="badge" cx="62" cy="464" r="12"/><text class="badgetext" x="62" y="469" text-anchor="middle">6</text>
+  <text class="h" x="82" y="470">The harness, a new version</text>
+  <text class="p" x="60" y="500">a folder the agent owns and may change</text>
+  <text class="p" x="60" y="520">entirely:</text>
+  <rect class="node" x="60" y="532" width="320" height="38" rx="8"/>
+  <text class="code" x="76" y="556">turn.ts · tools/*.ts · notes · settings</text>
+  <text class="s" x="60" y="594">turn.ts decides how each turn runs; tools/ are its own</text>
+  <text class="s" x="60" y="611">tools; v1 → v2 → v3, every change kept in git</text>
+  <path class="plat" d="M458,540 L402,540"/><text class="label" x="430" y="530" text-anchor="middle">writes</text>
+  <path class="plat" d="M300,438 L300,394"/><text class="label" x="310" y="422">the next sessions start from it</text>
 
-  <rect class="record" x="608" y="592" width="252" height="100" rx="10"/>
-  <text class="h" x="622" y="616">idle-tasks</text>
-  <text class="s" x="622" y="638">The record of work: tasks, their</text>
-  <text class="s" x="622" y="655">history, approvals, ratings and</text>
-  <text class="s" x="622" y="672">retrospectives.</text>
-
-  <rect class="platform" x="876" y="592" width="252" height="100" rx="10"/>
-  <text class="h" x="890" y="616">Improvement</text>
-  <text class="s" x="890" y="638">Its own session, across many tasks:</text>
-  <text class="s" x="890" y="655">keeps what pays off and removes</text>
-  <text class="s" x="890" y="672">what never did.</text>
-
-  <!-- 3 How it works -->
-  <rect class="panel" x="40" y="716" width="1120" height="414" rx="14"/>
-  <circle class="badge" cx="72" cy="746" r="14"/><text class="badgetext" x="72" y="751" text-anchor="middle">3</text>
-  <text class="section" x="96" y="753">How it works</text>
-
-  <rect class="feature" x="72" y="768" width="504" height="290" rx="12"/>
-  <text class="h" x="92" y="796">For every task — the feature loop</text>
-  <circle class="num" cx="98" cy="826" r="11"/><text class="numtext" x="98" y="830" text-anchor="middle">1</text>
-  <text class="p" x="118" y="831">A session takes a task, starting from the current harness.</text>
-  <circle class="num" cx="98" cy="876" r="11"/><text class="numtext" x="98" y="880" text-anchor="middle">2</text>
-  <text class="p" x="118" y="881">It acts on the work, builds sensors or simulations to see</text>
-  <text class="p" x="118" y="899">the result, and steers by what they show.</text>
-  <circle class="num" cx="98" cy="944" r="11"/><text class="numtext" x="98" y="948" text-anchor="middle">3</text>
-  <text class="p" x="118" y="949">It hands the solution in. You approve it and rate it.</text>
-  <circle class="num" cx="98" cy="994" r="11"/><text class="numtext" x="98" y="998" text-anchor="middle">4</text>
-  <text class="p" x="118" y="999">It looks back in a retrospective: what helped,</text>
-  <text class="p" x="118" y="1017">what got in the way, and why.</text>
-  <text class="s" x="92" y="1046">Repeats for every task. What a session builds is a proposal.</text>
-
-  <rect class="platform" x="624" y="768" width="504" height="290" rx="12"/>
-  <text class="h" x="644" y="796">Across many tasks — the platform loop</text>
-  <circle class="nump" cx="650" cy="826" r="11"/><text class="numtext" x="650" y="830" text-anchor="middle">5</text>
-  <text class="p" x="670" y="831">Improvement reads the records: what each task cost to</text>
-  <text class="p" x="670" y="849">reach approval and how it was rated, and the same per sensor.</text>
-  <circle class="nump" cx="650" cy="894" r="11"/><text class="numtext" x="650" y="898" text-anchor="middle">6</text>
-  <text class="p" x="670" y="899">Sessions each built their own version of a sensor. It</text>
-  <text class="p" x="670" y="917">keeps the one that did the job best, for least.</text>
-  <circle class="nump" cx="650" cy="962" r="11"/><text class="numtext" x="650" y="966" text-anchor="middle">7</text>
-  <text class="p" x="670" y="967">It makes that sensor part of the harness, tested and run</text>
-  <text class="p" x="670" y="985">every time, and removes what never fired.</text>
-  <circle class="nump" cx="650" cy="1012" r="11"/><text class="numtext" x="650" y="1016" text-anchor="middle">8</text>
-  <text class="p" x="670" y="1017">Every later session starts with it.</text>
-  <text class="s" x="644" y="1046">Runs every few tasks, in small steps that say what they are for.</text>
-
-  <path class="arrow" d="M576,856 L622,856"/>
-  <text class="label" x="599" y="848" text-anchor="middle">records</text>
-  <path class="plat" d="M876,1058 L876,1086 L324,1086 L324,1060"/>
-  <text class="label" x="600" y="1080" text-anchor="middle">a new version of the harness, for the next sessions</text>
-
-  <text class="result" x="600" y="1114" text-anchor="middle">Over many tasks the harness specialises to the work it actually does: solutions you approve, for less, rated higher.</text>
+  <!-- The base -->
+  <rect class="base" x="40" y="664" width="1120" height="76" rx="12"/>
+  <text class="h" x="60" y="692">Underneath: the base, a loop the agent cannot break</text>
+  <text class="s" x="60" y="716">It runs every turn and loads the harness again each time. If the agent's own code fails, a plain turn takes over. Every version of the harness is</text>
+  <text class="s" x="60" y="732">kept, so the agent can always go back; records are never lost, even when the agent's context is compacted.</text>
 </svg>
