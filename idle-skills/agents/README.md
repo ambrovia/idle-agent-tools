@@ -24,7 +24,7 @@ Frontmatter is harness-neutral; the generator maps it to each tool's dialect:
 | **Claude Code** | `agents/*.md` (registered in `.claude-plugin/plugin.json`) | `tools` PascalCase string + `model` real id (`opus` / `sonnet`) | `skills` field → `./skills` |
 | **Cursor** | `agents-cursor/*.md` (registered in `.cursor-plugin/plugin.json`) | `model: inherit`; `readonly: true` when write+edit are false | `skills` field → `./skills` |
 | **opencode** | `.opencode/agents/*.md` | `mode: subagent` + `tools` deny-map; `model` omitted (inherit) | `.opencode/skills/` (install-time copy) |
-| **Codex** | `.codex/agents/*.toml` + `.codex/config.toml` | `name` / `description` / `model` / `developer_instructions`; `model_reasoning_effort: high` for high-capability | `.codex-plugin/plugin.json` -> `./skills` |
+| **Codex** | `.codex/agents/*.toml` + `.codex/config.toml` | `name` / `description` / `developer_instructions`; `model` omitted (inherit); `model_reasoning_effort: high` for high-capability | `.codex-plugin/plugin.json` -> `./skills` |
 
 Codex has native TOML subagents, but they are registered through
 `.codex/config.toml`; the TOML files alone are inert. The plugin manifest exposes
