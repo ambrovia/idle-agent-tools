@@ -62,11 +62,11 @@ Editing directly, with no reference run, probes or library, did much worse: Code
 
 ## What idle-harness takes from Harness²
 
-1. **Paired evidence, made cheap.** idle-harness's planned replay of a single recorded turn is the inexpensive form of Harness²'s probe: the same moment with and without a change. Build it, and allow a full re-run only where a task is sandboxed and cheap, so a change gets attributable evidence before dozens of tasks have passed.
+1. **Paired evidence, at three sizes.** Run a piece of recorded work again with a change: a single turn, an episode from a recorded point to the end of a sub-goal (which needs the project's files as they were), or the whole task in a container. Running again also lets the task at hand try candidates and keep the better result, so how much of it a task gets follows what the task is worth.
 2. **Every change says whether it is general or domain-specific.** That separates what can carry over to another harness (intent I8) from what specialises this one. It belongs in the change declarations still to be built.
 3. **Evidence gating.** A change, or a lesson, is kept only when it cites concrete records: turns, outcomes, a replay. This is stricter than what the improvement session is asked for today.
-4. **The library, tested as a structure.** Next to the cumulative harness, test a harness that starts each task from its base and composes from adopted pieces, on a real stream of work, by cost to approval and rating.
-5. **A known place for every change.** Use Harness²'s eight slots as a starting layout for the harness folder, with `turn.ts` as idle-harness's addition (intent I5).
+4. **A library, as skills with evidence.** A Harness² library entry is a way of solving a kind of problem with its working parts, plus the lessons and evidence for when it applies: a mix of skill and memory. In idle-harness that is a skill whose `SKILL.md` says when it applies and cites the records that showed it working. Only its description is always present. Improvement decides what belongs in the always-loaded core (the turn, the tools) and what in the on-demand library, by what each costs and how often it fires.
+5. **A known place for every change.** idle-harness does not take Harness²'s eight files but three kinds of part: its own code (`turn.ts`, `tools/`); what it hands to the base's building blocks (skills, memory, subagents); and its settings. Guardrails are left to the auto mode of the second step (intent I5).
 
 ## What idle-harness keeps
 

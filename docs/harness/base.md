@@ -12,6 +12,14 @@ One service runs the harnesses, as a daemon: always there in the background, whe
 
 **A harness is a folder.** It lives in user space, `~/.idle/harness/<name>/`, and holds its configuration (which plugins and MCP servers it uses), its skills, the code for its turn, and whatever files that code needs. There is no project level: a harness for one project is just another harness. A new harness is an empty folder and still works, because the base supplies the bare tools: read, write, edit, bash.
 
+**What a harness is made of.** Three kinds of thing, not a fixed list of files:
+
+- **Its own code:** `turn.ts`, how each turn runs, and `tools/<name>.ts`, its own tools — the sensors, simulations and helpers it builds.
+- **What it hands to the base's building blocks:** its skills, its memory and its subagents. Skills are its library: ways of solving a kind of problem, each with when it applies and the records that showed it working; only a skill's description is always present, the rest loads when a task needs it. Memory is a building block, and idle-tasks keeps the memories shared beyond one harness.
+- **Its settings,** in `config.json`.
+
+What is always loaded is paid for on every turn; what loads on demand only when used. Improvement decides which is which: a part that fires on nearly every task belongs in the turn or the tools, one that fires rarely belongs in the library. Guardrails are not a part of the harness: holding back a harmful change is the second step's auto mode.
+
 **Reuse comes from plugins,** and only from the portable pieces: SKILL.md skills and MCP servers. A harness never changes a plugin, the base never changes, and nothing moves from one harness into another or into the base.
 
 **The base owns the loop; the harness owns the turn.** The harness programs one function:
@@ -79,11 +87,17 @@ Only what retrospectives and improvement need to connect things. They do the res
 
 **Productivity is the goal.** A change should make the work better, faster or cheaper; better includes simpler and lasting longer. A change is kept when it improves one of these without making the others worse by more than the noise. A trade-off has to pay for itself.
 
-**Every change declares itself.** One mechanism per change, so its effect can be told apart from the others. The agent states what friction it answers, what it changes and what it expects to get better; the base keeps that with the version. Improvement later writes the outcome next to it — kept or undone, and what the signals did — and so scores the predictions over time.
+**Every change declares itself.** One mechanism per change, so its effect can be told apart from the others. The agent states what friction it answers, what it changes, what it expects to get better, and whether the change is general — about how an agent works, so it could carry over to another harness — or about this harness's domain. It cites the records it rests on: turns, outcomes, replays. A change or a lesson that cites nothing is not kept. The base keeps the declaration with the version. Improvement later writes the outcome next to it — kept or undone, and what the signals did — and so scores the predictions over time.
 
 **Unhelpful parts are flagged, not deleted.** A part that has not paid off for a while is flagged. Removing it is a normal change and goes through the same steps.
 
-**Replaying a moment.** To test a change at once, replay one recorded turn: give the changed harness the same three inputs, let it build its prompt, call the model once, and compare the answer with the recorded one. Tool calls in that turn are the recorded ones, so their results come from the record and nothing runs for real. Improvement says beforehand what should be different, then looks at a handful of samples. Moments that went well can be replayed the same way, to see that a change did not break them. Replaying one moment several times with the unchanged harness shows how much its answers vary: the noise a change has to beat. Whether this helps agents tune their changes is the first thing to find out.
+**Running it again.** A change is tested by running a piece of recorded work again with it, against the same piece with the harness as it was: paired evidence, the same work differing by one change. Three sizes, cheapest first:
+
+- **A turn.** The changed harness gets the same three inputs, builds its prompt, and the model is called once. Tool calls come from the record, so nothing runs for real. It shows whether a change alters the next move.
+- **An episode.** From a recorded point — the start of a sub-goal, the turn before a failure — the changed harness works on until that sub-goal is reached or fails. That needs the project's files as they were, so the base snapshots the working directory at turn boundaries.
+- **A task.** The whole task again, in a container where side effects do not matter.
+
+Running again also serves the task at hand: a harness can try candidates and keep the better result. Every run costs, so how much of it a task gets follows what the task is worth. Improvement says beforehand what should be different. Moments that went well are run again too, to see that a change did not break them, and running one moment several times with the unchanged harness shows the noise a change has to beat.
 
 ## Second step
 
