@@ -1,124 +1,175 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="idle-harness: working sessions build sensors and simulations to see the result of their work; you approve and rate; everything is recorded; improvement keeps the sensors that did best for least and writes them into the harness the next sessions run on.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 800" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="How idle-harness specialises. Inside every turn the base loads the harness folder, turn.ts shapes the request, the model calls base tools and the harness's own tools, and anything written to the folder is a new version, live next turn. Over many tasks, working sessions each build their own version of a sensor; the ledger compares the versions; improvement keeps the best one, gives it a test and calls it from turn.ts; the next sessions start with it and reach an approved solution for less.">
   <style>
     .bg { fill: #ffffff; }
-    .card { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
-    .feature { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.5; }
-    .platform { fill: #fbefff; stroke: #c297ff; stroke-width: 1.5; }
-    .human { fill: #fff8c5; stroke: #d4a72c; stroke-width: 1.5; }
-    .base { fill: #eaeef2; stroke: #8c959f; stroke-width: 1.5; }
+    .panel { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
     .node { fill: #ffffff; stroke: #d0d7de; stroke-width: 1.2; }
-    .badge { fill: #1f2328; }
-    .badgetext { font-size: 13px; font-weight: 700; fill: #ffffff; }
+    .feature { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.4; }
+    .platform { fill: #fbefff; stroke: #c297ff; stroke-width: 1.4; }
+    .base { fill: #eaeef2; stroke: #8c959f; stroke-width: 1.4; }
+    .chip { fill: #ffffff; stroke: #54aeff; stroke-width: 1.2; }
+    .chipp { fill: #ffffff; stroke: #8250df; stroke-width: 1.6; }
+    .bar { fill: #54aeff; } .barp { fill: #8250df; }
     .title { font-size: 22px; font-weight: 700; fill: #1f2328; }
     .sub { font-size: 14px; fill: #59636e; }
     .h { font-size: 16px; font-weight: 650; fill: #1f2328; }
     .t { font-size: 13px; font-weight: 600; fill: #1f2328; }
     .s { font-size: 12px; fill: #59636e; }
+    .xs { font-size: 11px; fill: #59636e; }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; fill: #1f2328; }
+    .lane { font-size: 12px; font-weight: 600; fill: #59636e; }
     .label { font-size: 12px; font-style: italic; fill: #59636e; }
     .arrow { stroke: #59636e; stroke-width: 1.6; fill: none; marker-end: url(#grey); }
-    .ctl { stroke: #0969da; stroke-width: 2; fill: none; marker-end: url(#blue); }
     .plat { stroke: #8250df; stroke-width: 2; fill: none; marker-end: url(#purple); }
-    #grey path { fill: #59636e; } #blue path { fill: #0969da; } #purple path { fill: #8250df; }
+    #grey path { fill: #59636e; } #purple path { fill: #8250df; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: #0d1117; }
-      .card { fill: #161b22; stroke: #30363d; }
+      .panel { fill: #161b22; stroke: #30363d; }
+      .node, .chip, .chipp { fill: #0d1117; }
+      .node { stroke: #30363d; }
       .feature { fill: #0c2d6b; stroke: #388bfd; }
       .platform { fill: #2b1a4a; stroke: #a371f7; }
-      .human { fill: #3b2e00; stroke: #bb8009; }
       .base { fill: #21262d; stroke: #6e7681; }
-      .node { fill: #0d1117; stroke: #30363d; }
-      .badge { fill: #e6edf3; } .badgetext { fill: #0d1117; }
-      .title, .h, .t { fill: #e6edf3; } .sub, .s, .label { fill: #9198a1; }
+      .chip { stroke: #388bfd; } .chipp { stroke: #a371f7; }
+      .bar { fill: #388bfd; } .barp { fill: #a371f7; }
+      .title, .h, .t, .code { fill: #e6edf3; }
+      .sub, .s, .xs, .lane, .label { fill: #9198a1; }
       .arrow { stroke: #9198a1; } #grey path { fill: #9198a1; }
-      .ctl { stroke: #4493f8; } #blue path { fill: #4493f8; }
       .plat { stroke: #ab7df8; } #purple path { fill: #ab7df8; }
     }
   </style>
   <defs>
     <marker id="grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
-    <marker id="blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
     <marker id="purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
   </defs>
-  <rect class="bg" x="0" y="0" width="1000" height="680"/>
+  <rect class="bg" x="0" y="0" width="1100" height="800"/>
 
-  <text class="title" x="40" y="44">idle-harness — a harness that closes its own loops</text>
-  <text class="sub" x="40" y="70">Work is hard to check when information is missing. Sessions build what lets them see the result; improvement keeps what pays.</text>
+  <text class="title" x="30" y="42">idle-harness — how a harness specialises itself</text>
+  <text class="sub" x="30" y="68">Sessions build what they need to see their result. Improvement turns the sensors that paid off into part of the harness.</text>
 
-  <!-- 1 The feature loop -->
-  <rect class="feature" x="40" y="96" width="430" height="336" rx="12"/>
-  <circle class="badge" cx="66" cy="124" r="12"/><text class="badgetext" x="66" y="129" text-anchor="middle">1</text>
-  <text class="h" x="88" y="130">A working session does a task</text>
-  <text class="s" x="88" y="150">the feature loop · minutes to hours</text>
+  <!-- Panel A: inside every turn -->
+  <rect class="panel" x="30" y="88" width="1040" height="214" rx="12"/>
+  <text class="h" x="52" y="118">Inside every turn — what a harness can program</text>
 
-  <rect class="node" x="60" y="176" width="150" height="56" rx="8"/>
-  <text class="t" x="135" y="200" text-anchor="middle">the LLM turn</text>
-  <text class="s" x="135" y="219" text-anchor="middle">the controller</text>
+  <rect class="base" x="56" y="138" width="208" height="104" rx="8"/>
+  <text class="t" x="160" y="164" text-anchor="middle">the base loads the harness</text>
+  <text class="s" x="160" y="186" text-anchor="middle">its folder, at the latest version:</text>
+  <text class="code" x="160" y="206" text-anchor="middle">turn.ts · tools/*.ts · notes</text>
+  <text class="xs" x="160" y="228" text-anchor="middle">a loop the harness cannot break</text>
 
-  <rect class="node" x="300" y="176" width="150" height="56" rx="8"/>
-  <text class="t" x="375" y="200" text-anchor="middle">sensors, simulations</text>
-  <text class="s" x="375" y="219" text-anchor="middle">checks · probes · fakes</text>
+  <rect class="node" x="316" y="138" width="208" height="104" rx="8"/>
+  <text class="t" x="420" y="164" text-anchor="middle">turn.ts shapes the request</text>
+  <text class="code" x="420" y="186" text-anchor="middle">turn(context, response, …)</text>
+  <text class="s" x="420" y="206" text-anchor="middle">what the model sees, which tools,</text>
+  <text class="s" x="420" y="224" text-anchor="middle">when to run a check</text>
 
-  <rect class="node" x="180" y="296" width="150" height="56" rx="8"/>
-  <text class="t" x="255" y="320" text-anchor="middle">the work</text>
-  <text class="s" x="255" y="339" text-anchor="middle">project · service · world</text>
+  <rect class="node" x="576" y="138" width="208" height="104" rx="8"/>
+  <text class="t" x="680" y="164" text-anchor="middle">the model decides</text>
+  <text class="s" x="680" y="186" text-anchor="middle">base tools: read, write, edit, bash</text>
+  <text class="s" x="680" y="206" text-anchor="middle">+ the harness's own tools,</text>
+  <text class="code" x="680" y="224" text-anchor="middle">tools/probe.ts …</text>
 
-  <path class="ctl" d="M135,232 C135,268 156,300 178,316"/>
-  <text class="label" x="118" y="284" text-anchor="end">acts on</text>
-  <path class="ctl" d="M332,316 C356,300 375,268 375,234"/>
-  <text class="label" x="386" y="284">measures</text>
-  <path class="ctl" d="M298,204 L212,204"/>
-  <text class="label" x="255" y="196" text-anchor="middle">the result</text>
+  <rect class="node" x="836" y="138" width="208" height="104" rx="8"/>
+  <text class="t" x="940" y="164" text-anchor="middle">tools run, the base records</text>
+  <text class="s" x="940" y="186" text-anchor="middle">every call, cost and token;</text>
+  <text class="s" x="940" y="206" text-anchor="middle">a file written to the harness is</text>
+  <text class="s" x="940" y="224" text-anchor="middle">a new version, live next turn</text>
 
-  <text class="s" x="60" y="384">Where it cannot try things on the real thing, it builds a</text>
-  <text class="s" x="60" y="402">simulation and keeps checking it against reality. It ends</text>
-  <text class="s" x="60" y="420">with a retrospective and asks for review — then moves on.</text>
+  <path class="arrow" d="M264,190 L314,190"/><text class="label" x="289" y="182" text-anchor="middle">loads</text>
+  <path class="arrow" d="M524,190 L574,190"/><text class="label" x="549" y="182" text-anchor="middle">request</text>
+  <path class="arrow" d="M784,190 L834,190"/><text class="label" x="809" y="182" text-anchor="middle">calls</text>
+  <path class="arrow" d="M940,242 L940,280 L160,280 L160,244"/>
+  <text class="label" x="550" y="274" text-anchor="middle">next turn</text>
 
-  <!-- 2 Review by the human -->
-  <rect class="human" x="530" y="96" width="430" height="84" rx="12"/>
-  <circle class="badge" cx="556" cy="124" r="12"/><text class="badgetext" x="556" y="129" text-anchor="middle">2</text>
-  <text class="h" x="578" y="130">You approve the solution and rate it 1–5</text>
-  <text class="s" x="578" y="152">in the chat, on the command line or on a pull request</text>
-  <text class="s" x="578" y="170">nothing waits for it</text>
-  <path class="arrow" d="M470,136 L528,136"/>
-  <text class="label" x="499" y="126" text-anchor="middle">review</text>
+  <!-- Panel B: over many tasks -->
+  <rect class="panel" x="30" y="322" width="1040" height="460" rx="12"/>
+  <text class="h" x="52" y="352">Over many tasks — how a sensor becomes part of the harness (an example)</text>
 
-  <!-- 3 The record -->
-  <rect class="card" x="530" y="208" width="430" height="100" rx="12"/>
-  <circle class="badge" cx="556" cy="236" r="12"/><text class="badgetext" x="556" y="241" text-anchor="middle">3</text>
-  <text class="h" x="578" y="242">Everything is recorded</text>
-  <text class="s" x="578" y="266">session records — every turn, call, cost and token</text>
-  <text class="s" x="578" y="286">idle-tasks — the task, its approval, rating and retrospective</text>
-  <path class="arrow" d="M470,258 L528,258"/>
-  <text class="label" x="499" y="248" text-anchor="middle">records</text>
-  <path class="arrow" d="M745,180 L745,206"/>
+  <text class="lane" x="50" y="402">working</text><text class="lane" x="50" y="418">sessions</text>
+  <text class="lane" x="50" y="512">the ledger</text>
+  <text class="lane" x="50" y="614">the harness</text>
+  <text class="lane" x="50" y="704">cost per</text><text class="lane" x="50" y="720">approved task</text>
 
-  <!-- 4 The platform loop -->
-  <rect class="platform" x="530" y="336" width="430" height="176" rx="12"/>
-  <circle class="badge" cx="556" cy="364" r="12"/><text class="badgetext" x="556" y="369" text-anchor="middle">4</text>
-  <text class="h" x="578" y="370">Improvement, across many tasks</text>
-  <text class="s" x="578" y="390">the platform loop · its own session, small steps</text>
-  <path class="arrow" d="M745,308 L745,334"/>
+  <!-- sessions before improvement -->
+  <rect class="feature" x="150" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="194" y="392" text-anchor="middle">task 1</text>
+  <rect class="chip" x="158" y="404" width="72" height="24" rx="12"/><text class="xs" x="194" y="420" text-anchor="middle">builds probe</text>
 
-  <rect class="node" x="550" y="404" width="390" height="44" rx="8"/>
-  <text class="t" x="566" y="423">measures every task and every sensor version</text>
-  <text class="s" x="566" y="440">cost to reach an approved solution · its rating</text>
-  <rect class="node" x="550" y="458" width="390" height="44" rx="8"/>
-  <text class="t" x="566" y="477">keeps the version that did best for least</text>
-  <text class="s" x="566" y="494">gives it checks, wires it into the turn, prunes what never fires</text>
+  <rect class="feature" x="250" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="294" y="392" text-anchor="middle">task 2</text>
+  <rect class="chip" x="258" y="404" width="72" height="24" rx="12"/><text class="xs" x="294" y="420" text-anchor="middle">builds probe</text>
 
-  <!-- 5 The harness on the base -->
-  <rect class="base" x="40" y="548" width="920" height="112" rx="12"/>
-  <circle class="badge" cx="66" cy="576" r="12"/><text class="badgetext" x="66" y="581" text-anchor="middle">5</text>
-  <text class="h" x="88" y="582">The harness — a folder the base keeps every version of</text>
-  <rect class="node" x="60" y="596" width="430" height="48" rx="8"/>
-  <text class="t" x="76" y="616">turn.ts · tools/ · notes · settings</text>
-  <text class="s" x="76" y="634">anything may change; loaded again every turn</text>
-  <rect class="node" x="510" y="596" width="430" height="48" rx="8"/>
-  <text class="t" x="526" y="616">a base loop the harness cannot break</text>
-  <text class="s" x="526" y="634">versions in git — it can always see its earlier selves and go back</text>
+  <rect class="feature" x="350" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="394" y="392" text-anchor="middle">task 3</text>
+  <rect class="chip" x="358" y="404" width="72" height="24" rx="12"/><text class="xs" x="394" y="420" text-anchor="middle">builds check</text>
 
-  <path class="plat" d="M745,512 L745,546"/>
-  <text class="label" x="755" y="534">writes a new version</text>
-  <path class="arrow" d="M255,546 L255,434"/>
-  <text class="label" x="265" y="494">the next sessions run on it</text>
+  <rect class="feature" x="450" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="494" y="392" text-anchor="middle">task 4</text>
+  <rect class="chip" x="458" y="404" width="72" height="24" rx="12"/><text class="xs" x="494" y="420" text-anchor="middle">builds probe</text>
+
+  <rect class="feature" x="550" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="594" y="392" text-anchor="middle">task 5</text>
+  <rect class="chip" x="558" y="404" width="72" height="24" rx="12"/><text class="xs" x="594" y="420" text-anchor="middle">builds probe</text>
+
+  <!-- the ledger -->
+  <rect class="node" x="150" y="472" width="488" height="96" rx="8"/>
+  <text class="s" x="164" y="494"><tspan class="t">probe</tspan> — built in 4 sessions, used 31 times, caught 6 problems</text>
+  <text class="s" x="164" y="513">task 2's version answers in 90 characters, task 5's in 3,900</text>
+  <text class="s" x="164" y="535"><tspan class="t">check</tspan> — built once, never used</text>
+  <text class="s" x="164" y="556"><tspan class="t">tasks</tspan> — $0.025 to reach an approved solution, rated 4 of 5</text>
+  <path class="arrow" d="M394,444 L394,470"/>
+  <text class="label" x="404" y="462">every turn recorded</text>
+
+  <!-- improvement -->
+  <rect class="platform" x="664" y="372" width="126" height="196" rx="8"/>
+  <text class="t" x="727" y="394" text-anchor="middle">improvement</text>
+  <text class="s" x="676" y="418">compares the</text>
+  <text class="s" x="676" y="434">versions; keeps</text>
+  <text class="s" x="676" y="450">task 2's probe,</text>
+  <text class="s" x="676" y="466">gives it a test,</text>
+  <text class="s" x="676" y="482">calls it from</text>
+  <text class="s" x="676" y="498">turn.ts before</text>
+  <text class="s" x="676" y="514">handing in;</text>
+  <text class="s" x="676" y="536">drops check:</text>
+  <text class="s" x="676" y="552">it never fired</text>
+  <path class="arrow" d="M638,520 L662,520"/>
+
+  <!-- sessions after improvement -->
+  <rect class="feature" x="802" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="846" y="392" text-anchor="middle">task 6</text>
+  <rect class="chipp" x="810" y="404" width="72" height="24" rx="12"/><text class="xs" x="846" y="420" text-anchor="middle">probe runs</text>
+
+  <rect class="feature" x="902" y="372" width="88" height="72" rx="8"/>
+  <text class="t" x="946" y="392" text-anchor="middle">task 7</text>
+  <rect class="chipp" x="910" y="404" width="72" height="24" rx="12"/><text class="xs" x="946" y="420" text-anchor="middle">probe runs</text>
+  <text class="s" x="802" y="470">start with the probe;</text>
+  <text class="s" x="802" y="488">turn.ts runs it before</text>
+  <text class="s" x="802" y="506">every hand-in</text>
+
+  <!-- harness versions -->
+  <rect class="base" x="150" y="588" width="488" height="56" rx="8"/>
+  <text class="t" x="164" y="611">harness v1 — base tools only</text>
+  <text class="s" x="164" y="630">each session starts from it; what a session builds stays its own</text>
+  <rect class="platform" x="802" y="588" width="188" height="56" rx="8"/>
+  <text class="t" x="814" y="611">harness v2</text>
+  <text class="code" x="814" y="630">tools/probe.ts + test</text>
+  <path class="plat" d="M727,568 C727,600 760,616 800,616"/>
+  <text class="label" x="720" y="596" text-anchor="end">writes v2</text>
+
+  <!-- cost per approved task (illustration) -->
+  <line x1="150" y1="756" x2="990" y2="756" stroke="#d0d7de" stroke-width="1"/>
+  <rect class="bar" x="176" y="696" width="36" height="60"/><text class="xs" x="194" y="690" text-anchor="middle">$.025</text>
+  <rect class="bar" x="276" y="691" width="36" height="65"/><text class="xs" x="294" y="685" text-anchor="middle">$.027</text>
+  <rect class="bar" x="376" y="703" width="36" height="53"/><text class="xs" x="394" y="697" text-anchor="middle">$.022</text>
+  <rect class="bar" x="476" y="694" width="36" height="62"/><text class="xs" x="494" y="688" text-anchor="middle">$.026</text>
+  <rect class="bar" x="576" y="698" width="36" height="58"/><text class="xs" x="594" y="692" text-anchor="middle">$.024</text>
+  <rect class="barp" x="828" y="732" width="36" height="24"/><text class="xs" x="846" y="726" text-anchor="middle">$.010</text>
+  <rect class="barp" x="928" y="734" width="36" height="22"/><text class="xs" x="946" y="728" text-anchor="middle">$.009</text>
+  <text class="xs" x="194" y="772" text-anchor="middle">rated 4</text>
+  <text class="xs" x="294" y="772" text-anchor="middle">rated 4</text>
+  <text class="xs" x="394" y="772" text-anchor="middle">rated 3</text>
+  <text class="xs" x="494" y="772" text-anchor="middle">rated 4</text>
+  <text class="xs" x="594" y="772" text-anchor="middle">rated 4</text>
+  <text class="xs" x="846" y="772" text-anchor="middle">rated 5</text>
+  <text class="xs" x="946" y="772" text-anchor="middle">rated 4</text>
+  <text class="xs" x="727" y="740" text-anchor="middle">illustration</text>
 </svg>
