@@ -1,0 +1,14 @@
+{
+  "name": "idle-agent-harness",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A tiny harness that closes its own loops and specialises itself: the base owns the loop, the harness owns the turn. Research, not a product.",
+  "type": "module",
+  "bin": {
+    "idle-harness": "bin/idle-harness.mjs"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "license": "Apache-2.0"
+}

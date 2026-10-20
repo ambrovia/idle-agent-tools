@@ -1,0 +1,1 @@
+Write the answer to question qNN to `answers/qNN.json` as `{ "answer": … }`: a number for amounts, counts and percentages, a string for a name or code, a list or an object where the question asks for one.

@@ -16,3 +16,6 @@
 node_modules/
 *.log
 .DS_Store
+
+# Results of eval runs (idle-harness/evals/run.ts), kept locally
+idle-harness/evals/results/

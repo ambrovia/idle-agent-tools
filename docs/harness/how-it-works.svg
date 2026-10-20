@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-labelledby="title desc">
+  <title id="title">How idle-harness works</title>
+  <desc id="desc">Two loops on an unbreakable base. Working sessions do the work and build sensors and simulations as they go. Improvement sessions read what each task cost to reach an approved solution and how it was rated, and formalise the best sensors and simulations into the harness. The human approves and rates; idle-tasks keeps the record of work.</desc>
+  <style>
+    .bg { fill: #ffffff; }
+    .box { fill: #f6f8fa; stroke: #d0d7de; stroke-width: 1.5; }
+    .feature { fill: #ddf4ff; stroke: #54aeff; stroke-width: 1.5; }
+    .platform { fill: #fbefff; stroke: #c297ff; stroke-width: 1.5; }
+    .human { fill: #fff8c5; stroke: #d4a72c; stroke-width: 1.5; }
+    .base { fill: #eaeef2; stroke: #8c959f; stroke-width: 1.5; }
+    .inner { fill: #ffffff; stroke: #d0d7de; stroke-width: 1.2; }
+    .h { font-size: 17px; font-weight: 650; fill: #1f2328; }
+    .t { font-size: 13px; fill: #1f2328; }
+    .s { font-size: 12px; fill: #59636e; }
+    .arrow { stroke: #59636e; stroke-width: 1.6; fill: none; marker-end: url(#head); }
+    .loop { stroke: #0969da; stroke-width: 2; fill: none; marker-end: url(#headblue); }
+    .loopp { stroke: #8250df; stroke-width: 2; fill: none; marker-end: url(#headpurple); }
+    #head path { fill: #59636e; } #headblue path { fill: #0969da; } #headpurple path { fill: #8250df; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .box { fill: #161b22; stroke: #30363d; }
+      .feature { fill: #0c2d6b; stroke: #388bfd; }
+      .platform { fill: #2b1a4a; stroke: #a371f7; }
+      .human { fill: #3b2e00; stroke: #bb8009; }
+      .base { fill: #21262d; stroke: #6e7681; }
+      .inner { fill: #0d1117; stroke: #30363d; }
+      .h, .t { fill: #e6edf3; } .s { fill: #9198a1; }
+      .arrow { stroke: #9198a1; } #head path { fill: #9198a1; }
+      .loop { stroke: #4493f8; } #headblue path { fill: #4493f8; }
+      .loopp { stroke: #ab7df8; } #headpurple path { fill: #ab7df8; }
+    }
+  </style>
+  <defs>
+    <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="headblue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="headpurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="960" height="640"/>
+
+  <!-- The human and the record of work -->
+  <rect class="human" x="40" y="24" width="400" height="88" rx="10"/>
+  <text class="h" x="60" y="54">The human</text>
+  <text class="t" x="60" y="78">approves a solution and rates it 1–5,</text>
+  <text class="t" x="60" y="97">in the chat, the CLI or a pull request. Nothing waits.</text>
+
+  <rect class="box" x="520" y="24" width="400" height="88" rx="10"/>
+  <text class="h" x="540" y="54">idle-tasks — the record of work</text>
+  <text class="t" x="540" y="78">tasks, their history, approvals and ratings,</text>
+  <text class="t" x="540" y="97">retrospectives</text>
+  <path class="arrow" d="M440,68 L518,68"/>
+
+  <!-- Feature loop -->
+  <rect class="feature" x="40" y="144" width="420" height="292" rx="12"/>
+  <text class="h" x="60" y="174">Feature loop — a working session</text>
+  <text class="s" x="60" y="194">does a task; builds what it needs to see the result</text>
+
+  <rect class="inner" x="60" y="212" width="170" height="60" rx="8"/>
+  <text class="t" x="76" y="237">the turn</text>
+  <text class="s" x="76" y="257">the LLM as controller</text>
+
+  <rect class="inner" x="270" y="212" width="170" height="60" rx="8"/>
+  <text class="t" x="286" y="237">sensors, simulations</text>
+  <text class="s" x="286" y="257">checks, probes, fakes</text>
+
+  <rect class="inner" x="165" y="304" width="170" height="52" rx="8"/>
+  <text class="t" x="181" y="327">the work</text>
+  <text class="s" x="181" y="345">project, service, world</text>
+
+  <path class="loop" d="M145,272 C145,300 155,320 163,326"/>
+  <path class="loop" d="M337,330 C380,320 380,292 360,274"/>
+  <path class="loop" d="M268,236 L232,236"/>
+  <text class="s" x="60" y="384">ends with a retrospective, asks the human for review;</text>
+  <text class="s" x="60" y="402">what it builds stays its own, a proposal for the platform</text>
+  <text class="s" x="60" y="420">loop to take up</text>
+
+  <!-- Platform loop -->
+  <rect class="platform" x="500" y="144" width="420" height="292" rx="12"/>
+  <text class="h" x="520" y="174">Platform loop — improvement</text>
+  <text class="s" x="520" y="194">its own session, across many tasks, in small steps</text>
+
+  <rect class="inner" x="520" y="212" width="380" height="74" rx="8"/>
+  <text class="t" x="536" y="236">analytics, read from every record</text>
+  <text class="s" x="536" y="256">cost to an approved solution · its rated quality</text>
+  <text class="s" x="536" y="274">the same per version of every sensor and simulation</text>
+
+  <rect class="inner" x="520" y="304" width="380" height="74" rx="8"/>
+  <text class="t" x="536" y="328">select and formalise</text>
+  <text class="s" x="536" y="348">keep the version that did the job best for least,</text>
+  <text class="s" x="536" y="366">give it checks, wire it into the turn; prune what never fires</text>
+  <path class="loopp" d="M710,286 L710,302"/>
+  <text class="s" x="520" y="402">each change declares what it is for; the next tasks</text>
+  <text class="s" x="520" y="420">show whether it was better, faster or cheaper</text>
+
+  <!-- Between the loops -->
+  <path class="arrow" d="M460,250 C480,250 490,250 498,250"/>
+  <text class="s" x="452" y="236" text-anchor="middle">records</text>
+
+  <!-- From idle-tasks into analytics, and the human's review -->
+  <path class="arrow" d="M720,112 L720,210"/>
+  <path class="arrow" d="M240,112 L240,142"/>
+  <text class="s" x="250" y="132">review</text>
+
+  <!-- Base -->
+  <rect class="base" x="40" y="476" width="880" height="140" rx="12"/>
+  <text class="h" x="900" y="506" text-anchor="end">The base — the loop the harness cannot break</text>
+  <rect class="inner" x="60" y="522" width="250" height="76" rx="8"/>
+  <text class="t" x="76" y="546">the harness, a folder</text>
+  <text class="s" x="76" y="566">turn.ts, tools/, notes, settings —</text>
+  <text class="s" x="76" y="584">loaded again every turn</text>
+  <rect class="inner" x="330" y="522" width="270" height="76" rx="8"/>
+  <text class="t" x="346" y="546">versions in git</text>
+  <text class="s" x="346" y="566">every change kept; it can always see</text>
+  <text class="s" x="346" y="584">its earlier selves and go back</text>
+  <rect class="inner" x="620" y="522" width="280" height="76" rx="8"/>
+  <text class="t" x="636" y="546">session records</text>
+  <text class="s" x="636" y="566">every turn, call, cost and token, appended;</text>
+  <text class="s" x="636" y="584">compaction never loses them</text>
+
+  <path class="arrow" d="M150,520 L150,438"/>
+  <text class="s" x="160" y="462">runs</text>
+  <path class="loopp" d="M600,438 C600,472 300,462 290,520"/>
+  <text class="s" x="330" y="452">a new version of the harness</text>
+</svg>
